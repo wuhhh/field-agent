@@ -58,7 +58,7 @@ class GeneratorController extends Controller
      * @var bool Whether to confirm destructive operations
      */
     public $confirm = false;
-    
+
     /**
      * @var bool Whether to force operations without confirmation
      */
@@ -239,7 +239,7 @@ class GeneratorController extends Controller
         } catch (\Exception $e) {
             // Catch any unexpected exceptions and record partial operation
             $this->stderr("\n✗ Unexpected exception during generation: " . $e->getMessage() . "\n", Console::FG_RED);
-            
+
             if (!$operationId && (!empty($createdFields) || !empty($failedFields) || !empty($createdEntryTypes) || !empty($failedEntryTypes) || !empty($createdSections) || !empty($failedSections))) {
                 $operationId = $plugin->rollbackService->recordOperation(
                     $type,
@@ -306,7 +306,7 @@ class GeneratorController extends Controller
         if ($actionID === 'prune-all') {
             $options[] = 'confirm';
         }
-        
+
         // Add force option for rollback-all action
         if ($actionID === 'rollback-all') {
             $options[] = 'force';
@@ -347,17 +347,17 @@ class GeneratorController extends Controller
 
         try {
             $plugin = Plugin::getInstance();
-            
+
             // First try the new context-aware operations system
             try {
                 $this->stdout("Using context-aware operations system...\n", Console::FG_CYAN);
                 $operationsData = $plugin->llmOperationsService->generateOperationsFromPrompt($prompt, $provider, $this->debug);
-                
+
                 if ($this->debug) {
                     $this->stdout("\n=== GENERATED OPERATIONS ===\n", Console::FG_YELLOW);
                     $this->stdout(json_encode($operationsData, JSON_PRETTY_PRINT) . "\n", Console::FG_GREY);
                 }
-                
+
                 // Store the operations for reference
                 $configPath = $plugin->fieldGeneratorService->storeConfig('operations_' . date('Y-m-d_H-i-s'), $operationsData);
                 $this->stdout("✓ Operations config stored at: $configPath\n", Console::FG_CYAN);
@@ -375,14 +375,14 @@ class GeneratorController extends Controller
 
                 // Display results
                 $this->displayOperationResults($results);
-                
+
                 // Extract successful and failed operations for recording
                 $allSucceeded = true;
                 $createdFields = [];
                 $createdEntryTypes = [];
                 $createdSections = [];
                 $failedOperations = [];
-                
+
                 foreach ($results as $result) {
                     if (!$result['success']) {
                         $allSucceeded = false;
@@ -401,32 +401,31 @@ class GeneratorController extends Controller
                         }
                     }
                 }
-                
+
                 // ALWAYS record operation if anything was created (successful or failed)
                 if (!empty($createdFields) || !empty($createdEntryTypes) || !empty($createdSections) || !empty($failedOperations)) {
                     $description = $allSucceeded ? "Smart prompt: $prompt" : "PARTIAL: Smart prompt with failures: $prompt";
-                    $operationId = 'ops_' . date('Ymd_His') . '_' . substr(md5($prompt), 0, 6);
-                    
-                    $plugin->rollbackService->recordOperation(
-                        'smart-prompt', 
-                        $prompt, 
-                        $createdFields, 
+
+                    $operationId = $plugin->rollbackService->recordOperation(
+                        'smart-prompt',
+                        $prompt,
+                        $createdFields,
                         [], // deletedFields
-                        $createdEntryTypes, 
+                        $createdEntryTypes,
                         [], // deletedEntryTypes
-                        $createdSections, 
+                        $createdSections,
                         [], // deletedSections
                         $description
                     );
-                    
+
                     $this->stdout("\n📋 Operation recorded with ID: $operationId\n", Console::FG_CYAN);
                     $this->stdout("   Use 'field-agent/generator/rollback $operationId' to undo this operation.\n");
-                    
+
                     if (!$allSucceeded) {
                         $this->stdout("   ⚠ Partial operation recorded - successful items can be rolled back\n", Console::FG_YELLOW);
                     }
                 }
-                
+
                 if ($allSucceeded) {
                     $this->stdout("\nDone! Run 'ddev craft up' to apply changes.\n", Console::FG_GREEN);
                     return ExitCode::OK;
@@ -436,12 +435,12 @@ class GeneratorController extends Controller
                     $this->stdout("Note: Successful operations have been recorded and can be rolled back if needed.\n", Console::FG_CYAN);
                     return ExitCode::UNSPECIFIED_ERROR;
                 }
-                
+
             } catch (\Exception $e) {
                 $this->stdout("⚠ Operations system failed: {$e->getMessage()}\n", Console::FG_YELLOW);
                 $this->stdout("Falling back to legacy create-only system...\n", Console::FG_YELLOW);
             }
-            
+
             // Fallback to old system if operations failed
             $this->stdout("Using legacy create-only system...\n", Console::FG_CYAN);
             $configData = $plugin->llmIntegrationService->generateFromPrompt($prompt, $provider, $this->debug);
@@ -1067,12 +1066,12 @@ INSTRUCTIONS;
         }
 
         $this->stdout("Found " . count($activeOperations) . " active operations to rollback:\n\n", Console::FG_YELLOW);
-        
+
         // Show what will be rolled back
         foreach (array_slice($activeOperations, 0, 5) as $operation) {
             $this->stdout("  - {$operation->id} ({$operation->type}) - " . date('Y-m-d H:i:s', $operation->timestamp) . "\n");
         }
-        
+
         if (count($activeOperations) > 5) {
             $remaining = count($activeOperations) - 5;
             $this->stdout("  ... and {$remaining} more operations\n");
@@ -1082,11 +1081,11 @@ INSTRUCTIONS;
         if (!$this->force) {
             $this->stdout("\n⚠ WARNING: This will rollback ALL active operations!\n", Console::FG_RED);
             $this->stdout("This action cannot be undone. Are you sure? [y/N]: ");
-            
+
             $handle = fopen("php://stdin", "r");
             $response = trim(fgets($handle));
             fclose($handle);
-            
+
             if (!in_array(strtolower($response), ['y', 'yes'])) {
                 $this->stdout("Rollback cancelled.\n", Console::FG_YELLOW);
                 return ExitCode::OK;
@@ -1121,8 +1120,8 @@ INSTRUCTIONS;
                     }
                 }
 
-                $deletedCount = count($results['deleted']['sections'] ?? []) + 
-                               count($results['deleted']['entryTypes'] ?? []) + 
+                $deletedCount = count($results['deleted']['sections'] ?? []) +
+                               count($results['deleted']['entryTypes'] ?? []) +
                                count($results['deleted']['fields'] ?? []);
 
                 if ($deletedCount > 0) {
@@ -1152,8 +1151,8 @@ INSTRUCTIONS;
         }
 
         // Display item counts
-        $totalDeleted = count($totalResults['deleted']['sections']) + 
-                       count($totalResults['deleted']['entryTypes']) + 
+        $totalDeleted = count($totalResults['deleted']['sections']) +
+                       count($totalResults['deleted']['entryTypes']) +
                        count($totalResults['deleted']['fields']);
 
         if ($totalDeleted > 0) {
@@ -1163,8 +1162,8 @@ INSTRUCTIONS;
             $this->stdout("  - Fields: " . count($totalResults['deleted']['fields']) . "\n");
         }
 
-        $totalProtected = count($totalResults['protected']['sections']) + 
-                         count($totalResults['protected']['entryTypes']) + 
+        $totalProtected = count($totalResults['protected']['sections']) +
+                         count($totalResults['protected']['entryTypes']) +
                          count($totalResults['protected']['fields']);
 
         if ($totalProtected > 0) {
@@ -1291,7 +1290,7 @@ INSTRUCTIONS;
         $this->stdout("  field-agent/generator/prompt \"Create a blog\" openai --dry-run\n");
         $this->stdout("  field-agent/generator/prompt \"Create a team page\" anthropic --debug --dry-run\n");
         $this->stdout("  field-agent/generator/test-llm openai --debug\n");
-        
+
         $this->stdout("\n💡 Important: When using options like --debug, --dry-run, or --output,\n", Console::FG_CYAN);
         $this->stdout("   always use the FULL action path (with slashes) for proper routing:\n");
         $this->stdout("   ✓ field-agent/generator/prompt \"text\" --debug\n");
@@ -1315,6 +1314,8 @@ INSTRUCTIONS;
         $this->stdout("  Selection: dropdown, radio_buttons, checkboxes, multi_select, country\n");
         $this->stdout("  Date/Time: date, time\n");
         $this->stdout("  UI: color, lightswitch, button_group, icon\n");
+        $this->stdout("  Relational: entries, users\n");
+        $this->stdout("  Complex: matrix\n");
         // $this->stdout("  Relational: categories, entries, tags, users\n"); // Not implemented yet
         // $this->stdout("  Complex: table, matrix\n"); // Not implemented yet
 
@@ -1899,14 +1900,14 @@ INSTRUCTIONS;
 
         try {
             $projectConfig = Craft::$app->getProjectConfig();
-            
+
             // Rebuild project config from database state
             $projectConfig->rebuild();
-            
+
             $this->stdout("✓ Project config rebuilt successfully!\n", Console::FG_GREEN);
             $this->stdout("\nThis should resolve any orphaned fields showing in the Control Panel.\n");
             $this->stdout("If fields still appear, they may have actual content and need manual deletion.\n");
-            
+
         } catch (\Exception $e) {
             $this->stderr("✗ Failed to sync project config: {$e->getMessage()}\n", Console::FG_RED);
             return ExitCode::UNSPECIFIED_ERROR;
@@ -2091,17 +2092,17 @@ INSTRUCTIONS;
         $this->stdout("Smart field modification with context awareness...\n", Console::FG_CYAN);
         $this->stdout("Prompt: $prompt\n", Console::FG_GREY);
         $this->stdout("Provider: $provider\n", Console::FG_GREY);
-        
+
         if ($this->debug) {
             $this->stdout("🐛 DEBUG MODE ENABLED - Full request/response details will be shown\n", Console::FG_YELLOW);
         }
 
         try {
             $plugin = Plugin::getInstance();
-            
+
             // Generate operations using context-aware LLM service
             $operationsData = $plugin->llmOperationsService->generateOperationsFromPrompt($prompt, $provider, $this->debug);
-            
+
             if ($this->debug) {
                 $this->stdout("\n=== GENERATED OPERATIONS ===\n", Console::FG_YELLOW);
                 $this->stdout(json_encode($operationsData, JSON_PRETTY_PRINT) . "\n", Console::FG_GREY);
@@ -2130,7 +2131,7 @@ INSTRUCTIONS;
             $createdEntryTypes = [];
             $createdSections = [];
             $failedOperations = [];
-            
+
             foreach ($results as $result) {
                 if (!$result['success']) {
                     $allSucceeded = false;
@@ -2149,27 +2150,26 @@ INSTRUCTIONS;
                     }
                 }
             }
-            
+
             // ALWAYS record operation if anything was created (successful or failed)
             if (!empty($createdFields) || !empty($createdEntryTypes) || !empty($createdSections) || !empty($failedOperations)) {
                 $description = $allSucceeded ? "Smart modification: $prompt" : "PARTIAL: Smart modification with failures: $prompt";
-                $operationId = 'ops_' . date('Ymd_His') . '_' . substr(md5($prompt), 0, 6);
-                
-                $plugin->rollbackService->recordOperation(
-                    'smart-modify', 
-                    $prompt, 
-                    $createdFields, 
+
+                $operationId = $plugin->rollbackService->recordOperation(
+                    'smart-modify',
+                    $prompt,
+                    $createdFields,
                     [], // deletedFields
-                    $createdEntryTypes, 
+                    $createdEntryTypes,
                     [], // deletedEntryTypes
-                    $createdSections, 
+                    $createdSections,
                     [], // deletedSections
                     $description
                 );
-                
+
                 $this->stdout("\n📋 Operation recorded with ID: $operationId\n", Console::FG_CYAN);
                 $this->stdout("   Use 'field-agent/generator/rollback $operationId' to undo this operation.\n");
-                
+
                 if (!$allSucceeded) {
                     $this->stdout("   ⚠ Partial operation recorded - successful items can be rolled back\n", Console::FG_YELLOW);
                 }
@@ -2201,19 +2201,19 @@ INSTRUCTIONS;
         }
 
         $plugin = Plugin::getInstance();
-        
+
         $this->stdout("Executing operations from config...\n", Console::FG_CYAN);
         $results = $plugin->operationsExecutorService->executeOperations($configData);
-        
+
         $this->displayOperationResults($results);
-        
+
         // Extract successful and failed operations for recording
         $allSucceeded = true;
         $createdFields = [];
         $createdEntryTypes = [];
         $createdSections = [];
         $failedOperations = [];
-        
+
         foreach ($results as $result) {
             if (!$result['success']) {
                 $allSucceeded = false;
@@ -2232,33 +2232,32 @@ INSTRUCTIONS;
                 }
             }
         }
-        
+
         // ALWAYS record operation if anything was created (successful or failed)
         if (!empty($createdFields) || !empty($createdEntryTypes) || !empty($createdSections) || !empty($failedOperations)) {
             $configName = $configData['name'] ?? 'Operations';
             $description = $allSucceeded ? "Execute operations: $configName" : "PARTIAL: Execute operations with failures: $configName";
-            $operationId = 'ops_' . date('Ymd_His') . '_' . substr(md5($config), 0, 6);
-            
-            $plugin->rollbackService->recordOperation(
-                'execute-operations', 
-                $config, 
-                $createdFields, 
+
+            $operationId = $plugin->rollbackService->recordOperation(
+                'execute-operations',
+                $config,
+                $createdFields,
                 [], // deletedFields
-                $createdEntryTypes, 
+                $createdEntryTypes,
                 [], // deletedEntryTypes
-                $createdSections, 
+                $createdSections,
                 [], // deletedSections
                 $description
             );
-            
+
             $this->stdout("\n📋 Operation recorded with ID: $operationId\n", Console::FG_CYAN);
             $this->stdout("   Use 'field-agent/generator/rollback $operationId' to undo this operation.\n");
-            
+
             if (!$allSucceeded) {
                 $this->stdout("   ⚠ Partial operation recorded - successful items can be rolled back\n", Console::FG_YELLOW);
             }
         }
-        
+
         if ($allSucceeded) {
             $this->stdout("\nDone! Run 'ddev craft up' to apply changes.\n", Console::FG_GREEN);
             return ExitCode::OK;
@@ -2341,7 +2340,7 @@ INSTRUCTIONS;
                         $section['handle'] ?? 'unknown',
                         $section['type'] ?? 'unknown'
                     ));
-                    
+
                     // Show entry types for this section
                     if (!empty($section['entryTypes'])) {
                         foreach ($section['entryTypes'] as $entryType) {
@@ -2350,7 +2349,7 @@ INSTRUCTIONS;
                                 $entryType['name'] ?? 'Unknown',
                                 $entryType['handle'] ?? 'unknown'
                             ));
-                            
+
                             // Show fields for this entry type
                             if (!empty($entryType['fieldLayoutFields'])) {
                                 $this->stdout("       Fields: ");
@@ -2366,7 +2365,7 @@ INSTRUCTIONS;
 
             // Test individual tools
             $this->stdout("\n🔧 Testing Individual Tools:\n", Console::FG_YELLOW);
-            
+
             $tools = $discoveryService->getAvailableTools();
             foreach ($tools as $toolName => $toolInfo) {
                 $this->stdout(sprintf(
@@ -2377,7 +2376,7 @@ INSTRUCTIONS;
             }
 
             $this->stdout("\n✓ Discovery service test completed successfully!\n", Console::FG_GREEN);
-            
+
         } catch (\Exception $e) {
             $this->stdout("\n✗ Discovery service test failed:\n", Console::FG_RED);
             $this->stdout($e->getMessage() . "\n");

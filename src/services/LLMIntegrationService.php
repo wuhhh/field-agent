@@ -674,7 +674,7 @@ PROMPT;
     private function logDebug(string $message): void
     {
         // Log to Craft's log system (storage/logs/web.log)
-        Craft::info($message, 'field-generator-llm');
+        Craft::info($message, 'field-agent-llm');
 
         // Also echo to console if in CLI mode for immediate visibility
         if (Craft::$app instanceof \craft\console\Application) {

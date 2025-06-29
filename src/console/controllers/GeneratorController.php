@@ -160,7 +160,7 @@ class GeneratorController extends Controller
                                 "PARTIAL: Exception during field creation"
                             );
                             $this->stdout("\n⚠️  Partial operation recorded with ID: $operationId (due to exception)\n", Console::FG_YELLOW);
-                            $this->stdout("   Use 'field-generator/generator/rollback $operationId' to clean up created fields.\n", Console::FG_YELLOW);
+                            $this->stdout("   Use 'field-agent/generator/rollback $operationId' to clean up created fields.\n", Console::FG_YELLOW);
                         }
 
                         // Continue processing other fields
@@ -253,7 +253,7 @@ class GeneratorController extends Controller
                     "PARTIAL: Unexpected exception - " . $e->getMessage()
                 );
                 $this->stdout("\n⚠️  Partial operation recorded with ID: $operationId (due to unexpected exception)\n", Console::FG_YELLOW);
-                $this->stdout("   Use 'field-generator/generator/rollback $operationId' to clean up created items.\n", Console::FG_YELLOW);
+                $this->stdout("   Use 'field-agent/generator/rollback $operationId' to clean up created items.\n", Console::FG_YELLOW);
             }
         }
 
@@ -272,7 +272,7 @@ class GeneratorController extends Controller
 
             if (!empty($createdFields) || !empty($createdEntryTypes) || !empty($createdSections)) {
                 $this->stdout("\n📋 Operation recorded with ID: $operationId\n", Console::FG_CYAN);
-                $this->stdout("   Use 'field-generator/generator/rollback $operationId' to undo this operation.\n", Console::FG_CYAN);
+                $this->stdout("   Use 'field-agent/generator/rollback $operationId' to undo this operation.\n", Console::FG_CYAN);
             }
         } elseif ($operationId && (!empty($createdEntryTypes) || !empty($createdSections))) {
             // Update the existing operation with any additional items created after the initial recording
@@ -365,7 +365,7 @@ class GeneratorController extends Controller
                 if ($this->dryRun) {
                     $this->stdout("\n🔍 DRY RUN MODE - Operations generated but not executed\n", Console::FG_YELLOW);
                     $configName = pathinfo($configPath, PATHINFO_FILENAME);
-                    $this->stdout("Execute with: ddev craft field-generator/generator/execute-operations $configName\n");
+                    $this->stdout("Execute with: ddev craft field-agent/generator/execute-operations $configName\n");
                     return ExitCode::OK;
                 }
 
@@ -420,7 +420,7 @@ class GeneratorController extends Controller
                     );
                     
                     $this->stdout("\n📋 Operation recorded with ID: $operationId\n", Console::FG_CYAN);
-                    $this->stdout("   Use 'field-generator/generator/rollback $operationId' to undo this operation.\n");
+                    $this->stdout("   Use 'field-agent/generator/rollback $operationId' to undo this operation.\n");
                     
                     if (!$allSucceeded) {
                         $this->stdout("   ⚠ Partial operation recorded - successful items can be rolled back\n", Console::FG_YELLOW);
@@ -492,9 +492,9 @@ class GeneratorController extends Controller
                 $this->stdout("\n✅ Configuration generated successfully!\n", Console::FG_GREEN);
                 $this->stdout("\nTo create the fields, run:\n", Console::FG_CYAN);
                 if ($this->output) {
-                    $this->stdout("  ddev craft field-generator/generator/generate $outputPath\n");
+                    $this->stdout("  ddev craft field-agent/generator/generate $outputPath\n");
                 } else {
-                    $this->stdout("  ddev craft field-generator/generator/generate $configName\n");
+                    $this->stdout("  ddev craft field-agent/generator/generate $configName\n");
                 }
                 return ExitCode::OK;
             }
@@ -553,7 +553,7 @@ class GeneratorController extends Controller
             return ExitCode::OK;
         }
 
-        $this->stdout("\nUse 'field-generator/generator/generate <preset-key|filename>' to use a preset or config.\n", Console::FG_CYAN);
+        $this->stdout("\nUse 'field-agent/generator/generate <preset-key|filename>' to use a preset or config.\n", Console::FG_CYAN);
         return ExitCode::OK;
     }
 
@@ -1230,7 +1230,7 @@ INSTRUCTIONS;
             $this->stdout("\n");
         }
 
-        $this->stdout("Use 'field-generator/generator/rollback <operation-id>' to undo an operation.\n", Console::FG_CYAN);
+        $this->stdout("Use 'field-agent/generator/rollback <operation-id>' to undo an operation.\n", Console::FG_CYAN);
 
         return ExitCode::OK;
     }
@@ -1242,23 +1242,23 @@ INSTRUCTIONS;
     {
         $this->stdout("Field Generator Commands\n\n", Console::FG_YELLOW);
         $this->stdout("Available commands:\n");
-        $this->stdout("  field-generator/generator/generate <preset|config.json|stored-name>	Generate fields from preset, JSON config, or stored config\n");
-        $this->stdout("  field-generator/generator/prompt \"description\" [provider] [options]	Generate fields from natural language (AI/LLM)\n");
-        $this->stdout("  field-generator/generator/test-llm [provider] [--debug]             	Test AI/LLM API connection\n");
-        $this->stdout("  field-generator/generator/check-keys                               	Check API key configuration\n");
-        $this->stdout("  field-generator/generator/export-prompt                            	Export system prompt for manual testing\n");
-        $this->stdout("  field-generator/generator/list                                       	List built-in presets and stored configurations\n");
-        $this->stdout("  field-generator/generator/basic-fields                               	Generate basic field set\n");
-        $this->stdout("  field-generator/generator/operations                                 	List all operations (for rollback)\n");
-        $this->stdout("  field-generator/generator/rollback <operation-id>                    	Rollback a field generation operation\n");
-        $this->stdout("  field-generator/generator/rollback-last                              	Rollback the most recent operation\n");
-        $this->stdout("  field-generator/generator/rollback-all [--force]                     	Rollback all active operations\n");
-        $this->stdout("  field-generator/generator/sync-config                                	Fix orphaned fields by rebuilding project config\n");
-        $this->stdout("  field-generator/generator/stats                                      	Show storage statistics\n");
-        $this->stdout("  field-generator/generator/prune-rolled-back                          	Delete rolled back operations\n");
-        $this->stdout("  field-generator/generator/prune-configs [days]                       	Delete old config files (default: 7 days)\n");
-        $this->stdout("  field-generator/generator/prune-all --confirm=1                      	Delete ALL configs and operations\n");
-        $this->stdout("  field-generator/generator/help                                       	Show this help\n");
+        $this->stdout("  field-agent/generator/generate <preset|config.json|stored-name>	Generate fields from preset, JSON config, or stored config\n");
+        $this->stdout("  field-agent/generator/prompt \"description\" [provider] [options]	Generate fields from natural language (AI/LLM)\n");
+        $this->stdout("  field-agent/generator/test-llm [provider] [--debug]             	Test AI/LLM API connection\n");
+        $this->stdout("  field-agent/generator/check-keys                               	Check API key configuration\n");
+        $this->stdout("  field-agent/generator/export-prompt                            	Export system prompt for manual testing\n");
+        $this->stdout("  field-agent/generator/list                                       	List built-in presets and stored configurations\n");
+        $this->stdout("  field-agent/generator/basic-fields                               	Generate basic field set\n");
+        $this->stdout("  field-agent/generator/operations                                 	List all operations (for rollback)\n");
+        $this->stdout("  field-agent/generator/rollback <operation-id>                    	Rollback a field generation operation\n");
+        $this->stdout("  field-agent/generator/rollback-last                              	Rollback the most recent operation\n");
+        $this->stdout("  field-agent/generator/rollback-all [--force]                     	Rollback all active operations\n");
+        $this->stdout("  field-agent/generator/sync-config                                	Fix orphaned fields by rebuilding project config\n");
+        $this->stdout("  field-agent/generator/stats                                      	Show storage statistics\n");
+        $this->stdout("  field-agent/generator/prune-rolled-back                          	Delete rolled back operations\n");
+        $this->stdout("  field-agent/generator/prune-configs [days]                       	Delete old config files (default: 7 days)\n");
+        $this->stdout("  field-agent/generator/prune-all --confirm=1                      	Delete ALL configs and operations\n");
+        $this->stdout("  field-agent/generator/help                                       	Show this help\n");
 
         $this->stdout("\nAI/LLM Integration:\n", Console::FG_GREEN);
         $this->stdout("  Providers: anthropic (default), openai\n");
@@ -1277,25 +1277,25 @@ INSTRUCTIONS;
 
         $this->stdout("\nExamples:\n", Console::FG_YELLOW);
         $this->stdout("  # Standard workflow (config + create fields):\n");
-        $this->stdout("  field-generator/generator/prompt \"Create a product catalog\" anthropic\n");
+        $this->stdout("  field-agent/generator/prompt \"Create a product catalog\" anthropic\n");
 
         $this->stdout("\n  # Decoupled workflow (config only):\n");
-        $this->stdout("  field-generator/generator/prompt \"Create a blog\" --dry-run\n");
-        $this->stdout("  field-generator/generator/generate llm_2025-01-01_12-30-45\n");
+        $this->stdout("  field-agent/generator/prompt \"Create a blog\" --dry-run\n");
+        $this->stdout("  field-agent/generator/generate llm_2025-01-01_12-30-45\n");
 
         $this->stdout("\n  # Save to custom file:\n");
-        $this->stdout("  field-generator/generator/prompt \"Create a portfolio\" --output my-config.json\n");
-        $this->stdout("  field-generator/generator/generate my-config.json\n");
+        $this->stdout("  field-agent/generator/prompt \"Create a portfolio\" --output my-config.json\n");
+        $this->stdout("  field-agent/generator/generate my-config.json\n");
 
         $this->stdout("\n  # Provider options (anthropic is default):\n");
-        $this->stdout("  field-generator/generator/prompt \"Create a blog\" openai --dry-run\n");
-        $this->stdout("  field-generator/generator/prompt \"Create a team page\" anthropic --debug --dry-run\n");
-        $this->stdout("  field-generator/generator/test-llm openai --debug\n");
+        $this->stdout("  field-agent/generator/prompt \"Create a blog\" openai --dry-run\n");
+        $this->stdout("  field-agent/generator/prompt \"Create a team page\" anthropic --debug --dry-run\n");
+        $this->stdout("  field-agent/generator/test-llm openai --debug\n");
         
         $this->stdout("\n💡 Important: When using options like --debug, --dry-run, or --output,\n", Console::FG_CYAN);
         $this->stdout("   always use the FULL action path (with slashes) for proper routing:\n");
-        $this->stdout("   ✓ field-generator/generator/prompt \"text\" --debug\n");
-        $this->stdout("   ✗ field-generator/generator prompt \"text\" --debug (will fail)\n");
+        $this->stdout("   ✓ field-agent/generator/prompt \"text\" --debug\n");
+        $this->stdout("   ✗ field-agent/generator prompt \"text\" --debug (will fail)\n");
 
         $this->stdout("\nBuilt-in presets:\n", Console::FG_GREEN);
         $presets = $this->listBuiltInPresets();
@@ -1389,7 +1389,7 @@ INSTRUCTIONS;
         }
 
         $this->stderr("Config not found: $config\n", Console::FG_RED);
-        $this->stderr("Use 'field-generator/generator/list' to see available presets and configs.\n");
+        $this->stderr("Use 'field-agent/generator/list' to see available presets and configs.\n");
         return null;
     }
 
@@ -2049,7 +2049,7 @@ INSTRUCTIONS;
         if (!$this->confirm) {
             $this->stdout("WARNING: This will delete ALL configs and operations!\n", Console::FG_RED);
             $this->stdout("Run with --confirm=1 to proceed.\n\n");
-            $this->stdout("Example: ddev craft field-generator/generator/prune-all --confirm=1\n");
+            $this->stdout("Example: ddev craft field-agent/generator/prune-all --confirm=1\n");
             return ExitCode::UNSPECIFIED_ERROR;
         }
 
@@ -2113,7 +2113,7 @@ INSTRUCTIONS;
 
             if ($this->dryRun) {
                 $this->stdout("\n🔍 DRY RUN MODE - Operations generated but not executed\n", Console::FG_YELLOW);
-                $this->stdout("Execute with: ddev craft field-generator/generator/execute-operations " . basename($configPath) . "\n");
+                $this->stdout("Execute with: ddev craft field-agent/generator/execute-operations " . basename($configPath) . "\n");
                 return ExitCode::OK;
             }
 
@@ -2168,7 +2168,7 @@ INSTRUCTIONS;
                 );
                 
                 $this->stdout("\n📋 Operation recorded with ID: $operationId\n", Console::FG_CYAN);
-                $this->stdout("   Use 'field-generator/generator/rollback $operationId' to undo this operation.\n");
+                $this->stdout("   Use 'field-agent/generator/rollback $operationId' to undo this operation.\n");
                 
                 if (!$allSucceeded) {
                     $this->stdout("   ⚠ Partial operation recorded - successful items can be rolled back\n", Console::FG_YELLOW);
@@ -2252,7 +2252,7 @@ INSTRUCTIONS;
             );
             
             $this->stdout("\n📋 Operation recorded with ID: $operationId\n", Console::FG_CYAN);
-            $this->stdout("   Use 'field-generator/generator/rollback $operationId' to undo this operation.\n");
+            $this->stdout("   Use 'field-agent/generator/rollback $operationId' to undo this operation.\n");
             
             if (!$allSucceeded) {
                 $this->stdout("   ⚠ Partial operation recorded - successful items can be rolled back\n", Console::FG_YELLOW);

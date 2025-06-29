@@ -331,7 +331,7 @@ PROMPT;
      */
     private function logDebug(string $message): void
     {
-        Craft::info("[field-generator-llm-operations] $message", __METHOD__);
+        Craft::info("[field-agent-llm-operations] $message", __METHOD__);
         echo "[DEBUG] $message\n";
     }
 }

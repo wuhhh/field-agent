@@ -630,41 +630,32 @@ PROMPT;
     }
 
     /**
-     * Get API key from environment or Craft config
+     * Get API key from Craft config system
      */
     private function getApiKey(string $keyName): ?string
     {
-        // Try environment variable first
-        $key = getenv($keyName);
+        // Map environment variable names to config keys
+        $configKeyMap = [
+            'ANTHROPIC_API_KEY' => 'anthropicApiKey',
+            'OPENAI_API_KEY' => 'openaiApiKey',
+        ];
+
+        $configKey = $configKeyMap[$keyName] ?? null;
+        if (!$configKey) {
+            $this->logDebug("No config mapping found for: $keyName");
+            return null;
+        }
+
+        // Get from Craft config system
+        $config = Craft::$app->getConfig()->getConfigFromFile('field-agent');
+        $key = $config[$configKey] ?? null;
+
         if ($key) {
-            $this->logDebug("API key found via getenv()");
+            $this->logDebug("API key found via Craft config system");
             return $key;
         }
 
-        // Try $_ENV superglobal
-        if (isset($_ENV[$keyName])) {
-            $this->logDebug("API key found via \$_ENV");
-            return $_ENV[$keyName];
-        }
-
-        // Try Craft config
-        $key = Craft::parseEnv('$' . $keyName);
-        if ($key && $key !== '$' . $keyName) {
-            $this->logDebug("API key found via Craft::parseEnv()");
-            return $key;
-        }
-
-        // Try plugin settings (you could add API keys to plugin settings)
-        $settings = Plugin::getInstance()->getSettings();
-        $settingName = strtolower(str_replace('_', '', $keyName));
-        if (property_exists($settings, $settingName)) {
-            $this->logDebug("API key found via plugin settings");
-            return $settings->{$settingName};
-        }
-
-        $this->logDebug("API key not found for: $keyName");
-        $this->logDebug("Searched: getenv(), \$_ENV, Craft::parseEnv(), plugin settings");
-
+        $this->logDebug("API key not found for: $keyName (config key: $configKey)");
         return null;
     }
 

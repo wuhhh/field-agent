@@ -1,0 +1,105 @@
+{
+  "name": "Product Catalog",
+  "description": "Complete product catalog setup with fields for e-commerce",
+  "fields": [
+    {
+      "name": "Product Name",
+      "handle": "productName",
+      "field_type": "plain_text",
+      "instructions": "Enter the name of the product",
+      "required": true,
+      "searchable": true
+    },
+    {
+      "name": "Product Description",
+      "handle": "productDescription",
+      "field_type": "rich_text",
+      "instructions": "Detailed description of the product with formatting options",
+      "required": true,
+      "searchable": true
+    },
+    {
+      "name": "Product Price",
+      "handle": "productPrice",
+      "field_type": "number",
+      "instructions": "Price in USD",
+      "required": true,
+      "searchable": false,
+      "settings": {
+        "decimals": 2,
+        "min": 0.01,
+        "suffix": "USD"
+      }
+    },
+    {
+      "name": "Product Images",
+      "handle": "productImages",
+      "field_type": "image",
+      "instructions": "Upload product photos",
+      "required": false,
+      "searchable": false,
+      "settings": {
+        "maxRelations": 5
+      }
+    },
+    {
+      "name": "Product URL",
+      "handle": "productUrl",
+      "field_type": "url",
+      "instructions": "Link to product details or external site",
+      "required": false,
+      "searchable": false
+    },
+    {
+      "name": "Product Category",
+      "handle": "productCategory",
+      "field_type": "dropdown",
+      "instructions": "Select the product category",
+      "required": false,
+      "searchable": true,
+      "settings": {
+        "options": ["Electronics", "Clothing", "Home & Garden", "Books", "Sports", "Toys"]
+      }
+    },
+    {
+      "name": "Featured Product",
+      "handle": "featuredProduct",
+      "field_type": "lightswitch",
+      "instructions": "Mark as featured product for homepage display",
+      "required": false,
+      "searchable": false,
+      "settings": {
+        "default": false,
+        "onLabel": "Featured",
+        "offLabel": "Regular"
+      }
+    }
+  ],
+  "entryTypes": [
+    {
+      "name": "Product",
+      "handle": "product",
+      "hasTitleField": true,
+      "fields": [
+        {"handle": "productName", "required": true},
+        {"handle": "productDescription", "required": true},
+        {"handle": "productPrice", "required": true},
+        {"handle": "productImages", "required": false},
+        {"handle": "productUrl", "required": false},
+        {"handle": "productCategory", "required": false},
+        {"handle": "featuredProduct", "required": false}
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "name": "Products",
+      "handle": "products",
+      "type": "channel",
+      "hasUrls": true,
+      "uri": "products/{slug}",
+      "template": "products/_entry",
+      "entryTypes": ["product"]
+    }
+  ]
+}

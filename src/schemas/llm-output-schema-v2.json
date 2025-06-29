@@ -1,0 +1,875 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human-readable name for this configuration",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of what this configuration creates",
+      "maxLength": 500
+    },
+    "fields": {
+      "type": "array",
+      "description": "Array of field definitions to create",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Display name for the field",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "handle": {
+            "type": "string",
+            "description": "Unique handle for the field (camelCase, no spaces)",
+            "pattern": "^[a-z][a-zA-Z0-9]*$",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "field_type": {
+            "type": "string",
+            "description": "Type of field to create",
+            "enum": [
+              "plain_text",
+              "rich_text",
+              "image",
+              "number",
+              "link",
+              "dropdown",
+              "lightswitch",
+              "email",
+              "date",
+              "time",
+              "color",
+              "money",
+              "range",
+              "radio_buttons",
+              "checkboxes",
+              "multi_select",
+              "country",
+              "button_group",
+              "icon",
+              "asset",
+              "matrix",
+              "users",
+              "entries"
+            ]
+          },
+          "instructions": {
+            "type": "string",
+            "description": "Help text shown to content editors",
+            "maxLength": 500
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether this field is required",
+            "default": false
+          },
+          "searchable": {
+            "type": "boolean",
+            "description": "Whether this field content is searchable",
+            "default": true
+          }
+        },
+        "required": ["name", "handle", "field_type"],
+        "allOf": [
+          {
+            "if": {
+              "properties": { "field_type": { "const": "plain_text" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "multiline": {
+                      "type": "boolean",
+                      "description": "Allow multiple lines (textarea vs text input)"
+                    },
+                    "charLimit": {
+                      "type": "integer",
+                      "description": "Maximum character limit",
+                      "minimum": 1,
+                      "maximum": 10000
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "rich_text" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "image" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "maxRelations": {
+                      "type": "integer",
+                      "description": "Maximum number of images allowed",
+                      "minimum": 1,
+                      "maximum": 10
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "number" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "decimals": {
+                      "type": "integer",
+                      "description": "Number of decimal places",
+                      "minimum": 0,
+                      "maximum": 4
+                    },
+                    "min": {
+                      "type": "number",
+                      "description": "Minimum value"
+                    },
+                    "max": {
+                      "type": "number",
+                      "description": "Maximum value"
+                    },
+                    "suffix": {
+                      "type": "string",
+                      "description": "Text to display after the value",
+                      "maxLength": 20
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "link" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "types": {
+                      "type": "array",
+                      "description": "Enabled link types",
+                      "items": {
+                        "type": "string",
+                        "enum": ["url", "entry"]
+                      },
+                      "minItems": 1,
+                      "maxItems": 2,
+                      "uniqueItems": true
+                    },
+                    "sources": {
+                      "type": "array",
+                      "description": "Entry sources (section handles for entry links)",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      }
+                    },
+                    "showLabelField": {
+                      "type": "boolean",
+                      "description": "Whether to show custom link text field"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { 
+                "field_type": { 
+                  "enum": ["dropdown", "radio_buttons", "checkboxes", "multi_select", "button_group"] 
+                } 
+              }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "options": {
+                      "type": "array",
+                      "description": "Available options",
+                      "minItems": 1,
+                      "maxItems": 20,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      }
+                    }
+                  },
+                  "required": ["options"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "lightswitch" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "default": {
+                      "type": "boolean",
+                      "description": "Default value"
+                    },
+                    "onLabel": {
+                      "type": "string",
+                      "description": "Label for 'on' state",
+                      "maxLength": 20
+                    },
+                    "offLabel": {
+                      "type": "string",
+                      "description": "Label for 'off' state",
+                      "maxLength": 20
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "email" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "placeholder": {
+                      "type": "string",
+                      "description": "Placeholder text",
+                      "maxLength": 100
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "date" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "showDate": {
+                      "type": "boolean",
+                      "description": "Whether to show date picker",
+                      "default": true
+                    },
+                    "showTime": {
+                      "type": "boolean",
+                      "description": "Whether to show time picker"
+                    },
+                    "showTimeZone": {
+                      "type": "boolean",
+                      "description": "Whether to show timezone selector"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "time" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "color" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "allowCustomColors": {
+                      "type": "boolean",
+                      "description": "Whether to allow custom color input"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "money" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {
+                      "type": "string",
+                      "description": "Currency code (e.g., USD, EUR, GBP)",
+                      "pattern": "^[A-Z]{3}$",
+                      "default": "USD"
+                    },
+                    "showCurrency": {
+                      "type": "boolean",
+                      "description": "Whether to show currency symbol",
+                      "default": true
+                    },
+                    "min": {
+                      "type": "number",
+                      "description": "Minimum value"
+                    },
+                    "max": {
+                      "type": "number",
+                      "description": "Maximum value"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "range" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "min": {
+                      "type": "number",
+                      "description": "Minimum value",
+                      "default": 0
+                    },
+                    "max": {
+                      "type": "number",
+                      "description": "Maximum value",
+                      "default": 100
+                    },
+                    "step": {
+                      "type": "number",
+                      "description": "Step increment between values",
+                      "minimum": 0.01,
+                      "default": 1
+                    },
+                    "suffix": {
+                      "type": "string",
+                      "description": "Text to display after the value",
+                      "maxLength": 20
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "country" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "icon" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "asset" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "maxRelations": {
+                      "type": "integer",
+                      "description": "Maximum number of assets allowed",
+                      "minimum": 1,
+                      "maximum": 10
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "matrix" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "minEntries": {
+                      "type": "integer",
+                      "description": "Minimum number of entries allowed",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "maxEntries": {
+                      "type": ["integer", "null"],
+                      "description": "Maximum number of entries allowed (null for unlimited)",
+                      "minimum": 1,
+                      "maximum": 100
+                    },
+                    "viewMode": {
+                      "type": "string",
+                      "description": "How entries are displayed",
+                      "enum": ["cards", "blocks", "index"],
+                      "default": "blocks"
+                    },
+                    "blockTypes": {
+                      "type": "array",
+                      "description": "Block type definitions (entry types)",
+                      "minItems": 1,
+                      "maxItems": 10,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "Display name for the block type",
+                            "minLength": 1,
+                            "maxLength": 100
+                          },
+                          "handle": {
+                            "type": "string",
+                            "description": "Unique handle for the block type",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$",
+                            "minLength": 1,
+                            "maxLength": 64
+                          },
+                          "hasTitleField": {
+                            "type": "boolean",
+                            "description": "Whether this block type has a title field",
+                            "default": false
+                          },
+                          "fields": {
+                            "type": "array",
+                            "description": "Fields for this block type",
+                            "minItems": 1,
+                            "maxItems": 10,
+                            "items": {
+                              "$ref": "#/definitions/matrixBlockField"
+                            }
+                          }
+                        },
+                        "required": ["name", "handle", "fields"],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": ["blockTypes"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "users" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "sources": {
+                      "type": "array",
+                      "description": "User group handles",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 64
+                      }
+                    },
+                    "maxRelations": {
+                      "type": "integer",
+                      "description": "Maximum number of users allowed",
+                      "minimum": 1,
+                      "maximum": 10
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "field_type": { "const": "entries" } }
+            },
+            "then": {
+              "properties": {
+                "settings": {
+                  "type": "object",
+                  "properties": {
+                    "sources": {
+                      "type": "array",
+                      "description": "Section handles",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$",
+                        "maxLength": 64
+                      }
+                    },
+                    "maxRelations": {
+                      "type": "integer",
+                      "description": "Maximum number of entries allowed",
+                      "minimum": 1,
+                      "maximum": 10
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "entryTypes": {
+      "type": "array",
+      "description": "Array of entry type definitions (optional)",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Display name for the entry type",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "handle": {
+            "type": "string",
+            "description": "Unique handle for the entry type",
+            "pattern": "^[a-z][a-zA-Z0-9]*$",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "hasTitleField": {
+            "type": "boolean",
+            "description": "Whether this entry type should have a title field",
+            "default": true
+          },
+          "fields": {
+            "type": "array",
+            "description": "Fields to include in this entry type",
+            "items": {
+              "type": "object",
+              "properties": {
+                "handle": {
+                  "type": "string",
+                  "description": "Handle of the field to include",
+                  "pattern": "^[a-z][a-zA-Z0-9]*$"
+                },
+                "required": {
+                  "type": "boolean",
+                  "description": "Whether this field is required in this entry type"
+                }
+              },
+              "required": ["handle"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["name", "handle", "fields"],
+        "additionalProperties": false
+      }
+    },
+    "sections": {
+      "type": "array",
+      "description": "Array of section definitions (optional)",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Display name for the section",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "handle": {
+            "type": "string",
+            "description": "Unique handle for the section",
+            "pattern": "^[a-z][a-zA-Z0-9]*$",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of section",
+            "enum": ["single", "channel", "structure"]
+          },
+          "hasUrls": {
+            "type": "boolean",
+            "description": "Whether entries have URLs",
+            "default": true
+          },
+          "uri": {
+            "type": "string",
+            "description": "URI format for entries",
+            "maxLength": 100
+          },
+          "template": {
+            "type": "string",
+            "description": "Template path for entries",
+            "maxLength": 100
+          },
+          "entryTypes": {
+            "type": "array",
+            "description": "Entry type handles for this section",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-zA-Z0-9]*$"
+            }
+          }
+        },
+        "required": ["name", "handle", "entryTypes"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["fields"],
+  "additionalProperties": false,
+  "definitions": {
+    "matrixBlockField": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name for the field",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "handle": {
+          "type": "string",
+          "description": "Unique handle for the field",
+          "pattern": "^[a-z][a-zA-Z0-9]*$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "field_type": {
+          "type": "string",
+          "description": "Type of field (simplified set for block types)",
+          "enum": [
+            "plain_text",
+            "rich_text",
+            "image",
+            "number",
+            "email",
+            "date",
+            "lightswitch",
+            "dropdown",
+            "asset"
+          ]
+        },
+        "instructions": {
+          "type": "string",
+          "description": "Help text for the field",
+          "maxLength": 500
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether this field is required",
+          "default": false
+        }
+      },
+      "required": ["name", "handle", "field_type"],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "field_type": { "const": "plain_text" } }
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "type": "object",
+                "properties": {
+                  "multiline": {
+                    "type": "boolean",
+                    "description": "Allow multiple lines"
+                  },
+                  "charLimit": {
+                    "type": "integer",
+                    "description": "Character limit",
+                    "minimum": 1,
+                    "maximum": 1000
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "field_type": { "const": "image" } }
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "type": "object",
+                "properties": {
+                  "maxRelations": {
+                    "type": "integer",
+                    "description": "Max relations",
+                    "minimum": 1,
+                    "maximum": 5
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "field_type": { "const": "asset" } }
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "type": "object",
+                "properties": {
+                  "maxRelations": {
+                    "type": "integer",
+                    "description": "Max relations",
+                    "minimum": 1,
+                    "maximum": 5
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "field_type": { "const": "dropdown" } }
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "type": "object",
+                "properties": {
+                  "options": {
+                    "type": "array",
+                    "description": "Available options",
+                    "maxItems": 10,
+                    "items": {
+                      "type": "string",
+                      "maxLength": 50
+                    }
+                  }
+                },
+                "required": ["options"],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { 
+              "field_type": { 
+                "enum": ["rich_text", "number", "email", "date", "lightswitch"] 
+              } 
+            }
+          },
+          "then": {
+            "properties": {
+              "settings": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

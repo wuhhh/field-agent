@@ -1,0 +1,47 @@
+{
+    "name": "wuhhh/field-agent",
+    "description": "An intelligent Craft CMS plugin for AI-powered field generation, modification, and context-aware operations",
+    "type": "craft-plugin",
+    "version": "1.0.0",
+    "keywords": [
+        "craft",
+        "cms",
+        "craftcms",
+        "craft-plugin",
+        "field-agent",
+        "ai",
+        "llm",
+        "field-generation"
+    ],
+    "support": {
+        "docs": "https://github.com/wuhhh/field-agent/blob/main/README.md",
+        "issues": "https://github.com/wuhhh/field-agent/issues"
+    },
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Huw Roberts",
+            "homepage": "https://github.com/wuhhh"
+        }
+    ],
+    "require": {
+        "craftcms/cms": "^5.0.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "craftcms\\fieldagent\\": "src/"
+        }
+    },
+    "extra": {
+        "name": "Field Agent",
+        "handle": "field-agent",
+        "developer": "Huw Roberts",
+        "developerUrl": "https://github.com/wuhhh",
+        "documentationUrl": "https://github.com/wuhhh/field-agent/blob/main/README.md",
+        "changelogUrl": "https://raw.githubusercontent.com/wuhhh/field-agent/main/CHANGELOG.md",
+        "components": {
+            "fieldGeneratorService": "craftcms\\fieldagent\\services\\FieldGeneratorService"
+        },
+        "class": "craftcms\\fieldagent\\Plugin"
+    }
+}

@@ -1,0 +1,106 @@
+{
+  "name": "Blog Setup",
+  "description": "Complete blog setup with sections, entry types, and fields",
+  "version": "1.0.0",
+  "fields": [
+    {
+      "name": "Summary",
+      "handle": "blogSummary",
+      "field_type": "plain_text",
+      "instructions": "A brief summary of the blog post for listings",
+      "multiline": true,
+      "searchable": true,
+      "charLimit": 300
+    },
+    {
+      "name": "Featured Image",
+      "handle": "blogFeaturedImage",
+      "field_type": "image",
+      "instructions": "Main image for the blog post",
+      "restrictLocation": false,
+      "allowSubfolders": true,
+      "maxRelations": 1
+    },
+    {
+      "name": "Content",
+      "handle": "blogContent",
+      "field_type": "rich_text",
+      "instructions": "Main content of the blog post",
+      "searchable": true,
+      "configFile": "Basic.json"
+    },
+    {
+      "name": "Author",
+      "handle": "blogAuthor",
+      "field_type": "users",
+      "instructions": "Select the author of this post",
+      "allow_limit": true,
+      "maxRelations": 1,
+      "selection_label": "Choose author"
+    },
+    {
+      "name": "Categories",
+      "handle": "blogCategories",
+      "field_type": "categories",
+      "instructions": "Select categories for this post",
+      "allow_limit": false,
+      "selection_label": "Choose categories"
+    },
+    {
+      "name": "Tags",
+      "handle": "blogTags",
+      "field_type": "tags",
+      "instructions": "Add tags to this post",
+      "allow_limit": false,
+      "selection_label": "Add tags"
+    },
+    {
+      "name": "Read Time",
+      "handle": "blogReadTime",
+      "field_type": "number",
+      "instructions": "Estimated reading time in minutes",
+      "decimals": 0,
+      "min": 1,
+      "suffix": "minutes"
+    },
+    {
+      "name": "Enable Comments",
+      "handle": "blogEnableComments",
+      "field_type": "lightswitch",
+      "instructions": "Allow comments on this post",
+      "default": true,
+      "on_label": "Enabled",
+      "off_label": "Disabled"
+    }
+  ],
+  "entryTypes": [
+    {
+      "name": "Blog Post",
+      "handle": "blogPost",
+      "hasTitleField": true,
+      "titleFormat": "",
+      "fields": [
+        {"handle": "blogSummary", "required": true},
+        {"handle": "blogFeaturedImage", "required": false},
+        {"handle": "blogContent", "required": true},
+        {"handle": "blogAuthor", "required": true},
+        {"handle": "blogCategories", "required": false},
+        {"handle": "blogTags", "required": false},
+        {"handle": "blogReadTime", "required": false},
+        {"handle": "blogEnableComments", "required": false}
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "name": "Blog",
+      "handle": "blog",
+      "type": "channel",
+      "enableVersioning": true,
+      "uri": "blog/{slug}",
+      "template": "blog/_entry",
+      "hasUrls": true,
+      "entryTypes": ["blogPost"]
+    }
+  ]
+}

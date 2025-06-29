@@ -1,0 +1,11 @@
+columnSuffix: null
+handle: url
+instructions: External link URL
+name: URL
+searchable: false
+settings:
+  maxLength: 255
+  placeholder: null
+translationKeyFormat: null
+translationMethod: none
+type: craft\fields\Url

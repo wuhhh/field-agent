@@ -1,0 +1,26 @@
+columnSuffix: null
+handle: propertyDescription
+instructions: Detailed description of the property
+name: Property Description
+searchable: false
+settings:
+  availableTransforms: ''
+  availableVolumes: ''
+  characterLimit: null
+  ckeConfig: 742943a3-0c64-4b5b-b0cb-fa1c1b78690b
+  createButtonLabel: null
+  defaultTransform: null
+  expandEntryButtons: false
+  fullGraphqlData: true
+  parseEmbeds: false
+  purifierConfig: null
+  purifyHtml: true
+  showUnpermittedFiles: false
+  showUnpermittedVolumes: false
+  showWordCount: false
+  sourceEditingGroups:
+  - __ADMINS__
+  wordLimit: null
+translationKeyFormat: null
+translationMethod: none
+type: craft\ckeditor\Field

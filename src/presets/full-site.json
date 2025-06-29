@@ -1,0 +1,216 @@
+{
+  "name": "Full Site Setup",
+  "description": "Complete site setup with homepage, pages, blog, and portfolio",
+  "version": "1.0.0",
+  "sections": [
+    {
+      "name": "Homepage",
+      "handle": "homepage",
+      "type": "single",
+      "enableVersioning": true,
+      "uri": "__home__",
+      "template": "index",
+      "entryTypes": ["homepage"]
+    },
+    {
+      "name": "Pages",
+      "handle": "pages",
+      "type": "structure",
+      "enableVersioning": true,
+      "maxLevels": 3,
+      "uri": "{parent.uri}/{slug}",
+      "template": "pages/_entry",
+      "hasUrls": true,
+      "entryTypes": ["page"]
+    },
+    {
+      "name": "Blog",
+      "handle": "blog",
+      "type": "channel",
+      "enableVersioning": true,
+      "uri": "blog/{slug}",
+      "template": "blog/_entry",
+      "hasUrls": true,
+      "entryTypes": ["blogPost"]
+    },
+    {
+      "name": "Portfolio",
+      "handle": "portfolio",
+      "type": "channel",
+      "enableVersioning": true,
+      "uri": "portfolio/{slug}",
+      "template": "portfolio/_entry",
+      "hasUrls": true,
+      "entryTypes": ["portfolioItem"]
+    }
+  ],
+  "fields": [
+    {
+      "name": "Hero Title",
+      "handle": "heroTitle",
+      "field_type": "plain_text",
+      "instructions": "Main hero section title",
+      "searchable": true
+    },
+    {
+      "name": "Hero Subtitle",
+      "handle": "heroSubtitle",
+      "field_type": "plain_text",
+      "instructions": "Hero section subtitle",
+      "searchable": true
+    },
+    {
+      "name": "Hero Image",
+      "handle": "heroImage",
+      "field_type": "image",
+      "instructions": "Background image for hero section",
+      "maxRelations": 1
+    },
+    {
+      "name": "Page Content",
+      "handle": "pageContent",
+      "field_type": "rich_text",
+      "instructions": "Main content area",
+      "searchable": true
+    },
+    {
+      "name": "SEO Title",
+      "handle": "seoTitle",
+      "field_type": "plain_text",
+      "instructions": "Custom title for search engines",
+      "charLimit": 60
+    },
+    {
+      "name": "SEO Description",
+      "handle": "seoDescription",
+      "field_type": "plain_text",
+      "instructions": "Meta description for search engines",
+      "multiline": true,
+      "charLimit": 160
+    },
+    {
+      "name": "Blog Summary",
+      "handle": "blogSummary",
+      "field_type": "plain_text",
+      "instructions": "Brief summary for blog listings",
+      "multiline": true,
+      "charLimit": 300
+    },
+    {
+      "name": "Blog Content",
+      "handle": "blogContent",
+      "field_type": "rich_text",
+      "instructions": "Main blog content",
+      "searchable": true
+    },
+    {
+      "name": "Featured Image",
+      "handle": "featuredImage",
+      "field_type": "image",
+      "instructions": "Main image",
+      "maxRelations": 1
+    },
+    {
+      "name": "Project Title",
+      "handle": "projectTitle",
+      "field_type": "plain_text",
+      "instructions": "Project name",
+      "searchable": true
+    },
+    {
+      "name": "Project Description",
+      "handle": "projectDescription",
+      "field_type": "rich_text",
+      "instructions": "Detailed project description",
+      "searchable": true
+    },
+    {
+      "name": "Project Images",
+      "handle": "projectImages",
+      "field_type": "asset",
+      "instructions": "Project gallery images",
+      "maxRelations": 20
+    },
+    {
+      "name": "Client Name",
+      "handle": "clientName",
+      "field_type": "plain_text",
+      "instructions": "Client or company name"
+    },
+    {
+      "name": "Project Date",
+      "handle": "projectDate",
+      "field_type": "date",
+      "instructions": "When the project was completed",
+      "show_date": true,
+      "show_time": false
+    },
+    {
+      "name": "Project URL",
+      "handle": "projectUrl",
+      "field_type": "url",
+      "instructions": "Link to live project"
+    }
+  ],
+  "entryTypes": [
+    {
+      "name": "Homepage",
+      "handle": "homepage",
+      "section": "homepage",
+      "hasTitleField": true,
+      "titleFormat": "{section.name}",
+      "fields": [
+        {"handle": "heroTitle", "required": true},
+        {"handle": "heroSubtitle", "required": false},
+        {"handle": "heroImage", "required": false},
+        {"handle": "pageContent", "required": false},
+        {"handle": "seoTitle", "required": false},
+        {"handle": "seoDescription", "required": false}
+      ]
+    },
+    {
+      "name": "Page",
+      "handle": "page",
+      "section": "pages",
+      "hasTitleField": true,
+      "titleFormat": "",
+      "fields": [
+        {"handle": "pageContent", "required": true},
+        {"handle": "featuredImage", "required": false},
+        {"handle": "seoTitle", "required": false},
+        {"handle": "seoDescription", "required": false}
+      ]
+    },
+    {
+      "name": "Blog Post",
+      "handle": "blogPost",
+      "section": "blog",
+      "hasTitleField": true,
+      "titleFormat": "",
+      "fields": [
+        {"handle": "blogSummary", "required": true},
+        {"handle": "blogContent", "required": true},
+        {"handle": "featuredImage", "required": false},
+        {"handle": "seoTitle", "required": false},
+        {"handle": "seoDescription", "required": false}
+      ]
+    },
+    {
+      "name": "Portfolio Item",
+      "handle": "portfolioItem",
+      "section": "portfolio",
+      "hasTitleField": false,
+      "titleFormat": "{projectTitle}",
+      "fields": [
+        {"handle": "projectTitle", "required": true},
+        {"handle": "projectDescription", "required": true},
+        {"handle": "projectImages", "required": true},
+        {"handle": "clientName", "required": false},
+        {"handle": "projectDate", "required": false},
+        {"handle": "projectUrl", "required": false},
+        {"handle": "seoTitle", "required": false},
+        {"handle": "seoDescription", "required": false}
+      ]
+    }
+  ]
+}

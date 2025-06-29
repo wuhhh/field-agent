@@ -1,0 +1,11 @@
+{
+  "fields": [
+    {
+      "name": "External Link",
+      "handle": "externalLink",
+      "field_type": "url",
+      "instructions": "Link to external website",
+      "searchable": false
+    }
+  ]
+}

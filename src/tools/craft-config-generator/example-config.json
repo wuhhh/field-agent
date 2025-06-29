@@ -1,0 +1,132 @@
+{
+  "fields": [
+    {
+      "name": "Heading",
+      "handle": "heading",
+      "field_type": "plain_text",
+      "instructions": "Enter the main heading",
+      "required": false,
+      "searchable": true,
+      "settings": null
+    },
+    {
+      "name": "Body Content",
+      "handle": "bodyContent",
+      "field_type": "rich_text",
+      "instructions": "Main content for the page",
+      "required": false,
+      "searchable": true,
+      "settings": null
+    },
+    {
+      "name": "Featured Image",
+      "handle": "featuredImage",
+      "field_type": "image",
+      "instructions": "Main image for the entry",
+      "required": false,
+      "searchable": false,
+      "settings": null
+    },
+    {
+      "name": "Link URL",
+      "handle": "linkUrl",
+      "field_type": "url",
+      "instructions": null,
+      "required": false,
+      "searchable": false,
+      "settings": null
+    },
+    {
+      "name": "Price",
+      "handle": "price",
+      "field_type": "number",
+      "instructions": "Product price",
+      "required": false,
+      "searchable": false,
+      "settings": null
+    }
+  ],
+  "entry_types": [
+    {
+      "name": "Page",
+      "handle": "page",
+      "fields": [
+        {
+          "handle": "heading",
+          "required": true
+        },
+        {
+          "handle": "bodyContent",
+          "required": false
+        },
+        {
+          "handle": "featuredImage",
+          "required": false
+        }
+      ],
+      "has_title_field": true,
+      "title_format": null
+    },
+    {
+      "name": "Article",
+      "handle": "article",
+      "fields": [
+        {
+          "handle": "bodyContent",
+          "required": true
+        },
+        {
+          "handle": "featuredImage",
+          "required": false
+        }
+      ],
+      "has_title_field": true,
+      "title_format": null
+    }
+  ],
+  "sections": [
+    {
+      "name": "Pages",
+      "handle": "pages",
+      "section_type": "channel",
+      "entry_types": [
+        "page"
+      ],
+      "site_settings": [
+        {
+          "site_handle": "default",
+          "enabled_by_default": true,
+          "has_urls": true,
+          "uri_format": "{slug}",
+          "template": "pages/_entry"
+        }
+      ]
+    },
+    {
+      "name": "Blog",
+      "handle": "blog",
+      "section_type": "channel",
+      "entry_types": [
+        "article"
+      ],
+      "site_settings": [
+        {
+          "site_handle": "default",
+          "enabled_by_default": true,
+          "has_urls": true,
+          "uri_format": "blog/{slug}",
+          "template": "blog/_entry"
+        }
+      ]
+    }
+  ],
+  "volumes": [
+    {
+      "name": "Images",
+      "handle": "images",
+      "fs_handle": "local",
+      "transform_fs_handle": null,
+      "transform_subpath": null
+    }
+  ]
+}

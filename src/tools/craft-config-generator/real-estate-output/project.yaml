@@ -1,0 +1,14 @@
+dateModified: 1750541746
+meta:
+  __names__:
+    466df303-96d7-48c3-87a8-2b3c904248b7: 'Property Description # propertyDescription'
+    d957aadb-86ec-4d73-9e8c-acab99452752: 'Price # price'
+    b67582c5-3e3a-4e45-b8fe-27639aee0486: 'Square Footage # squareFootage'
+    71b2251a-4b42-449c-b306-271cd19616dd: 'Bedrooms # bedrooms'
+    cb11ee6a-4fb3-4cb4-ad91-97e7a1f9fa09: 'Bathrooms # bathrooms'
+    cb22a41b-52b5-4ed0-8f2d-dfd0657f5733: 'Property Type # propertyType'
+    63a73044-f329-4f71-9c22-6afd7c1bf37b: 'Property Photos # propertyPhotos'
+    c6a8da07-681d-444d-8a0a-be5311b31e03: 'Realtor Name # realtorName'
+    9400b80e-0f12-4adb-bea3-2c6b01237441: 'Realtor Phone # realtorPhone'
+    103fbf51-ac2f-45fd-a205-0d1971ac5d48: 'Realtor Email # realtorEmail'
+    6e8fd5c9-32dc-4d93-bc9f-cdea308193d4: 'Property Listing # propertyListing'

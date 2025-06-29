@@ -1,0 +1,447 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human-readable name for this configuration",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of what this configuration creates",
+      "maxLength": 500
+    },
+    "fields": {
+      "type": "array",
+      "description": "Array of field definitions to create",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Display name for the field",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "handle": {
+            "type": "string",
+            "description": "Unique handle for the field (camelCase, no spaces)",
+            "pattern": "^[a-z][a-zA-Z0-9]*$",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "field_type": {
+            "type": "string",
+            "description": "Type of field to create",
+            "enum": [
+              "plain_text",
+              "rich_text",
+              "image",
+              "number",
+              "link",
+              "dropdown",
+              "lightswitch",
+              "email",
+              "date",
+              "time",
+              "color",
+              "money",
+              "range",
+              "radio_buttons",
+              "checkboxes",
+              "multi_select",
+              "country",
+              "button_group",
+              "icon",
+              "asset",
+              "matrix",
+              "users",
+              "entries"
+            ]
+          },
+          "instructions": {
+            "type": "string",
+            "description": "Help text shown to content editors",
+            "maxLength": 500
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether this field is required"
+          },
+          "searchable": {
+            "type": "boolean",
+            "description": "Whether this field content is searchable"
+          },
+          "settings": {
+            "type": "object",
+            "description": "Field-type specific settings",
+            "properties": {
+              "multiline": {
+                "type": "boolean",
+                "description": "For plain_text: Allow multiple lines"
+              },
+              "charLimit": {
+                "type": "integer",
+                "description": "For plain_text: Maximum character limit",
+                "minimum": 1,
+                "maximum": 10000
+              },
+              "maxRelations": {
+                "type": "integer",
+                "description": "For image: Maximum number of images allowed",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "decimals": {
+                "type": "integer",
+                "description": "For number: Number of decimal places",
+                "minimum": 0,
+                "maximum": 4
+              },
+              "min": {
+                "type": "number",
+                "description": "For number: Minimum value"
+              },
+              "max": {
+                "type": "number",
+                "description": "For number: Maximum value"
+              },
+              "suffix": {
+                "type": "string",
+                "description": "For number: Text to display after the value",
+                "maxLength": 20
+              },
+              "default": {
+                "type": "boolean",
+                "description": "For lightswitch: Default value"
+              },
+              "onLabel": {
+                "type": "string",
+                "description": "For lightswitch: Label for 'on' state",
+                "maxLength": 20
+              },
+              "offLabel": {
+                "type": "string",
+                "description": "For lightswitch: Label for 'off' state",
+                "maxLength": 20
+              },
+              "options": {
+                "type": "array",
+                "description": "For dropdown, radio_buttons, checkboxes, multi_select, button_group: Available options",
+                "minItems": 1,
+                "maxItems": 20,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                }
+              },
+              "currency": {
+                "type": "string",
+                "description": "For money: Currency code (e.g., USD, EUR, GBP)",
+                "maxLength": 10
+              },
+              "step": {
+                "type": "number",
+                "description": "For range: Step increment between values",
+                "minimum": 0.01
+              },
+              "showCurrency": {
+                "type": "boolean",
+                "description": "For money: Whether to show currency symbol"
+              },
+              "allowCustomColors": {
+                "type": "boolean",
+                "description": "For color: Whether to allow custom color input"
+              },
+              "showDate": {
+                "type": "boolean",
+                "description": "For date: Whether to show date picker"
+              },
+              "showTime": {
+                "type": "boolean",
+                "description": "For date: Whether to show time picker"
+              },
+              "showTimeZone": {
+                "type": "boolean",
+                "description": "For date: Whether to show timezone selector"
+              },
+              "placeholder": {
+                "type": "string",
+                "description": "For email: Placeholder text",
+                "maxLength": 100
+              },
+              "types": {
+                "type": "array",
+                "description": "For link: Enabled link types (url, entry)",
+                "items": {
+                  "type": "string",
+                  "enum": ["url", "entry"]
+                },
+                "minItems": 1,
+                "maxItems": 2
+              },
+              "sources": {
+                "type": "array",
+                "description": "For link: Entry sources (section handles for entry links)",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "showLabelField": {
+                "type": "boolean",
+                "description": "For link: Whether to show custom link text field"
+              },
+              "minEntries": {
+                "type": "integer",
+                "description": "For matrix: Minimum number of entries allowed",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "maxEntries": {
+                "type": "integer",
+                "description": "For matrix: Maximum number of entries allowed (null for unlimited)",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "viewMode": {
+                "type": "string",
+                "description": "For matrix: How entries are displayed",
+                "enum": ["cards", "blocks", "index"]
+              },
+              "blockTypes": {
+                "type": "array",
+                "description": "For matrix: Block type definitions (entry types)",
+                "minItems": 1,
+                "maxItems": 10,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "Display name for the block type",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "handle": {
+                      "type": "string",
+                      "description": "Unique handle for the block type",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "hasTitleField": {
+                      "type": "boolean",
+                      "description": "Whether this block type has a title field"
+                    },
+                    "fields": {
+                      "type": "array",
+                      "description": "Fields for this block type",
+                      "minItems": 1,
+                      "maxItems": 10,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "Display name for the field",
+                            "minLength": 1,
+                            "maxLength": 100
+                          },
+                          "handle": {
+                            "type": "string",
+                            "description": "Unique handle for the field",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$",
+                            "minLength": 1,
+                            "maxLength": 64
+                          },
+                          "field_type": {
+                            "type": "string",
+                            "description": "Type of field (simplified set for block types)",
+                            "enum": [
+                              "plain_text",
+                              "rich_text",
+                              "image",
+                              "number",
+                              "email",
+                              "date",
+                              "lightswitch",
+                              "dropdown",
+                              "asset"
+                            ]
+                          },
+                          "instructions": {
+                            "type": "string",
+                            "description": "Help text for the field",
+                            "maxLength": 500
+                          },
+                          "required": {
+                            "type": "boolean",
+                            "description": "Whether this field is required"
+                          },
+                          "settings": {
+                            "type": "object",
+                            "description": "Field-specific settings (simplified)",
+                            "properties": {
+                              "multiline": {
+                                "type": "boolean",
+                                "description": "For plain_text: Allow multiple lines"
+                              },
+                              "charLimit": {
+                                "type": "integer",
+                                "description": "For plain_text: Character limit",
+                                "minimum": 1,
+                                "maximum": 1000
+                              },
+                              "maxRelations": {
+                                "type": "integer",
+                                "description": "For image/asset: Max relations",
+                                "minimum": 1,
+                                "maximum": 5
+                              },
+                              "options": {
+                                "type": "array",
+                                "description": "For dropdown: Available options",
+                                "maxItems": 10,
+                                "items": {
+                                  "type": "string",
+                                  "maxLength": 50
+                                }
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": ["name", "handle", "field_type"],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": ["name", "handle", "fields"],
+                  "additionalProperties": false
+                }
+              },
+              "sources": {
+                "type": "array",
+                "description": "For users/entries: Source handles (user groups for users, section handles for entries)",
+                "items": {
+                  "type": "string",
+                  "maxLength": 64
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": ["name", "handle", "field_type"],
+        "additionalProperties": false
+      }
+    },
+    "entryTypes": {
+      "type": "array",
+      "description": "Array of entry type definitions (optional)",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Display name for the entry type",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "handle": {
+            "type": "string",
+            "description": "Unique handle for the entry type",
+            "pattern": "^[a-z][a-zA-Z0-9]*$",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "hasTitleField": {
+            "type": "boolean",
+            "description": "Whether this entry type should have a title field"
+          },
+          "fields": {
+            "type": "array",
+            "description": "Fields to include in this entry type",
+            "items": {
+              "type": "object",
+              "properties": {
+                "handle": {
+                  "type": "string",
+                  "description": "Handle of the field to include",
+                  "pattern": "^[a-z][a-zA-Z0-9]*$"
+                },
+                "required": {
+                  "type": "boolean",
+                  "description": "Whether this field is required in this entry type"
+                }
+              },
+              "required": ["handle"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["name", "handle", "fields"],
+        "additionalProperties": false
+      }
+    },
+    "sections": {
+      "type": "array",
+      "description": "Array of section definitions (optional)",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Display name for the section",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "handle": {
+            "type": "string",
+            "description": "Unique handle for the section",
+            "pattern": "^[a-z][a-zA-Z0-9]*$",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of section",
+            "enum": ["single", "channel", "structure"]
+          },
+          "hasUrls": {
+            "type": "boolean",
+            "description": "Whether entries have URLs"
+          },
+          "uri": {
+            "type": "string",
+            "description": "URI format for entries",
+            "maxLength": 100
+          },
+          "template": {
+            "type": "string",
+            "description": "Template path for entries",
+            "maxLength": 100
+          },
+          "entryTypes": {
+            "type": "array",
+            "description": "Entry type handles for this section",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-zA-Z0-9]*$"
+            }
+          }
+        },
+        "required": ["name", "handle", "entryTypes"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["fields"],
+  "additionalProperties": false
+}

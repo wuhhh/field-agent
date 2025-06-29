@@ -1,0 +1,233 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human-readable name for this operation set",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of what these operations accomplish",
+      "maxLength": 500
+    },
+    "operations": {
+      "type": "array",
+      "description": "Array of operations to perform in sequence",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of operation to perform",
+            "enum": ["create", "modify", "delete"]
+          },
+          "target": {
+            "type": "string",
+            "description": "Type of element to operate on",
+            "enum": ["field", "entryType", "section"]
+          },
+          "targetId": {
+            "type": "string",
+            "description": "Handle of existing element (required for modify/delete)",
+            "pattern": "^[a-z][a-zA-Z0-9]*$",
+            "maxLength": 64
+          },
+          "create": {
+            "type": "object",
+            "description": "Data for create operations",
+            "properties": {
+              "field": {
+                "type": "object",
+                "description": "Field definition (when target is 'field')",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "handle": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-zA-Z0-9]*$",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "field_type": {
+                    "type": "string",
+                    "enum": [
+                      "plain_text", "rich_text", "image", "number", "link",
+                      "dropdown", "lightswitch", "email", "date", "time",
+                      "color", "money", "range", "radio_buttons", "checkboxes",
+                      "multi_select", "country", "button_group", "icon",
+                      "asset", "matrix", "users", "entries"
+                    ]
+                  },
+                  "instructions": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "required": {
+                    "type": "boolean"
+                  },
+                  "searchable": {
+                    "type": "boolean"
+                  },
+                  "settings": {
+                    "type": "object",
+                    "description": "Field-type specific settings"
+                  }
+                },
+                "required": ["name", "handle", "field_type"],
+                "additionalProperties": false
+              },
+              "entryType": {
+                "type": "object",
+                "description": "Entry type definition (when target is 'entryType')",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "handle": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-zA-Z0-9]*$",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "hasTitleField": {
+                    "type": "boolean"
+                  },
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "handle": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-zA-Z0-9]*$"
+                        },
+                        "required": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": ["handle"],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": ["name", "handle", "fields"],
+                "additionalProperties": false
+              },
+              "section": {
+                "type": "object",
+                "description": "Section definition (when target is 'section')",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "handle": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-zA-Z0-9]*$",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["single", "channel", "structure"]
+                  },
+                  "hasUrls": {
+                    "type": "boolean"
+                  },
+                  "uri": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "template": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "entryTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    }
+                  }
+                },
+                "required": ["name", "handle", "entryTypes"],
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "modify": {
+            "type": "object",
+            "description": "Modifications for modify operations",
+            "properties": {
+              "actions": {
+                "type": "array",
+                "description": "List of modification actions",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "description": "Type of modification",
+                      "enum": [
+                        "addField", "removeField", "updateField",
+                        "addEntryType", "removeEntryType", "updateEntryType",
+                        "updateSettings"
+                      ]
+                    },
+                    "field": {
+                      "type": "object",
+                      "description": "Field definition for addField action"
+                    },
+                    "fieldHandle": {
+                      "type": "string",
+                      "description": "Field handle for removeField/updateField",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "updates": {
+                      "type": "object",
+                      "description": "Updates to apply for updateField/updateSettings"
+                    }
+                  },
+                  "required": ["action"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": ["actions"],
+            "additionalProperties": false
+          },
+          "delete": {
+            "type": "object",
+            "description": "Options for delete operations",
+            "properties": {
+              "force": {
+                "type": "boolean",
+                "description": "Force deletion even if element is in use"
+              },
+              "cascade": {
+                "type": "boolean",
+                "description": "Delete dependent elements"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": ["type", "target"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["operations"],
+  "additionalProperties": false
+}

@@ -13,6 +13,16 @@ use yii\base\Exception;
 class FieldGeneratorService extends Component
 {
     /**
+     * @var array Tracks block fields created during matrix field creation
+     */
+    private array $createdBlockFields = [];
+
+    /**
+     * @var array Tracks block entry types created during matrix field creation
+     */
+    private array $createdBlockEntryTypes = [];
+
+    /**
      * Store configuration data to plugin storage
      */
     public function storeConfig(string $name, array $data): string
@@ -555,6 +565,15 @@ class FieldGeneratorService extends Component
                     
                     $blockFields[] = $blockField;
                     
+                    // Track created block field
+                    $this->createdBlockFields[] = [
+                        'type' => 'block-field',
+                        'handle' => $blockField->handle,
+                        'name' => $blockField->name,
+                        'id' => $blockField->id,
+                        'blockType' => $blockTypeConfig['handle']
+                    ];
+                    
                     // Create field layout element
                     $fieldLayoutElement = new \craft\fieldlayoutelements\CustomField();
                     $fieldLayoutElement->fieldUid = $blockField->uid;
@@ -581,10 +600,43 @@ class FieldGeneratorService extends Component
                 throw new Exception("Failed to save entry type '{$entryType->name}' for matrix field");
             }
             
+            // Track created block entry type
+            $this->createdBlockEntryTypes[] = [
+                'type' => 'block-entry-type',
+                'handle' => $entryType->handle,
+                'name' => $entryType->name,
+                'id' => $entryType->id
+            ];
+            
             $entryTypes[] = $entryType;
         }
 
         return $entryTypes;
+    }
+
+    /**
+     * Get created block fields from last matrix field creation
+     */
+    public function getCreatedBlockFields(): array
+    {
+        return $this->createdBlockFields;
+    }
+
+    /**
+     * Get created block entry types from last matrix field creation
+     */
+    public function getCreatedBlockEntryTypes(): array
+    {
+        return $this->createdBlockEntryTypes;
+    }
+
+    /**
+     * Clear tracked matrix block items
+     */
+    public function clearBlockTracking(): void
+    {
+        $this->createdBlockFields = [];
+        $this->createdBlockEntryTypes = [];
     }
 
     /**

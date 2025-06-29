@@ -2275,10 +2275,29 @@ INSTRUCTIONS;
     {
         $successful = 0;
         $failed = 0;
+        $totalBlockFields = 0;
+        $totalBlockTypes = 0;
 
         foreach ($results as $result) {
             if ($result['success']) {
                 $this->stdout("✓ {$result['message']}\n", Console::FG_GREEN);
+                
+                // Display matrix block details if present
+                if (isset($result['matrix_blocks'])) {
+                    $blockFields = $result['matrix_blocks']['fields'] ?? [];
+                    $blockEntryTypes = $result['matrix_blocks']['entry_types'] ?? [];
+                    
+                    foreach ($blockEntryTypes as $blockType) {
+                        $this->stdout("  → Block type: {$blockType['name']} ({$blockType['handle']})\n", Console::FG_CYAN);
+                        $totalBlockTypes++;
+                    }
+                    
+                    foreach ($blockFields as $blockField) {
+                        $this->stdout("    • Block field: {$blockField['name']} ({$blockField['handle']})\n", Console::FG_BLUE);
+                        $totalBlockFields++;
+                    }
+                }
+                
                 $successful++;
             } else {
                 $this->stdout("✗ Operation {$result['index']}: {$result['message']}\n", Console::FG_RED);
@@ -2291,6 +2310,10 @@ INSTRUCTIONS;
         }
 
         $this->stdout("\nSummary: $successful successful, $failed failed\n", Console::FG_CYAN);
+        
+        if ($totalBlockTypes > 0 || $totalBlockFields > 0) {
+            $this->stdout("Matrix blocks: $totalBlockTypes block types, $totalBlockFields block fields\n", Console::FG_CYAN);
+        }
     }
 
     /**

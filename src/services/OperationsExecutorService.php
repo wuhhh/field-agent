@@ -94,6 +94,10 @@ class OperationsExecutorService extends Component
                 }
                 
                 $fieldData = $operation['create']['field'];
+                
+                // Clear any previous matrix block tracking
+                $plugin->fieldGeneratorService->clearBlockTracking();
+                
                 $field = $plugin->fieldGeneratorService->createFieldFromConfig($fieldData);
                 
                 if ($field) {
@@ -112,6 +116,23 @@ class OperationsExecutorService extends Component
                     $result['success'] = true;
                     $result['message'] = "Created field: {$field->name} ({$field->handle})";
                     $result['created'] = ['type' => 'field', 'handle' => $field->handle, 'id' => $field->id];
+                    
+                    // Check if this was a matrix field and capture block information
+                    if ($field instanceof \craft\fields\Matrix) {
+                        $blockFields = $plugin->fieldGeneratorService->getCreatedBlockFields();
+                        $blockEntryTypes = $plugin->fieldGeneratorService->getCreatedBlockEntryTypes();
+                        
+                        if (!empty($blockFields) || !empty($blockEntryTypes)) {
+                            $result['matrix_blocks'] = [
+                                'fields' => $blockFields,
+                                'entry_types' => $blockEntryTypes
+                            ];
+                            
+                            $blockCount = count($blockEntryTypes);
+                            $fieldCount = count($blockFields);
+                            $result['message'] .= " (with $blockCount block types and $fieldCount block fields)";
+                        }
+                    }
                 } else {
                     throw new Exception('Failed to create field');
                 }

@@ -62,7 +62,7 @@
                       "dropdown", "lightswitch", "email", "date", "time",
                       "color", "money", "range", "radio_buttons", "checkboxes",
                       "multi_select", "country", "button_group", "icon",
-                      "asset", "matrix", "users", "entries"
+                      "asset", "matrix", "users", "entries", "categories", "tags"
                     ]
                   },
                   "instructions": {

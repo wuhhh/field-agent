@@ -118,7 +118,14 @@ CRITICAL: FIELD TYPES (use these EXACT values only):
 - dropdown - For selection with options setting
 - number - For numeric inputs with decimals, min, max settings
 - money - For currency amounts with currency setting
-- All other supported: time, color, range, radio_buttons, checkboxes, multi_select, country, button_group, icon, asset, matrix
+- categories - For Craft CMS native category groups (NOT multi_select for categories!)
+- tags - For Craft CMS native tag groups (NOT multi_select for tags!)
+- All other supported: time, color, range, radio_buttons, checkboxes, multi_select, country, button_group, icon, asset, matrix, users, entries
+
+WHEN TO USE CATEGORIES vs TAGS vs MULTI_SELECT:
+- Use "categories" when content should be organized into hierarchical category groups (e.g., blog categories, product categories)
+- Use "tags" when content needs flexible tagging for SEO, filtering, or loose categorization (e.g., keywords, skills, topics)
+- Use "multi_select" only for predefined static options that are NOT categories or tags (e.g., sizes, colors, features)
 
 CRITICAL: RESERVED FIELD HANDLES (NEVER USE THESE):
 author, authorId, dateCreated, dateUpdated, id, slug, title, uid, uri, url, content, level, lft, rgt, root, parent, parentId, children, descendants, ancestors, next, prev, siblings, status, enabled, archived, trashed, postDate, expiryDate, revisionCreator, revisionNotes, section, sectionId, type, typeId, field, fieldId
@@ -146,6 +153,10 @@ Settings MUST be inside "settings" object. Do NOT use settings from one field ty
 - color: ONLY allowCustomColors (boolean)
 - money: ONLY currency (string like "USD"), showCurrency (boolean), min (number), max (number)
 - range: ONLY min (number), max (number), step (number), suffix (string)
+- categories: ONLY maxRelations (integer), sources (array of category group handles or ["*"] for all), branchLimit (integer)
+- tags: ONLY maxRelations (integer), sources (array of tag group handles or ["*"] for all)
+- users: ONLY maxRelations (integer), sources (array of user group handles or ["*"] for all)
+- entries: ONLY maxRelations (integer), sources (array of section handles or ["*"] for all)
 - country/icon: No settings needed
 - matrix: ONLY minEntries (integer), maxEntries (integer), viewMode (string), entryTypes (array) - entryTypes REQUIRED
 

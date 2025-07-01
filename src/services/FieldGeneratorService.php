@@ -420,6 +420,62 @@ class FieldGeneratorService extends Component
                 }
                 break;
 
+            case 'categories':
+                $field = new \craft\fields\Categories();
+                $field->maxRelations = $normalizedConfig['maxRelations'] ?? null;
+                $field->viewMode = 'list';
+                
+                // Configure sources (category groups)
+                if (isset($normalizedConfig['sources']) && is_array($normalizedConfig['sources'])) {
+                    $categoriesService = \Craft::$app->getCategories();
+                    $sources = [];
+                    foreach ($normalizedConfig['sources'] as $groupHandle) {
+                        if ($groupHandle === '*') {
+                            // Allow all category groups
+                            $sources = '*';
+                            break;
+                        }
+                        $group = $categoriesService->getGroupByHandle($groupHandle);
+                        if ($group) {
+                            $sources[] = 'group:' . $group->uid;
+                        }
+                    }
+                    $field->sources = $sources ?: '*';
+                } else {
+                    // Default to all category groups
+                    $field->sources = '*';
+                }
+                
+                // Configure branch limit (how deep in the category tree to show)
+                $field->branchLimit = $normalizedConfig['branchLimit'] ?? null;
+                break;
+
+            case 'tags':
+                $field = new \craft\fields\Tags();
+                $field->maxRelations = $normalizedConfig['maxRelations'] ?? null;
+                
+                // Configure sources (tag groups)
+                if (isset($normalizedConfig['sources']) && is_array($normalizedConfig['sources'])) {
+                    $tagsService = \Craft::$app->getTags();
+                    $sources = [];
+                    foreach ($normalizedConfig['sources'] as $groupHandle) {
+                        if ($groupHandle === '*') {
+                            // Allow all tag groups
+                            $sources = '*';
+                            break;
+                        }
+                        $group = $tagsService->getTagGroupByHandle($groupHandle);
+                        if ($group) {
+                            $sources[] = 'taggroup:' . $group->uid;
+                        }
+                    }
+                    $field->sources = $sources ?: '*';
+                } else {
+                    // Default to all tag groups
+                    $field->sources = '*';
+                }
+                break;
+
             default:
                 throw new Exception("Unsupported field type: $fieldType");
         }

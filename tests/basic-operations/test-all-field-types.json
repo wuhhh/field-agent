@@ -332,6 +332,67 @@
             "target": "field",
             "create": {
                 "field": {
+                    "name": "Categories Test",
+                    "handle": "fieldTestCategories",
+                    "field_type": "categories",
+                    "settings": {
+                        "maxRelations": 5,
+                        "sources": ["*"],
+                        "branchLimit": 3
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Tags Test",
+                    "handle": "fieldTestTags",
+                    "field_type": "tags",
+                    "settings": {
+                        "maxRelations": 10,
+                        "sources": ["*"]
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Users Test",
+                    "handle": "fieldTestUsers",
+                    "field_type": "users",
+                    "settings": {
+                        "maxRelations": 3,
+                        "sources": ["*"]
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Entries Test",
+                    "handle": "fieldTestEntries",
+                    "field_type": "entries",
+                    "settings": {
+                        "maxRelations": 5,
+                        "sources": ["*"]
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
                     "name": "Matrix Test",
                     "handle": "fieldTestMatrix",
                     "field_type": "matrix",
@@ -407,11 +468,11 @@
         }
     ],
     "expectedOutcome": {
-        "fieldsCreated": 22,
-        "fieldTypes": ["plain_text (2 variants)", "rich_text", "email", "image", "asset", "number", "money", "range", "link", "dropdown", "radio_buttons", "checkboxes", "multi_select", "country", "button_group", "date", "time", "color", "lightswitch", "icon", "matrix"],
+        "fieldsCreated": 25,
+        "fieldTypes": ["plain_text (2 variants)", "rich_text", "email", "image", "asset", "number", "money", "range", "link", "dropdown", "radio_buttons", "checkboxes", "multi_select", "country", "button_group", "date", "time", "color", "lightswitch", "icon", "categories", "tags", "users", "entries", "matrix"],
         "matrixBlockTypes": 3,
         "matrixFields": 6,
-        "coverage": "All 21 field types with comprehensive settings variations"
+        "coverage": "All 25 field types with comprehensive settings variations"
     },
     "rollbackInstructions": "Use field-agent/generator/rollback <operation-id> to remove all AI-generated test fields",
     "executionCommand": "ddev craft field-agent/generator/test-run ai-test-all-field-types"

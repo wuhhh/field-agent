@@ -1008,11 +1008,14 @@ INSTRUCTIONS;
 
             // Check if there was nothing to rollback
             $hasAnyItems = !empty($results['deleted']['sections']) || !empty($results['deleted']['entryTypes']) || !empty($results['deleted']['fields']) ||
+                          !empty($results['deleted']['categoryGroups']) || !empty($results['deleted']['tagGroups']) ||
                           !empty($results['protected']['sections']) || !empty($results['protected']['entryTypes']) || !empty($results['protected']['fields']) ||
-                          !empty($results['failed']['sections']) || !empty($results['failed']['entryTypes']) || !empty($results['failed']['fields']);
+                          !empty($results['protected']['categoryGroups']) || !empty($results['protected']['tagGroups']) ||
+                          !empty($results['failed']['sections']) || !empty($results['failed']['entryTypes']) || !empty($results['failed']['fields']) ||
+                          !empty($results['failed']['categoryGroups']) || !empty($results['failed']['tagGroups']);
 
             if (!$hasAnyItems) {
-                $this->stdout("No sections, entry types, or fields to rollback.\n", Console::FG_YELLOW);
+                $this->stdout("No sections, entry types, fields, category groups, or tag groups to rollback.\n", Console::FG_YELLOW);
             }
 
             $this->stdout("\nRun 'ddev craft up' to apply changes.\n", Console::FG_CYAN);
@@ -1098,8 +1101,9 @@ INSTRUCTIONS;
                 }
             }
 
-            if (empty($results['deleted']['sections']) && empty($results['deleted']['entryTypes']) && empty($results['deleted']['fields'])) {
-                $this->stdout("No sections, entry types, or fields to rollback.\n", Console::FG_YELLOW);
+            if (empty($results['deleted']['sections']) && empty($results['deleted']['entryTypes']) && empty($results['deleted']['fields']) && 
+                empty($results['deleted']['categoryGroups']) && empty($results['deleted']['tagGroups'])) {
+                $this->stdout("No sections, entry types, fields, category groups, or tag groups to rollback.\n", Console::FG_YELLOW);
             }
 
             $this->stdout("\nRun 'ddev craft up' to apply changes.\n", Console::FG_CYAN);
@@ -1223,24 +1227,32 @@ INSTRUCTIONS;
         // Display item counts
         $totalDeleted = count($totalResults['deleted']['sections']) +
                        count($totalResults['deleted']['entryTypes']) +
-                       count($totalResults['deleted']['fields']);
+                       count($totalResults['deleted']['fields']) +
+                       count($totalResults['deleted']['categoryGroups']) +
+                       count($totalResults['deleted']['tagGroups']);
 
         if ($totalDeleted > 0) {
             $this->stdout("\nItems successfully deleted:\n", Console::FG_GREEN);
             $this->stdout("  - Sections: " . count($totalResults['deleted']['sections']) . "\n");
             $this->stdout("  - Entry Types: " . count($totalResults['deleted']['entryTypes']) . "\n");
             $this->stdout("  - Fields: " . count($totalResults['deleted']['fields']) . "\n");
+            $this->stdout("  - Category Groups: " . count($totalResults['deleted']['categoryGroups']) . "\n");
+            $this->stdout("  - Tag Groups: " . count($totalResults['deleted']['tagGroups']) . "\n");
         }
 
         $totalProtected = count($totalResults['protected']['sections']) +
                          count($totalResults['protected']['entryTypes']) +
-                         count($totalResults['protected']['fields']);
+                         count($totalResults['protected']['fields']) +
+                         count($totalResults['protected']['categoryGroups']) +
+                         count($totalResults['protected']['tagGroups']);
 
         if ($totalProtected > 0) {
             $this->stdout("\nItems protected (in use):\n", Console::FG_YELLOW);
             $this->stdout("  - Sections: " . count($totalResults['protected']['sections']) . "\n");
             $this->stdout("  - Entry Types: " . count($totalResults['protected']['entryTypes']) . "\n");
             $this->stdout("  - Fields: " . count($totalResults['protected']['fields']) . "\n");
+            $this->stdout("  - Category Groups: " . count($totalResults['protected']['categoryGroups']) . "\n");
+            $this->stdout("  - Tag Groups: " . count($totalResults['protected']['tagGroups']) . "\n");
         }
 
         if (!empty($totalResults['errors'])) {
@@ -2688,7 +2700,7 @@ INSTRUCTIONS;
      */
     public function actionCleanup(): int
     {
-        $this->stdout("⚠️  WARNING: This will DELETE ALL sections, entry types, and fields!\n", Console::FG_RED);
+        $this->stdout("⚠️  WARNING: This will DELETE ALL sections, entry types, fields, category groups, and tag groups!\n", Console::FG_RED);
         $this->stdout("This action cannot be undone through normal rollback.\n\n", Console::FG_YELLOW);
 
         // Get project config
@@ -2698,20 +2710,26 @@ INSTRUCTIONS;
         $sectionsConfig = $projectConfig->get('sections') ?? [];
         $entryTypesConfig = $projectConfig->get('entryTypes') ?? [];
         $fieldsConfig = $projectConfig->get('fields') ?? [];
+        $categoryGroupsConfig = $projectConfig->get('categoryGroups') ?? [];
+        $tagGroupsConfig = $projectConfig->get('tagGroups') ?? [];
 
         $sectionCount = count($sectionsConfig);
         $entryTypeCount = count($entryTypesConfig);
         $fieldCount = count($fieldsConfig);
+        $categoryGroupCount = count($categoryGroupsConfig);
+        $tagGroupCount = count($tagGroupsConfig);
 
-        if ($sectionCount === 0 && $fieldCount === 0) {
-            $this->stdout("No sections or fields found. System is already clean.\n", Console::FG_GREEN);
+        if ($sectionCount === 0 && $fieldCount === 0 && $categoryGroupCount === 0 && $tagGroupCount === 0) {
+            $this->stdout("No sections, fields, category groups, or tag groups found. System is already clean.\n", Console::FG_GREEN);
             return ExitCode::OK;
         }
 
         $this->stdout("Current state:\n", Console::FG_CYAN);
         $this->stdout("  • {$sectionCount} sections\n");
         $this->stdout("  • {$entryTypeCount} entry types\n");
-        $this->stdout("  • {$fieldCount} fields\n\n");
+        $this->stdout("  • {$fieldCount} fields\n");
+        $this->stdout("  • {$categoryGroupCount} category groups\n");
+        $this->stdout("  • {$tagGroupCount} tag groups\n\n");
 
         // Confirm unless force flag is set
         if (!$this->force) {
@@ -2728,6 +2746,8 @@ INSTRUCTIONS;
         $deletedSections = [];
         $deletedEntryTypes = [];
         $deletedFields = [];
+        $deletedCategoryGroups = [];
+        $deletedTagGroups = [];
         $errors = [];
 
         // Step 1: Delete all sections through project config
@@ -2790,12 +2810,52 @@ INSTRUCTIONS;
             }
         }
 
+        // Step 4: Delete all category groups through project config
+        if ($categoryGroupCount > 0) {
+            $this->stdout("\n🗑️  Deleting category groups...\n", Console::FG_YELLOW);
+            foreach ($categoryGroupsConfig as $uid => $categoryGroupConfig) {
+                try {
+                    $projectConfig->remove("categoryGroups.{$uid}");
+                    $this->stdout("  ✓ Deleted category group: {$categoryGroupConfig['name']} ({$categoryGroupConfig['handle']})\n", Console::FG_GREEN);
+                    $deletedCategoryGroups[] = [
+                        'handle' => $categoryGroupConfig['handle'],
+                        'name' => $categoryGroupConfig['name'],
+                        'id' => $uid
+                    ];
+                } catch (\Exception $e) {
+                    $this->stderr("  ✗ Error deleting category group {$categoryGroupConfig['name']}: {$e->getMessage()}\n", Console::FG_RED);
+                    $errors[] = "Error deleting category group {$categoryGroupConfig['name']}: {$e->getMessage()}";
+                }
+            }
+        }
+
+        // Step 5: Delete all tag groups through project config
+        if ($tagGroupCount > 0) {
+            $this->stdout("\n🗑️  Deleting tag groups...\n", Console::FG_YELLOW);
+            foreach ($tagGroupsConfig as $uid => $tagGroupConfig) {
+                try {
+                    $projectConfig->remove("tagGroups.{$uid}");
+                    $this->stdout("  ✓ Deleted tag group: {$tagGroupConfig['name']} ({$tagGroupConfig['handle']})\n", Console::FG_GREEN);
+                    $deletedTagGroups[] = [
+                        'handle' => $tagGroupConfig['handle'],
+                        'name' => $tagGroupConfig['name'],
+                        'id' => $uid
+                    ];
+                } catch (\Exception $e) {
+                    $this->stderr("  ✗ Error deleting tag group {$tagGroupConfig['name']}: {$e->getMessage()}\n", Console::FG_RED);
+                    $errors[] = "Error deleting tag group {$tagGroupConfig['name']}: {$e->getMessage()}";
+                }
+            }
+        }
+
         // Summary
         $this->stdout("\n" . str_repeat("=", 60) . "\n", Console::FG_CYAN);
         $this->stdout("Cleanup Summary:\n", Console::FG_CYAN);
         $this->stdout("  ✓ Deleted {$this->count($deletedSections)} sections\n", Console::FG_GREEN);
         $this->stdout("  ✓ Deleted {$this->count($deletedEntryTypes)} entry types\n", Console::FG_GREEN);
         $this->stdout("  ✓ Deleted {$this->count($deletedFields)} fields\n", Console::FG_GREEN);
+        $this->stdout("  ✓ Deleted {$this->count($deletedCategoryGroups)} category groups\n", Console::FG_GREEN);
+        $this->stdout("  ✓ Deleted {$this->count($deletedTagGroups)} tag groups\n", Console::FG_GREEN);
 
         if (!empty($errors)) {
             $this->stdout("\n  ⚠️  {$this->count($errors)} errors occurred:\n", Console::FG_RED);
@@ -2805,7 +2865,7 @@ INSTRUCTIONS;
         }
 
         // Record this as a special cleanup operation
-        if (!empty($deletedSections) || !empty($deletedFields) || !empty($deletedEntryTypes)) {
+        if (!empty($deletedSections) || !empty($deletedFields) || !empty($deletedEntryTypes) || !empty($deletedCategoryGroups) || !empty($deletedTagGroups)) {
             $plugin = Plugin::getInstance();
             $operationId = $plugin->rollbackService->recordOperation(
                 'cleanup',
@@ -2817,10 +2877,10 @@ INSTRUCTIONS;
                 [], // createdSections
                 $deletedSections, // failedSections (using for deleted items in cleanup)
                 [], // createdCategoryGroups
-                [], // failedCategoryGroups
+                $deletedCategoryGroups, // failedCategoryGroups (using for deleted items in cleanup)
                 [], // createdTagGroups
-                [], // failedTagGroups
-                'Manual cleanup - deleted all sections, entry types, and fields'
+                $deletedTagGroups, // failedTagGroups (using for deleted items in cleanup)
+                'Manual cleanup - deleted all sections, entry types, fields, category groups, and tag groups'
             );
 
             $this->stdout("\n📋 Cleanup operation recorded with ID: $operationId\n", Console::FG_CYAN);
@@ -3040,7 +3100,9 @@ INSTRUCTIONS;
             // Check if anything was deleted (success is indicated by having deletion results)
             $totalDeleted = count($result['deleted']['fields'] ?? []) +
                            count($result['deleted']['entryTypes'] ?? []) +
-                           count($result['deleted']['sections'] ?? []);
+                           count($result['deleted']['sections'] ?? []) +
+                           count($result['deleted']['categoryGroups'] ?? []) +
+                           count($result['deleted']['tagGroups'] ?? []);
 
             if ($totalDeleted > 0) {
                 $this->stdout(" ✅ Cleanup complete ({$totalDeleted} items removed)\n", Console::FG_GREEN);

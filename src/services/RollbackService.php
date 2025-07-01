@@ -20,7 +20,7 @@ class RollbackService extends Component
     /**
      * Record a field generation operation
      */
-    public function recordOperation(string $type, string $source, array $createdFields, array $failedFields = [], array $createdEntryTypes = [], array $failedEntryTypes = [], array $createdSections = [], array $failedSections = [], ?string $description = null): string
+    public function recordOperation(string $type, string $source, array $createdFields, array $failedFields = [], array $createdEntryTypes = [], array $failedEntryTypes = [], array $createdSections = [], array $failedSections = [], array $createdCategoryGroups = [], array $failedCategoryGroups = [], array $createdTagGroups = [], array $failedTagGroups = [], ?string $description = null): string
     {
         $operation = new Operation();
         $operation->id = $this->generateOperationId();
@@ -33,6 +33,10 @@ class RollbackService extends Component
         $operation->failedEntryTypes = $failedEntryTypes;
         $operation->createdSections = $createdSections;
         $operation->failedSections = $failedSections;
+        $operation->createdCategoryGroups = $createdCategoryGroups;
+        $operation->failedCategoryGroups = $failedCategoryGroups;
+        $operation->createdTagGroups = $createdTagGroups;
+        $operation->failedTagGroups = $failedTagGroups;
         $operation->description = $description;
 
         $this->saveOperation($operation);
@@ -101,17 +105,23 @@ class RollbackService extends Component
             'deleted' => [
                 'sections' => [],
                 'entryTypes' => [],
-                'fields' => []
+                'fields' => [],
+                'categoryGroups' => [],
+                'tagGroups' => []
             ],
             'failed' => [
                 'sections' => [],
                 'entryTypes' => [],
-                'fields' => []
+                'fields' => [],
+                'categoryGroups' => [],
+                'tagGroups' => []
             ],
             'protected' => [
                 'sections' => [],
                 'entryTypes' => [],
-                'fields' => []
+                'fields' => [],
+                'categoryGroups' => [],
+                'tagGroups' => []
             ]
         ];
 
@@ -121,12 +131,18 @@ class RollbackService extends Component
         // Step 2: Delete entry types (they depend on fields)
         $this->rollbackEntryTypes($operation, $results);
 
-        // Step 3: Delete fields last (nothing depends on them after above deletions)
+        // Step 3: Delete fields (they may depend on category/tag groups)
         $this->rollbackFields($operation, $results);
 
+        // Step 4: Delete category groups last (nothing should depend on them after fields are gone)
+        $this->rollbackCategoryGroups($operation, $results);
+
+        // Step 5: Delete tag groups last (nothing should depend on them after fields are gone)
+        $this->rollbackTagGroups($operation, $results);
+
         // Mark operation as rolled back if we had some success and no critical failures
-        $hasDeleted = !empty($results['deleted']['sections']) || !empty($results['deleted']['entryTypes']) || !empty($results['deleted']['fields']);
-        $hasCriticalFailures = !empty($results['failed']['sections']) || !empty($results['failed']['entryTypes']) || !empty($results['failed']['fields']);
+        $hasDeleted = !empty($results['deleted']['sections']) || !empty($results['deleted']['entryTypes']) || !empty($results['deleted']['fields']) || !empty($results['deleted']['categoryGroups']) || !empty($results['deleted']['tagGroups']);
+        $hasCriticalFailures = !empty($results['failed']['sections']) || !empty($results['failed']['entryTypes']) || !empty($results['failed']['fields']) || !empty($results['failed']['categoryGroups']) || !empty($results['failed']['tagGroups']);
 
         if ($hasDeleted && !$hasCriticalFailures) {
             $this->markOperationRolledBack($operationId);
@@ -573,6 +589,152 @@ class RollbackService extends Component
         } catch (\Exception $e) {
             // Log but don't fail the rollback operation
             Craft::warning("Failed to sync project config after rollback: " . $e->getMessage(), __METHOD__);
+        }
+    }
+
+    /**
+     * Rollback category groups from an operation
+     */
+    private function rollbackCategoryGroups(Operation $operation, array &$results): void
+    {
+        if (empty($operation->createdCategoryGroups)) {
+            return;
+        }
+
+        $categoriesService = \Craft::$app->getCategories();
+
+        foreach ($operation->createdCategoryGroups as $categoryGroupData) {
+            $categoryGroup = $categoriesService->getGroupByHandle($categoryGroupData['handle']);
+
+            if (!$categoryGroup) {
+                $results['failed']['categoryGroups'][] = [
+                    'handle' => $categoryGroupData['handle'],
+                    'name' => $categoryGroupData['name'] ?? 'Unknown',
+                    'reason' => 'Category group not found'
+                ];
+                continue;
+            }
+
+            // Check if category group has categories
+            if ($this->isCategoryGroupInUse($categoryGroup)) {
+                $results['protected']['categoryGroups'][] = [
+                    'handle' => $categoryGroupData['handle'],
+                    'name' => $categoryGroup->name,
+                    'reason' => 'Category group has categories'
+                ];
+                continue;
+            }
+
+            // Attempt to delete the category group
+            try {
+                if ($categoriesService->deleteGroup($categoryGroup)) {
+                    $results['deleted']['categoryGroups'][] = [
+                        'handle' => $categoryGroupData['handle'],
+                        'name' => $categoryGroup->name
+                    ];
+                } else {
+                    $results['failed']['categoryGroups'][] = [
+                        'handle' => $categoryGroupData['handle'],
+                        'name' => $categoryGroup->name,
+                        'reason' => 'Failed to delete category group'
+                    ];
+                }
+            } catch (\Exception $e) {
+                $results['failed']['categoryGroups'][] = [
+                    'handle' => $categoryGroupData['handle'],
+                    'name' => $categoryGroup->name,
+                    'reason' => 'Exception: ' . $e->getMessage()
+                ];
+            }
+        }
+    }
+
+    /**
+     * Rollback tag groups from an operation
+     */
+    private function rollbackTagGroups(Operation $operation, array &$results): void
+    {
+        if (empty($operation->createdTagGroups)) {
+            return;
+        }
+
+        $tagsService = \Craft::$app->getTags();
+
+        foreach ($operation->createdTagGroups as $tagGroupData) {
+            $tagGroup = $tagsService->getTagGroupByHandle($tagGroupData['handle']);
+
+            if (!$tagGroup) {
+                $results['failed']['tagGroups'][] = [
+                    'handle' => $tagGroupData['handle'],
+                    'name' => $tagGroupData['name'] ?? 'Unknown',
+                    'reason' => 'Tag group not found'
+                ];
+                continue;
+            }
+
+            // Check if tag group has tags
+            if ($this->isTagGroupInUse($tagGroup)) {
+                $results['protected']['tagGroups'][] = [
+                    'handle' => $tagGroupData['handle'],
+                    'name' => $tagGroup->name,
+                    'reason' => 'Tag group has tags'
+                ];
+                continue;
+            }
+
+            // Attempt to delete the tag group
+            try {
+                if ($tagsService->deleteTagGroup($tagGroup)) {
+                    $results['deleted']['tagGroups'][] = [
+                        'handle' => $tagGroupData['handle'],
+                        'name' => $tagGroup->name
+                    ];
+                } else {
+                    $results['failed']['tagGroups'][] = [
+                        'handle' => $tagGroupData['handle'],
+                        'name' => $tagGroup->name,
+                        'reason' => 'Failed to delete tag group'
+                    ];
+                }
+            } catch (\Exception $e) {
+                $results['failed']['tagGroups'][] = [
+                    'handle' => $tagGroupData['handle'],
+                    'name' => $tagGroup->name,
+                    'reason' => 'Exception: ' . $e->getMessage()
+                ];
+            }
+        }
+    }
+
+    /**
+     * Check if a category group is in use
+     */
+    private function isCategoryGroupInUse(\craft\models\CategoryGroup $categoryGroup): bool
+    {
+        try {
+            $count = \craft\elements\Category::find()
+                ->groupId($categoryGroup->id)
+                ->count();
+            return $count > 0;
+        } catch (\Exception $e) {
+            // If we can't check, err on the side of caution
+            return true;
+        }
+    }
+
+    /**
+     * Check if a tag group is in use
+     */
+    private function isTagGroupInUse(\craft\models\TagGroup $tagGroup): bool
+    {
+        try {
+            $count = \craft\elements\Tag::find()
+                ->groupId($tagGroup->id)
+                ->count();
+            return $count > 0;
+        } catch (\Exception $e) {
+            // If we can't check, err on the side of caution
+            return true;
         }
     }
 }

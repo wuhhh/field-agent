@@ -19,6 +19,10 @@ class Operation extends Model
     public array $failedEntryTypes = [];
     public array $createdSections = [];
     public array $failedSections = [];
+    public array $createdCategoryGroups = [];
+    public array $failedCategoryGroups = [];
+    public array $createdTagGroups = [];
+    public array $failedTagGroups = [];
     public ?string $description = null;
 
     public function rules(): array
@@ -27,7 +31,7 @@ class Operation extends Model
             [['id', 'type', 'source'], 'required'],
             [['id', 'type', 'source', 'description'], 'string'],
             [['timestamp'], 'integer'],
-            [['createdFields', 'failedFields', 'createdEntryTypes', 'failedEntryTypes', 'createdSections', 'failedSections'], 'safe'],
+            [['createdFields', 'failedFields', 'createdEntryTypes', 'failedEntryTypes', 'createdSections', 'failedSections', 'createdCategoryGroups', 'failedCategoryGroups', 'createdTagGroups', 'failedTagGroups'], 'safe'],
         ];
     }
 
@@ -51,9 +55,19 @@ class Operation extends Model
         return count($this->createdSections);
     }
 
+    public function getCategoryGroupCount(): int
+    {
+        return count($this->createdCategoryGroups);
+    }
+
+    public function getTagGroupCount(): int
+    {
+        return count($this->createdTagGroups);
+    }
+
     public function getTotalCreatedCount(): int
     {
-        return count($this->createdFields) + count($this->createdEntryTypes) + count($this->createdSections);
+        return count($this->createdFields) + count($this->createdEntryTypes) + count($this->createdSections) + count($this->createdCategoryGroups) + count($this->createdTagGroups);
     }
 
     public function toArray($fields = [], $expand = [], $recursive = true)
@@ -69,6 +83,10 @@ class Operation extends Model
             'failedEntryTypes' => $this->failedEntryTypes,
             'createdSections' => $this->createdSections,
             'failedSections' => $this->failedSections,
+            'createdCategoryGroups' => $this->createdCategoryGroups,
+            'failedCategoryGroups' => $this->failedCategoryGroups,
+            'createdTagGroups' => $this->createdTagGroups,
+            'failedTagGroups' => $this->failedTagGroups,
             'description' => $this->description,
         ];
     }
@@ -86,6 +104,10 @@ class Operation extends Model
         $operation->failedEntryTypes = $data['failedEntryTypes'] ?? [];
         $operation->createdSections = $data['createdSections'] ?? [];
         $operation->failedSections = $data['failedSections'] ?? [];
+        $operation->createdCategoryGroups = $data['createdCategoryGroups'] ?? [];
+        $operation->failedCategoryGroups = $data['failedCategoryGroups'] ?? [];
+        $operation->createdTagGroups = $data['createdTagGroups'] ?? [];
+        $operation->failedTagGroups = $data['failedTagGroups'] ?? [];
         $operation->description = $data['description'] ?? null;
         return $operation;
     }

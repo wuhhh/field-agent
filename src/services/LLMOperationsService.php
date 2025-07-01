@@ -102,9 +102,10 @@ OPERATION TYPES:
 
 CRITICAL: OPERATION ORDERING
 Operations MUST be ordered correctly for dependencies:
-1. Create fields first
-2. Create entry types second (referencing the fields)
-3. Create sections last (referencing the entry types)
+1. Create category groups and tag groups FIRST (if needed)
+2. Create fields second (can now reference the groups)
+3. Create entry types third (referencing the fields)
+4. Create sections last (referencing the entry types)
 Wrong order will cause failures!
 
 CRITICAL: FIELD TYPES (use these EXACT values only):
@@ -124,8 +125,21 @@ CRITICAL: FIELD TYPES (use these EXACT values only):
 
 WHEN TO USE CATEGORIES vs TAGS vs MULTI_SELECT:
 - Use "categories" when content should be organized into hierarchical category groups (e.g., blog categories, product categories)
-- Use "tags" when content needs flexible tagging for SEO, filtering, or loose categorization (e.g., keywords, skills, topics)
+- Use "tags" when content needs flexible tagging for SEO, filtering, or loose categorization (e.g., keywords, skills, topics)  
 - Use "multi_select" only for predefined static options that are NOT categories or tags (e.g., sizes, colors, features)
+
+CRITICAL: CATEGORY AND TAG GROUP CREATION
+Before creating categories or tags fields, you MUST create the groups they reference:
+
+1. CREATE GROUPS FIRST: Always create categoryGroup and tagGroup targets before fields that use them
+2. FIELD REFERENCES: Category fields reference category groups, tag fields reference tag groups
+3. NAMING CONVENTION: Use descriptive group names like "Blog Categories", "Product Tags", etc.
+
+Example order for blog with categories:
+1. Create categoryGroup: "blogCategories" 
+2. Create categories field: references "blogCategories" group via sources: ["blogCategories"]
+3. Create entry type with the categories field
+4. Create section with the entry type
 
 CRITICAL: RESERVED FIELD HANDLES (NEVER USE THESE):
 author, authorId, dateCreated, dateUpdated, id, slug, title, uid, uri, url, content, level, lft, rgt, root, parent, parentId, children, descendants, ancestors, next, prev, siblings, status, enabled, archived, trashed, postDate, expiryDate, revisionCreator, revisionNotes, section, sectionId, type, typeId, field, fieldId
@@ -662,7 +676,7 @@ PROMPT;
                 $errors[] = "Operation $i: Invalid type";
             }
 
-            if (!isset($operation['target']) || !in_array($operation['target'], ['field', 'entryType', 'section'])) {
+            if (!isset($operation['target']) || !in_array($operation['target'], ['field', 'entryType', 'section', 'categoryGroup', 'tagGroup'])) {
                 $errors[] = "Operation $i: Invalid target";
             }
 

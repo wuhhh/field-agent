@@ -28,7 +28,7 @@
           "target": {
             "type": "string",
             "description": "Type of element to operate on",
-            "enum": ["field", "entryType", "section"]
+            "enum": ["field", "entryType", "section", "categoryGroup", "tagGroup"]
           },
           "targetId": {
             "type": "string",
@@ -191,6 +191,59 @@
                   }
                 },
                 "required": ["name", "handle", "entryTypes"],
+                "additionalProperties": false
+              },
+              "categoryGroup": {
+                "type": "object",
+                "description": "Category group definition (when target is 'categoryGroup')",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "handle": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-zA-Z0-9]*$",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "hasUrls": {
+                    "type": "boolean"
+                  },
+                  "uri": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "template": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "maxLevels": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": ["name", "handle"],
+                "additionalProperties": false
+              },
+              "tagGroup": {
+                "type": "object",
+                "description": "Tag group definition (when target is 'tagGroup')",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "handle": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-zA-Z0-9]*$",
+                    "minLength": 1,
+                    "maxLength": 64
+                  }
+                },
+                "required": ["name", "handle"],
                 "additionalProperties": false
               }
             },

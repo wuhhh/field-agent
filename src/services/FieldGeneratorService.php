@@ -440,10 +440,11 @@ class FieldGeneratorService extends Component
                             $sources[] = 'group:' . $group->uid;
                         }
                     }
-                    $field->sources = $sources ?: '*';
+                    // Categories fields use 'source' (singular), not 'sources' (plural)
+                    $field->source = !empty($sources) && $sources !== '*' ? $sources[0] : null;
                 } else {
                     // Default to all category groups
-                    $field->sources = '*';
+                    $field->source = null;
                 }
                 
                 // Configure branch limit (how deep in the category tree to show)
@@ -469,10 +470,11 @@ class FieldGeneratorService extends Component
                             $sources[] = 'taggroup:' . $group->uid;
                         }
                     }
-                    $field->sources = $sources ?: '*';
+                    // Tags fields use 'source' (singular), not 'sources' (plural)
+                    $field->source = !empty($sources) && $sources !== '*' ? $sources[0] : null;
                 } else {
                     // Default to all tag groups
-                    $field->sources = '*';
+                    $field->source = null;
                 }
                 break;
 
@@ -486,6 +488,7 @@ class FieldGeneratorService extends Component
             $field->instructions = $normalizedConfig['instructions'] ?? '';
             $field->searchable = $normalizedConfig['searchable'] ?? false;
             $field->translationMethod = 'none';
+            
             
             // Set default field group
             try {

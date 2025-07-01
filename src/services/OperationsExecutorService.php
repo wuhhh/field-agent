@@ -53,6 +53,12 @@ class OperationsExecutorService extends Component
                                 case 'entryType':
                                     $createdEntryTypes[$result['created']['handle']] = $result['created'];
                                     break;
+                                case 'categoryGroup':
+                                    // Category groups don't need to be tracked for dependencies in this system
+                                    break;
+                                case 'tagGroup':
+                                    // Tag groups don't need to be tracked for dependencies in this system
+                                    break;
                             }
                         }
                         break;
@@ -119,6 +125,7 @@ class OperationsExecutorService extends Component
                     $result['message'] = "Created field: {$field->name} ({$field->handle})";
                     $result['created'] = ['type' => 'field', 'handle' => $field->handle, 'id' => $field->id];
                     
+                    
                     // Check if this was a matrix field and capture block information
                     if ($field instanceof \craft\fields\Matrix) {
                         $blockFields = $plugin->fieldGeneratorService->getCreatedBlockFields();
@@ -171,6 +178,44 @@ class OperationsExecutorService extends Component
                     $result['created'] = ['type' => 'section', 'handle' => $section->handle, 'id' => $section->id];
                 } else {
                     throw new Exception('Failed to create section');
+                }
+                break;
+
+            case 'categoryGroup':
+                if (!isset($operation['create']['categoryGroup'])) {
+                    throw new Exception('Category group data missing for create operation');
+                }
+                
+                $categoryGroupData = $operation['create']['categoryGroup'];
+                $categoryGroup = $this->createCategoryGroup($categoryGroupData);
+                
+                if ($categoryGroup) {
+                    $result['success'] = true;
+                    $result['message'] = "Created category group: {$categoryGroup->name} ({$categoryGroup->handle})";
+                    $result['created'] = ['type' => 'categoryGroup', 'handle' => $categoryGroup->handle, 'id' => $categoryGroup->id];
+                    
+                    // Category group created successfully and should be immediately available
+                } else {
+                    throw new Exception('Failed to create category group - check logs for details');
+                }
+                break;
+
+            case 'tagGroup':
+                if (!isset($operation['create']['tagGroup'])) {
+                    throw new Exception('Tag group data missing for create operation');
+                }
+                
+                $tagGroupData = $operation['create']['tagGroup'];
+                $tagGroup = $this->createTagGroup($tagGroupData);
+                
+                if ($tagGroup) {
+                    $result['success'] = true;
+                    $result['message'] = "Created tag group: {$tagGroup->name} ({$tagGroup->handle})";
+                    $result['created'] = ['type' => 'tagGroup', 'handle' => $tagGroup->handle, 'id' => $tagGroup->id];
+                    
+                    // Tag group created successfully and should be immediately available
+                } else {
+                    throw new Exception('Failed to create tag group');
                 }
                 break;
 
@@ -1141,6 +1186,94 @@ class OperationsExecutorService extends Component
         } catch (\Exception $e) {
             // If we can't check content, err on the side of caution
             return true;
+        }
+    }
+
+    /**
+     * Create a category group from configuration
+     */
+    private function createCategoryGroup(array $config): ?\craft\models\CategoryGroup
+    {
+        $categoryGroup = new \craft\models\CategoryGroup();
+        $categoryGroup->name = $config['name'];
+        $categoryGroup->handle = $config['handle'];
+        
+        // Set optional properties with defaults
+        $hasUrls = $config['hasUrls'] ?? false;
+        $uriFormat = $config['uri'] ?? null;
+        $template = $config['template'] ?? null;
+        $categoryGroup->maxLevels = $config['maxLevels'] ?? null;
+
+        // Create site settings for all sites (required for category groups)
+        $siteSettings = [];
+        foreach (\Craft::$app->getSites()->getAllSites() as $site) {
+            $siteSettings[] = new \craft\models\CategoryGroup_SiteSettings([
+                'siteId' => $site->id,
+                'hasUrls' => $hasUrls,
+                'uriFormat' => $uriFormat,
+                'template' => $template,
+            ]);
+        }
+        $categoryGroup->setSiteSettings($siteSettings);
+
+        // Create default field layout for categories
+        $fieldLayout = new \craft\models\FieldLayout();
+        $fieldLayout->type = \craft\elements\Category::class;
+        $categoryGroup->setFieldLayout($fieldLayout);
+
+        // Save the category group
+        try {
+            if (\Craft::$app->getCategories()->saveGroup($categoryGroup)) {
+                return $categoryGroup;
+            } else {
+                // Log validation errors with more detail
+                $errors = $categoryGroup->getErrors();
+                $errorMessage = "Category group validation failed for '{$config['name']}': " . json_encode($errors);
+                \Craft::error($errorMessage, __METHOD__);
+                echo "❌ $errorMessage\n";  // Also output to console for debugging
+                return null;
+            }
+        } catch (\Exception $e) {
+            $errorMessage = "Exception creating category group '{$config['name']}': " . $e->getMessage();
+            \Craft::error($errorMessage, __METHOD__);
+            echo "❌ $errorMessage\n";  // Also output to console for debugging
+            throw $e;
+        }
+    }
+
+    /**
+     * Create a tag group from configuration
+     */
+    private function createTagGroup(array $config): ?\craft\models\TagGroup
+    {
+        $tagGroup = new \craft\models\TagGroup();
+        $tagGroup->name = $config['name'];
+        $tagGroup->handle = $config['handle'];
+
+        // Tag groups don't require site settings like category groups do
+
+        // Create default field layout for tags
+        $fieldLayout = new \craft\models\FieldLayout();
+        $fieldLayout->type = \craft\elements\Tag::class;
+        $tagGroup->setFieldLayout($fieldLayout);
+
+        // Save the tag group
+        try {
+            if (\Craft::$app->getTags()->saveTagGroup($tagGroup)) {
+                return $tagGroup;
+            } else {
+                // Log validation errors with more detail
+                $errors = $tagGroup->getErrors();
+                $errorMessage = "Tag group validation failed for '{$config['name']}': " . json_encode($errors);
+                \Craft::error($errorMessage, __METHOD__);
+                echo "❌ $errorMessage\n";  // Also output to console for debugging
+                return null;
+            }
+        } catch (\Exception $e) {
+            $errorMessage = "Exception creating tag group '{$config['name']}': " . $e->getMessage();
+            \Craft::error($errorMessage, __METHOD__);
+            echo "❌ $errorMessage\n";  // Also output to console for debugging
+            throw $e;
         }
     }
 }

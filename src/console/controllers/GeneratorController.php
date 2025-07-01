@@ -183,6 +183,10 @@ class GeneratorController extends Controller
                                 $failedEntryTypes,
                                 $createdSections,
                                 $failedSections,
+                                [], // createdCategoryGroups
+                                [], // failedCategoryGroups
+                                [], // createdTagGroups
+                                [], // failedTagGroups
                                 "PARTIAL: Exception during field creation"
                             );
                             $this->stdout("\n⚠️  Partial operation recorded with ID: $operationId (due to exception)\n", Console::FG_YELLOW);
@@ -276,6 +280,10 @@ class GeneratorController extends Controller
                     $failedEntryTypes,
                     $createdSections,
                     $failedSections,
+                    [], // createdCategoryGroups
+                    [], // failedCategoryGroups
+                    [], // createdTagGroups
+                    [], // failedTagGroups
                     "PARTIAL: Unexpected exception - " . $e->getMessage()
                 );
                 $this->stdout("\n⚠️  Partial operation recorded with ID: $operationId (due to unexpected exception)\n", Console::FG_YELLOW);
@@ -293,7 +301,11 @@ class GeneratorController extends Controller
                 $createdEntryTypes,
                 $failedEntryTypes,
                 $createdSections,
-                $failedSections
+                $failedSections,
+                [], // createdCategoryGroups
+                [], // failedCategoryGroups
+                [], // createdTagGroups
+                [] // failedTagGroups
             );
 
             if (!empty($createdFields) || !empty($createdEntryTypes) || !empty($createdSections)) {
@@ -412,6 +424,8 @@ class GeneratorController extends Controller
                 $createdFields = [];
                 $createdEntryTypes = [];
                 $createdSections = [];
+                $createdCategoryGroups = [];
+                $createdTagGroups = [];
                 $failedOperations = [];
 
                 foreach ($results as $result) {
@@ -444,12 +458,18 @@ class GeneratorController extends Controller
                             case 'section':
                                 $createdSections[] = $result['created'];
                                 break;
+                            case 'categoryGroup':
+                                $createdCategoryGroups[] = $result['created'];
+                                break;
+                            case 'tagGroup':
+                                $createdTagGroups[] = $result['created'];
+                                break;
                         }
                     }
                 }
 
                 // ALWAYS record operation if anything was created (successful or failed)
-                if (!empty($createdFields) || !empty($createdEntryTypes) || !empty($createdSections) || !empty($failedOperations)) {
+                if (!empty($createdFields) || !empty($createdEntryTypes) || !empty($createdSections) || !empty($createdCategoryGroups) || !empty($createdTagGroups) || !empty($failedOperations)) {
                     $description = $allSucceeded ? "Smart prompt: $prompt" : "PARTIAL: Smart prompt with failures: $prompt";
 
                     $operationId = $plugin->rollbackService->recordOperation(
@@ -461,6 +481,10 @@ class GeneratorController extends Controller
                         [], // deletedEntryTypes
                         $createdSections,
                         [], // deletedSections
+                        $createdCategoryGroups,
+                        [], // deletedCategoryGroups
+                        $createdTagGroups,
+                        [], // deletedTagGroups
                         $description
                     );
 
@@ -2384,11 +2408,15 @@ INSTRUCTIONS;
                     'smart-modify',
                     $prompt,
                     $createdFields,
-                    [], // deletedFields
+                    [], // failedFields
                     $createdEntryTypes,
-                    [], // deletedEntryTypes
+                    [], // failedEntryTypes
                     $createdSections,
-                    [], // deletedSections
+                    [], // failedSections
+                    [], // createdCategoryGroups
+                    [], // failedCategoryGroups
+                    [], // createdTagGroups
+                    [], // failedTagGroups
                     $description
                 );
 
@@ -2467,11 +2495,15 @@ INSTRUCTIONS;
                 'execute-operations',
                 $config,
                 $createdFields,
-                [], // deletedFields
+                [], // failedFields
                 $createdEntryTypes,
-                [], // deletedEntryTypes
+                [], // failedEntryTypes
                 $createdSections,
-                [], // deletedSections
+                [], // failedSections
+                [], // createdCategoryGroups
+                [], // failedCategoryGroups
+                [], // createdTagGroups
+                [], // failedTagGroups
                 $description
             );
 
@@ -2779,11 +2811,15 @@ INSTRUCTIONS;
                 'cleanup',
                 'manual cleanup command',
                 [], // createdFields
-                $deletedFields,
+                $deletedFields, // failedFields (using for deleted items in cleanup)
                 [], // createdEntryTypes
-                $deletedEntryTypes,
+                $deletedEntryTypes, // failedEntryTypes (using for deleted items in cleanup)
                 [], // createdSections
-                $deletedSections,
+                $deletedSections, // failedSections (using for deleted items in cleanup)
+                [], // createdCategoryGroups
+                [], // failedCategoryGroups
+                [], // createdTagGroups
+                [], // failedTagGroups
                 'Manual cleanup - deleted all sections, entry types, and fields'
             );
 

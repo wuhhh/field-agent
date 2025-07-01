@@ -161,7 +161,8 @@ UNDERSTANDING MATRIX FIELD ARCHITECTURE:
 
 TWO APPROACHES FOR MATRIX ENTRY TYPES:
 
-1. INLINE ENTRY TYPE DEFINITION (create new entry type for matrix):
+1. INLINE ENTRY TYPE DEFINITION (ONLY for matrix field entryTypes - NOT for regular entry type creation):
+This format is ONLY used inside matrix field settings.entryTypes array:
 {
   "name": "Text Content",
   "handle": "textContent", 
@@ -411,8 +412,24 @@ OPERATION STRUCTURE:
 
 CREATE OPERATIONS:
 - For fields: Include full field definition (name, handle, field_type, settings)
-- For entryTypes: Include name, handle, hasTitleField, and field references
+- For entryTypes: Include name, handle, hasTitleField, and field references (handle + required ONLY)
 - For sections: Include name, handle, type, and entry type references
+
+CRITICAL: Regular entry type creation MUST reference existing fields by handle only:
+When creating entry types, fields MUST already exist. You cannot create fields inline.
+Correct format for entry type fields:
+{
+  "fields": [
+    {"handle": "existingFieldHandle", "required": true},  // ✓ CORRECT
+    {"handle": "anotherField", "required": false}         // ✓ CORRECT
+  ]
+}
+NOT this:
+{
+  "fields": [
+    {"name": "Field Name", "handle": "...", "field_type": "..."}  // ✗ WRONG for regular entry types
+  ]
+}
 
 MODIFY OPERATIONS:
 - addField: Add existing or new field to an entry type
@@ -455,6 +472,66 @@ Example for "Add a featured image to the blog post entry type":
             }
           }
         ]
+      }
+    }
+  ]
+}
+
+CORRECT ENTRY TYPE CREATION PATTERN - Always create fields first:
+Example: "Create a testimonial entry type with quote, author, and image fields"
+{
+  "name": "Testimonial Entry Type",
+  "description": "Creates testimonial fields and entry type",
+  "operations": [
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Quote",
+          "handle": "testimonialQuote",
+          "field_type": "rich_text"
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field", 
+      "create": {
+        "field": {
+          "name": "Author Name",
+          "handle": "testimonialAuthor",
+          "field_type": "plain_text",
+          "settings": {"charLimit": 100}
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Author Photo",
+          "handle": "testimonialPhoto",
+          "field_type": "image",
+          "settings": {"maxRelations": 1}
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "entryType",
+      "create": {
+        "entryType": {
+          "name": "Testimonial",
+          "handle": "testimonial",
+          "hasTitleField": false,
+          "fields": [
+            {"handle": "testimonialQuote", "required": true},     // ← References field created above
+            {"handle": "testimonialAuthor", "required": true},    // ← References field created above
+            {"handle": "testimonialPhoto", "required": false}     // ← References field created above
+          ]
+        }
       }
     }
   ]

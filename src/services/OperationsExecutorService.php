@@ -278,7 +278,12 @@ class OperationsExecutorService extends Component
                     break;
 
                 case 'removeField':
-                    $fieldHandle = $action['fieldHandle'];
+                    // Support both patterns: fieldHandle (legacy) and field.handle (consistent)
+                    $fieldHandle = $action['fieldHandle'] ?? $action['field']['handle'] ?? null;
+                    
+                    if (!$fieldHandle) {
+                        throw new Exception("Field handle is required for removeField action (use 'field': {'handle': 'fieldName'} or 'fieldHandle': 'fieldName')");
+                    }
                     $field = Craft::$app->getFields()->getFieldByHandle($fieldHandle);
                     if ($field) {
                         // Get current field layout
@@ -318,6 +323,16 @@ class OperationsExecutorService extends Component
 
                 default:
                     throw new Exception("Unknown modify action: {$action['action']}");
+            }
+        }
+
+        // Save the entry type to persist all modifications
+        if (!empty($modifications)) {
+            if (!Craft::$app->getEntries()->saveEntryType($entryType)) {
+                $errors = $entryType->getFirstErrors();
+                $result['success'] = false;
+                $result['message'] = "Failed to save entry type '{$targetId}': " . implode(', ', $errors);
+                return $result;
             }
         }
 
@@ -501,14 +516,31 @@ class OperationsExecutorService extends Component
     }
 
     /**
-     * Execute delete operation (placeholder)
+     * Execute delete operation with safety checks
      */
     private function executeDeleteOperation(array $operation, array $result): array
     {
         $targetId = $operation['targetId'];
-        $result['success'] = true;
-        $result['message'] = "Delete operation for '{$targetId}' not implemented yet (safety first!)";
-        return $result;
+        $target = $operation['target'];
+        $deleteOptions = $operation['delete'] ?? [];
+        $force = $deleteOptions['force'] ?? false;
+        $cascade = $deleteOptions['cascade'] ?? false;
+        
+        switch ($target) {
+            case 'field':
+                return $this->deleteField($targetId, $force, $cascade, $result);
+                
+            case 'entryType':
+                return $this->deleteEntryType($targetId, $force, $cascade, $result);
+                
+            case 'section':
+                return $this->deleteSection($targetId, $force, $cascade, $result);
+                
+            default:
+                $result['success'] = false;
+                $result['message'] = "Unknown delete target: {$target}";
+                return $result;
+        }
     }
     
     /**
@@ -743,5 +775,218 @@ class OperationsExecutorService extends Component
             'success' => true,
             'message' => "Section '{$section->handle}' settings updated: " . implode(', ', $updatedFields)
         ];
+    }
+    
+    /**
+     * Delete a field with safety checks
+     */
+    private function deleteField(string $fieldHandle, bool $force, bool $cascade, array $result): array
+    {
+        $field = Craft::$app->getFields()->getFieldByHandle($fieldHandle);
+        
+        if (!$field) {
+            $result['success'] = false;
+            $result['message'] = "Field with handle '{$fieldHandle}' not found";
+            return $result;
+        }
+        
+        // Check if field is used in any entry types (unless force is true)
+        if (!$force) {
+            $entryTypes = Craft::$app->getEntries()->getAllEntryTypes();
+            $usedInEntryTypes = [];
+            
+            foreach ($entryTypes as $entryType) {
+                $fieldLayout = $entryType->getFieldLayout();
+                if ($fieldLayout) {
+                    foreach ($fieldLayout->getCustomFields() as $layoutField) {
+                        if ($layoutField->id === $field->id) {
+                            $usedInEntryTypes[] = $entryType->handle;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if (!empty($usedInEntryTypes)) {
+                $result['success'] = false;
+                $result['message'] = "Cannot delete field '{$fieldHandle}' - it is used in entry types: " . 
+                    implode(', ', $usedInEntryTypes) . ". Use force=true to override.";
+                return $result;
+            }
+            
+            // Check if field has content (entries with data in this field)
+            $hasContent = $this->fieldHasContent($field);
+            if ($hasContent) {
+                $result['success'] = false;
+                $result['message'] = "Cannot delete field '{$fieldHandle}' - it contains content. Use force=true to override.";
+                return $result;
+            }
+        }
+        
+        // Perform the deletion
+        if (!Craft::$app->getFields()->deleteField($field)) {
+            $errors = $field->getFirstErrors();
+            $result['success'] = false;
+            $result['message'] = "Failed to delete field '{$fieldHandle}': " . implode(', ', $errors);
+            return $result;
+        }
+        
+        $result['success'] = true;
+        $result['message'] = "Field '{$fieldHandle}' deleted successfully" . ($force ? " (forced)" : "");
+        $result['deleted'] = ['type' => 'field', 'handle' => $fieldHandle];
+        
+        return $result;
+    }
+    
+    /**
+     * Delete an entry type with safety checks
+     */
+    private function deleteEntryType(string $entryTypeHandle, bool $force, bool $cascade, array $result): array
+    {
+        // Find the entry type
+        $entryType = null;
+        $allEntryTypes = Craft::$app->getEntries()->getAllEntryTypes();
+        foreach ($allEntryTypes as $et) {
+            if ($et->handle === $entryTypeHandle) {
+                $entryType = $et;
+                break;
+            }
+        }
+        
+        if (!$entryType) {
+            $result['success'] = false;
+            $result['message'] = "Entry type with handle '{$entryTypeHandle}' not found";
+            return $result;
+        }
+        
+        // Check if entry type has entries (unless force is true)
+        if (!$force) {
+            $entryQuery = Entry::find()
+                ->typeId($entryType->id)
+                ->limit(1);
+                
+            if ($entryQuery->exists()) {
+                $result['success'] = false;
+                $result['message'] = "Cannot delete entry type '{$entryTypeHandle}' - entries exist using this type. Use force=true to override.";
+                return $result;
+            }
+        }
+        
+        // Check if this is the last entry type in any section
+        if (!$force) {
+            $sections = Craft::$app->getEntries()->getAllSections();
+            foreach ($sections as $section) {
+                $sectionEntryTypes = $section->getEntryTypes();
+                if (count($sectionEntryTypes) === 1 && $sectionEntryTypes[0]->id === $entryType->id) {
+                    $result['success'] = false;
+                    $result['message'] = "Cannot delete entry type '{$entryTypeHandle}' - it is the last entry type in section '{$section->handle}'. Use force=true to override.";
+                    return $result;
+                }
+            }
+        }
+        
+        // If cascade is true, delete associated entries first
+        if ($cascade) {
+            $entries = Entry::find()->typeId($entryType->id)->all();
+            foreach ($entries as $entry) {
+                Craft::$app->getEntries()->deleteEntry($entry);
+            }
+        }
+        
+        // Perform the deletion
+        if (!Craft::$app->getEntries()->deleteEntryType($entryType)) {
+            $errors = $entryType->getFirstErrors();
+            $result['success'] = false;
+            $result['message'] = "Failed to delete entry type '{$entryTypeHandle}': " . implode(', ', $errors);
+            return $result;
+        }
+        
+        $result['success'] = true;
+        $result['message'] = "Entry type '{$entryTypeHandle}' deleted successfully" . 
+            ($force ? " (forced)" : "") . ($cascade ? " (with entries)" : "");
+        $result['deleted'] = ['type' => 'entryType', 'handle' => $entryTypeHandle];
+        
+        return $result;
+    }
+    
+    /**
+     * Delete a section with safety checks
+     */
+    private function deleteSection(string $sectionHandle, bool $force, bool $cascade, array $result): array
+    {
+        $section = Craft::$app->getEntries()->getSectionByHandle($sectionHandle);
+        
+        if (!$section) {
+            $result['success'] = false;
+            $result['message'] = "Section with handle '{$sectionHandle}' not found";
+            return $result;
+        }
+        
+        // Check if section has entries (unless force is true)
+        if (!$force) {
+            $entryQuery = Entry::find()
+                ->sectionId($section->id)
+                ->limit(1);
+                
+            if ($entryQuery->exists()) {
+                $result['success'] = false;
+                $result['message'] = "Cannot delete section '{$sectionHandle}' - entries exist in this section. Use force=true to override.";
+                return $result;
+            }
+        }
+        
+        // If cascade is true, delete all entries and entry types first
+        if ($cascade) {
+            // Delete all entries in the section
+            $entries = Entry::find()->sectionId($section->id)->all();
+            foreach ($entries as $entry) {
+                Craft::$app->getEntries()->deleteEntry($entry);
+            }
+            
+            // Delete all entry types in the section
+            $entryTypes = $section->getEntryTypes();
+            foreach ($entryTypes as $entryType) {
+                Craft::$app->getEntries()->deleteEntryType($entryType);
+            }
+        }
+        
+        // Perform the deletion
+        if (!Craft::$app->getEntries()->deleteSection($section)) {
+            $errors = $section->getFirstErrors();
+            $result['success'] = false;
+            $result['message'] = "Failed to delete section '{$sectionHandle}': " . implode(', ', $errors);
+            return $result;
+        }
+        
+        $result['success'] = true;
+        $result['message'] = "Section '{$sectionHandle}' deleted successfully" . 
+            ($force ? " (forced)" : "") . ($cascade ? " (with all content)" : "");
+        $result['deleted'] = ['type' => 'section', 'handle' => $sectionHandle];
+        
+        return $result;
+    }
+    
+    /**
+     * Check if a field has content in any entries
+     */
+    private function fieldHasContent($field): bool
+    {
+        try {
+            // Get the field's column name
+            $columnName = $field->columnSuffix ? "field_{$field->handle}_{$field->columnSuffix}" : "field_{$field->handle}";
+            
+            // Check content table for any non-empty values
+            $query = (new \yii\db\Query())
+                ->select($columnName)
+                ->from('{{%content}}')
+                ->where(['not', [$columnName => null]])
+                ->andWhere(['not', [$columnName => '']])
+                ->limit(1);
+                
+            return $query->exists();
+        } catch (\Exception $e) {
+            // If we can't check content, err on the side of caution
+            return true;
+        }
     }
 }

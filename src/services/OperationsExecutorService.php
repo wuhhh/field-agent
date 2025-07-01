@@ -5,6 +5,7 @@ namespace craftcms\fieldagent\services;
 use Craft;
 use craft\base\Component;
 use craft\elements\Entry;
+use craft\fieldlayoutelements\entries\EntryTitleField;
 use craftcms\fieldagent\Plugin;
 use yii\base\Exception;
 
@@ -318,6 +319,159 @@ class OperationsExecutorService extends Component
                         $modifications[] = "Removed field '{$fieldHandle}' from entry type";
                     } else {
                         $modifications[] = "Field '{$fieldHandle}' not found (may already be removed)";
+                    }
+                    break;
+
+                case 'updateEntryType':
+                    $updates = $action['updates'] ?? [];
+                    
+                    if (empty($updates)) {
+                        throw new Exception("Updates are required for updateEntryType action");
+                    }
+                    
+                    $updateCount = 0;
+                    
+                    // Update entry type name
+                    if (isset($updates['name'])) {
+                        $entryType->name = $updates['name'];
+                        $updateCount++;
+                        $modifications[] = "Updated entry type name to '{$updates['name']}'";
+                    }
+                    
+                    // Update hasTitleField setting
+                    if (isset($updates['hasTitleField'])) {
+                        $entryType->hasTitleField = (bool)$updates['hasTitleField'];
+                        $updateCount++;
+                        $titleFieldStatus = $updates['hasTitleField'] ? 'enabled' : 'disabled';
+                        
+                        // Also update the field layout to show/hide the title field
+                        $fieldLayout = $entryType->getFieldLayout();
+                        if ($fieldLayout) {
+                            $tabs = $fieldLayout->getTabs();
+                            $contentTab = $tabs[0] ?? null; // Use first tab
+                            
+                            if ($contentTab) {
+                                $elements = $contentTab->getElements();
+                                
+                                if ($updates['hasTitleField']) {
+                                    // Add title field to layout if not present
+                                    $hasTitleElement = false;
+                                    foreach ($elements as $element) {
+                                        if ($element instanceof EntryTitleField) {
+                                            $hasTitleElement = true;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    if (!$hasTitleElement) {
+                                        $titleField = new EntryTitleField();
+                                        array_unshift($elements, $titleField); // Add at beginning
+                                        $contentTab->setElements($elements);
+                                        $modifications[] = "Added title field to entry type layout";
+                                    }
+                                } else {
+                                    // Remove title field from layout
+                                    $newElements = [];
+                                    $titleFieldRemoved = false;
+                                    
+                                    foreach ($elements as $element) {
+                                        if (!($element instanceof EntryTitleField)) {
+                                            $newElements[] = $element;
+                                        } else {
+                                            $titleFieldRemoved = true;
+                                        }
+                                    }
+                                    
+                                    if ($titleFieldRemoved) {
+                                        $contentTab->setElements($newElements);
+                                        $modifications[] = "Removed title field from entry type layout";
+                                    }
+                                }
+                            }
+                        }
+                        
+                        $modifications[] = "Updated title field setting to {$titleFieldStatus}";
+                    }
+                    
+                    // Update titleTranslationMethod if provided
+                    if (isset($updates['titleTranslationMethod'])) {
+                        $entryType->titleTranslationMethod = $updates['titleTranslationMethod'];
+                        $updateCount++;
+                        $modifications[] = "Updated title translation method to '{$updates['titleTranslationMethod']}'";
+                    }
+                    
+                    // Update titleTranslationKeyFormat if provided
+                    if (isset($updates['titleTranslationKeyFormat'])) {
+                        $entryType->titleTranslationKeyFormat = $updates['titleTranslationKeyFormat'];
+                        $updateCount++;
+                        $modifications[] = "Updated title translation key format";
+                    }
+                    
+                    if ($updateCount === 0) {
+                        $modifications[] = "No valid updates provided for entry type";
+                    }
+                    break;
+
+                case 'updateField':
+                    $fieldHandle = $action['fieldHandle'] ?? $action['field']['handle'] ?? null;
+                    $updates = $action['updates'] ?? [];
+                    
+                    if (!$fieldHandle) {
+                        throw new Exception("Field handle is required for updateField action");
+                    }
+                    
+                    if (empty($updates)) {
+                        throw new Exception("Updates are required for updateField action");
+                    }
+                    
+                    $field = Craft::$app->getFields()->getFieldByHandle($fieldHandle);
+                    if (!$field) {
+                        throw new Exception("Field '{$fieldHandle}' not found");
+                    }
+                    
+                    // Update field layout element properties (like required status)
+                    $fieldLayout = $entryType->getFieldLayout();
+                    $updated = false;
+                    
+                    if ($fieldLayout) {
+                        $tabs = $fieldLayout->getTabs();
+                        foreach ($tabs as $tab) {
+                            $elements = $tab->getElements();
+                            foreach ($elements as $element) {
+                                if ($element instanceof \craft\fieldlayoutelements\CustomField) {
+                                    $elementField = Craft::$app->getFields()->getFieldByUid($element->fieldUid);
+                                    if ($elementField && $elementField->handle === $fieldHandle) {
+                                        // Update required status
+                                        if (isset($updates['required'])) {
+                                            $element->required = (bool)$updates['required'];
+                                            $updated = true;
+                                            $requiredStatus = $updates['required'] ? 'required' : 'optional';
+                                            $modifications[] = "Updated field '{$fieldHandle}' to {$requiredStatus}";
+                                        }
+                                        
+                                        // Update instructions if provided
+                                        if (isset($updates['instructions'])) {
+                                            $element->instructions = $updates['instructions'];
+                                            $updated = true;
+                                            $modifications[] = "Updated instructions for field '{$fieldHandle}'";
+                                        }
+                                        
+                                        // Update width if provided
+                                        if (isset($updates['width'])) {
+                                            $element->width = (int)$updates['width'];
+                                            $updated = true;
+                                            $modifications[] = "Updated width for field '{$fieldHandle}' to {$updates['width']}%";
+                                        }
+                                        
+                                        break 2; // Exit both loops
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (!$updated) {
+                        $modifications[] = "No valid updates applied to field '{$fieldHandle}'";
                     }
                     break;
 

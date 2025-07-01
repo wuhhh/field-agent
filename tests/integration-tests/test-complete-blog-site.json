@@ -1,0 +1,237 @@
+{
+  "name": "Complete Blog Site Structure",
+  "description": "Creates blog posts, pages, and portfolio items with associated fields and entry types",
+  "operations": [
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Featured Image",
+          "handle": "featuredImage",
+          "field_type": "image",
+          "settings": {
+            "maxRelations": 1
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Main Content",
+          "handle": "bodyContent",
+          "field_type": "rich_text"
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Page Builder",
+          "handle": "pageBuilder",
+          "field_type": "matrix",
+          "settings": {
+            "entryTypes": [
+              {
+                "name": "Text Content",
+                "handle": "textContent",
+                "fields": [
+                  {
+                    "name": "Content",
+                    "handle": "content",
+                    "field_type": "rich_text",
+                    "required": true
+                  }
+                ]
+              },
+              {
+                "name": "Image Block",
+                "handle": "imageBlock",
+                "fields": [
+                  {
+                    "name": "Image",
+                    "handle": "image",
+                    "field_type": "image",
+                    "required": true,
+                    "settings": {
+                      "maxRelations": 1
+                    }
+                  },
+                  {
+                    "name": "Caption",
+                    "handle": "caption",
+                    "field_type": "plain_text",
+                    "required": false
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "SEO Description",
+          "handle": "seoDescription",
+          "field_type": "plain_text",
+          "settings": {
+            "charLimit": 160
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Blog Categories",
+          "handle": "blogCategories",
+          "field_type": "multi_select",
+          "settings": {
+            "options": ["Technology", "Design", "Business", "Tutorial", "News"]
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Portfolio Images",
+          "handle": "portfolioImages",
+          "field_type": "image",
+          "settings": {
+            "maxRelations": 10
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Project URL",
+          "handle": "projectUrl",
+          "field_type": "link",
+          "settings": {
+            "types": ["url"],
+            "showLabelField": true
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "entryType",
+      "create": {
+        "entryType": {
+          "name": "Blog Post",
+          "handle": "blogPost",
+          "hasTitleField": true,
+          "fields": [
+            {"handle": "featuredImage", "required": false},
+            {"handle": "bodyContent", "required": true},
+            {"handle": "blogCategories", "required": true},
+            {"handle": "seoDescription", "required": true}
+          ]
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "entryType",
+      "create": {
+        "entryType": {
+          "name": "Page",
+          "handle": "page",
+          "hasTitleField": true,
+          "fields": [
+            {"handle": "featuredImage", "required": false},
+            {"handle": "pageBuilder", "required": true},
+            {"handle": "seoDescription", "required": true}
+          ]
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "entryType",
+      "create": {
+        "entryType": {
+          "name": "Portfolio Item",
+          "handle": "portfolioItem",
+          "hasTitleField": true,
+          "fields": [
+            {"handle": "featuredImage", "required": true},
+            {"handle": "bodyContent", "required": true},
+            {"handle": "portfolioImages", "required": false},
+            {"handle": "projectUrl", "required": false},
+            {"handle": "seoDescription", "required": true}
+          ]
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "section",
+      "create": {
+        "section": {
+          "name": "Blog",
+          "handle": "blog",
+          "type": "channel",
+          "entryTypes": [
+            {"handle": "blogPost"}
+          ]
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "section",
+      "create": {
+        "section": {
+          "name": "Pages",
+          "handle": "pages",
+          "type": "structure",
+          "entryTypes": [
+            {"handle": "page"}
+          ]
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "section",
+      "create": {
+        "section": {
+          "name": "Portfolio",
+          "handle": "portfolio",
+          "type": "channel",
+          "entryTypes": [
+            {"handle": "portfolioItem"}
+          ]
+        }
+      }
+    }
+  ],
+  "expectedOutcome": {
+    "fieldsCreated": 7,
+    "entryTypesCreated": 3,
+    "sectionsCreated": 3,
+    "matrixFields": 1,
+    "matrixBlockTypes": 2,
+    "purpose": "Complete blog site structure with blog posts, pages, and portfolio sections"
+  }
+}

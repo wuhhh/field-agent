@@ -1,0 +1,53 @@
+{
+    "name": "Basic Test Fields",
+    "description": "Creates three test fields with different types",
+    "operations": [
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Test Field 1",
+                    "handle": "testField1",
+                    "field_type": "plain_text",
+                    "settings": {
+                        "multiline": false,
+                        "charLimit": 255
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Test Field 2",
+                    "handle": "testField2",
+                    "field_type": "rich_text"
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Test Field 3",
+                    "handle": "testField3",
+                    "field_type": "email",
+                    "settings": {
+                        "placeholder": "Enter your email"
+                    }
+                }
+            }
+        }
+    ],
+    "expectedOutcome": {
+        "fieldsCreated": 3,
+        "fieldTypes": ["plain_text", "rich_text", "email"],
+        "validation": "Basic field creation with different types and settings"
+    },
+    "rollbackInstructions": "Use field-agent/generator/rollback <operation-id> to remove test fields",
+    "executionCommand": "ddev craft field-agent/generator/test-run test-simple-fields"
+}

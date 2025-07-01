@@ -1,0 +1,418 @@
+{
+    "name": "Field Type Test Suite",
+    "description": "AI-generated comprehensive test for all 21 field types with diverse settings",
+    "operations": [
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Single Line Text Test",
+                    "handle": "fieldTestSingleLine",
+                    "field_type": "plain_text",
+                    "settings": {
+                        "multiline": false,
+                        "charLimit": 100
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Multi Line Text Test",
+                    "handle": "fieldTestMultiLine",
+                    "field_type": "plain_text",
+                    "settings": {
+                        "multiline": true,
+                        "charLimit": 500
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Rich Text Test",
+                    "handle": "fieldTestRichText",
+                    "field_type": "rich_text"
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Email Test",
+                    "handle": "fieldTestEmail",
+                    "field_type": "email",
+                    "settings": {
+                        "placeholder": "Enter your email"
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Image Test",
+                    "handle": "fieldTestImage",
+                    "field_type": "image",
+                    "settings": {
+                        "maxRelations": 3
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Asset Test",
+                    "handle": "fieldTestAsset",
+                    "field_type": "asset",
+                    "settings": {
+                        "maxRelations": 5
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Number Test",
+                    "handle": "fieldTestNumber",
+                    "field_type": "number",
+                    "settings": {
+                        "min": 0,
+                        "max": 100,
+                        "decimals": 2,
+                        "suffix": "units"
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Money Test",
+                    "handle": "fieldTestMoney",
+                    "field_type": "money",
+                    "settings": {
+                        "currency": "USD",
+                        "showCurrency": true,
+                        "min": 0,
+                        "max": 1000000
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Range Test",
+                    "handle": "fieldTestRange",
+                    "field_type": "range",
+                    "settings": {
+                        "min": 0,
+                        "max": 100,
+                        "step": 5,
+                        "suffix": "%"
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Link Test",
+                    "handle": "fieldTestLink",
+                    "field_type": "link",
+                    "settings": {
+                        "types": [
+                            "url",
+                            "entry"
+                        ],
+                        "showLabelField": true
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Dropdown Test",
+                    "handle": "fieldTestDropdown",
+                    "field_type": "dropdown",
+                    "settings": {
+                        "options": [
+                            "Option 1",
+                            "Option 2",
+                            "Option 3",
+                            "Option 4"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Radio Buttons Test",
+                    "handle": "fieldTestRadioButtons",
+                    "field_type": "radio_buttons",
+                    "settings": {
+                        "options": [
+                            "Choice A",
+                            "Choice B",
+                            "Choice C"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Checkboxes Test",
+                    "handle": "fieldTestCheckboxes",
+                    "field_type": "checkboxes",
+                    "settings": {
+                        "options": [
+                            "Feature 1",
+                            "Feature 2",
+                            "Feature 3",
+                            "Feature 4"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Multi Select Test",
+                    "handle": "fieldTestMultiSelect",
+                    "field_type": "multi_select",
+                    "settings": {
+                        "options": [
+                            "Tag 1",
+                            "Tag 2",
+                            "Tag 3",
+                            "Tag 4",
+                            "Tag 5"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Country Test",
+                    "handle": "fieldTestCountry",
+                    "field_type": "country"
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Button Group Test",
+                    "handle": "fieldTestButtonGroup",
+                    "field_type": "button_group",
+                    "settings": {
+                        "options": [
+                            "Small",
+                            "Medium",
+                            "Large"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Date Test",
+                    "handle": "fieldTestDate",
+                    "field_type": "date",
+                    "settings": {
+                        "showDate": true,
+                        "showTime": true,
+                        "showTimeZone": true
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Time Test",
+                    "handle": "fieldTestTime",
+                    "field_type": "time"
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Color Test",
+                    "handle": "fieldTestColor",
+                    "field_type": "color",
+                    "settings": {
+                        "allowCustomColors": true
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Lightswitch Test",
+                    "handle": "fieldTestLightswitch",
+                    "field_type": "lightswitch",
+                    "settings": {
+                        "default": false,
+                        "onLabel": "Enabled",
+                        "offLabel": "Disabled"
+                    }
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Icon Test",
+                    "handle": "fieldTestIcon",
+                    "field_type": "icon"
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Matrix Test",
+                    "handle": "fieldTestMatrix",
+                    "field_type": "matrix",
+                    "settings": {
+                        "minEntries": 1,
+                        "maxEntries": 10,
+                        "viewMode": "grid",
+                        "entryTypes": [
+                            {
+                                "name": "Text Block",
+                                "handle": "textBlock",
+                                "fields": [
+                                    {
+                                        "name": "Heading",
+                                        "handle": "heading",
+                                        "field_type": "plain_text",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "Content",
+                                        "handle": "content",
+                                        "field_type": "rich_text",
+                                        "required": true
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "Image Block",
+                                "handle": "imageBlock",
+                                "fields": [
+                                    {
+                                        "name": "Image",
+                                        "handle": "image",
+                                        "field_type": "image",
+                                        "required": true,
+                                        "settings": {
+                                            "maxRelations": 1
+                                        }
+                                    },
+                                    {
+                                        "name": "Caption",
+                                        "handle": "caption",
+                                        "field_type": "plain_text",
+                                        "required": false
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "Quote Block",
+                                "handle": "quoteBlock",
+                                "fields": [
+                                    {
+                                        "name": "Quote Text",
+                                        "handle": "quoteText",
+                                        "field_type": "plain_text",
+                                        "required": true,
+                                        "settings": {
+                                            "multiline": true
+                                        }
+                                    },
+                                    {
+                                        "name": "Attribution",
+                                        "handle": "attribution",
+                                        "field_type": "plain_text",
+                                        "required": false
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ],
+    "expectedOutcome": {
+        "fieldsCreated": 22,
+        "fieldTypes": ["plain_text (2 variants)", "rich_text", "email", "image", "asset", "number", "money", "range", "link", "dropdown", "radio_buttons", "checkboxes", "multi_select", "country", "button_group", "date", "time", "color", "lightswitch", "icon", "matrix"],
+        "matrixBlockTypes": 3,
+        "matrixFields": 6,
+        "coverage": "All 21 field types with comprehensive settings variations"
+    },
+    "rollbackInstructions": "Use field-agent/generator/rollback <operation-id> to remove all AI-generated test fields",
+    "executionCommand": "ddev craft field-agent/generator/test-run ai-test-all-field-types"
+}

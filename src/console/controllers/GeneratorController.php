@@ -50,6 +50,11 @@ class GeneratorController extends Controller
     public $debug = false;
 
     /**
+     * @var bool Whether to cleanup test data after completion
+     */
+    public $cleanup = false;
+
+    /**
      * @var bool Whether to only generate config without creating fields (dry run)
      */
     public $dryRun = false;
@@ -328,9 +333,14 @@ class GeneratorController extends Controller
             $options[] = 'confirm';
         }
 
-        // Add force option for rollback-all and cleanup actions
-        if ($actionID === 'rollback-all' || $actionID === 'cleanup') {
+        // Add force option for rollback-all action
+        if ($actionID === 'rollback-all') {
             $options[] = 'force';
+        }
+
+        // Add cleanup option for test actions
+        if (in_array($actionID, ['test-run', 'test-suite', 'test-all'])) {
+            $options[] = 'cleanup';
         }
 
         return $options;
@@ -1271,6 +1281,186 @@ INSTRUCTIONS;
     }
 
     /**
+     * List available test suites
+     */
+    public function actionTestList(): int
+    {
+        $testSuites = $this->discoverTestSuites();
+
+        if (empty($testSuites)) {
+            $this->stdout("No test suites found.\n", Console::FG_YELLOW);
+            return ExitCode::OK;
+        }
+
+        $this->stdout("Available Test Suites:\n\n", Console::FG_GREEN);
+
+        foreach ($testSuites as $category => $tests) {
+            $this->stdout("📁 {$category}:\n", Console::FG_CYAN);
+            foreach ($tests as $test) {
+                $this->stdout("  🧪 {$test['filename']} - {$test['description']}\n");
+                if (isset($test['prerequisite'])) {
+                    $this->stdout("     ⚠️  Prerequisite: {$test['prerequisite']}\n", Console::FG_YELLOW);
+                }
+                if (isset($test['expectedOutcome']['fieldsCreated'])) {
+                    $fieldsCount = $test['expectedOutcome']['fieldsCreated'];
+                    $this->stdout("     📊 Creates: {$fieldsCount} fields\n", Console::FG_GREY);
+                }
+            }
+            $this->stdout("\n");
+        }
+
+        $this->stdout("Usage:\n", Console::FG_CYAN);
+        $this->stdout("  field-agent/generator/test-run <test-name>     Run individual test\n");
+        $this->stdout("  field-agent/generator/test-suite <category>    Run entire test suite\n");
+        $this->stdout("  field-agent/generator/test-all                 Run all tests\n");
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Run a specific test
+     */
+    public function actionTestRun($testName = null): int
+    {
+        if (!$testName) {
+            $this->stderr("Test name is required.\n", Console::FG_RED);
+            $this->stdout("Use 'field-agent/generator/test-list' to see available tests.\n");
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+
+        $testFile = $this->findTestFile($testName);
+        if (!$testFile) {
+            $this->stderr("Test '{$testName}' not found.\n", Console::FG_RED);
+            $this->stdout("Use 'field-agent/generator/test-list' to see available tests.\n");
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+
+        $this->stdout("🧪 Running test: {$testName}\n", Console::FG_YELLOW);
+        $this->stdout("📄 Test file: {$testFile}\n");
+        if ($this->cleanup) {
+            $this->stdout("🧹 Cleanup enabled - will remove test data after completion\n", Console::FG_CYAN);
+        }
+
+        $startTime = microtime(true);
+        $result = $this->executeTestFile($testFile, $this->cleanup);
+        $duration = round(microtime(true) - $startTime, 2);
+
+        if ($result === ExitCode::OK) {
+            $this->stdout("✅ Test completed successfully in {$duration}s\n", Console::FG_GREEN);
+        } else {
+            $this->stdout("❌ Test failed after {$duration}s\n", Console::FG_RED);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Run an entire test suite category
+     */
+    public function actionTestSuite($category = null): int
+    {
+        if (!$category) {
+            $this->stderr("Test suite category is required.\n", Console::FG_RED);
+            $this->stdout("Available categories: basic-operations, advanced-operations, integration-tests, edge-cases\n");
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+
+        $testSuites = $this->discoverTestSuites();
+        if (!isset($testSuites[$category])) {
+            $this->stderr("Test suite '{$category}' not found.\n", Console::FG_RED);
+            $this->stdout("Available categories: " . implode(', ', array_keys($testSuites)) . "\n");
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+
+        $tests = $testSuites[$category];
+        $this->stdout("🧪 Running test suite: {$category} ({" . count($tests) . "} tests)\n", Console::FG_YELLOW);
+        if ($this->cleanup) {
+            $this->stdout("🧹 Cleanup enabled - will remove test data after each test\n", Console::FG_CYAN);
+        }
+        $this->stdout("\n");
+
+        $passed = 0;
+        $failed = 0;
+        $startTime = microtime(true);
+
+        foreach ($tests as $test) {
+            $this->stdout("Running {$test['filename']}... ", Console::FG_CYAN);
+            $testStartTime = microtime(true);
+            
+            $result = $this->executeTestFile($test['path'], $this->cleanup);
+            $testDuration = round(microtime(true) - $testStartTime, 2);
+
+            if ($result === ExitCode::OK) {
+                $this->stdout("✅ PASS ({$testDuration}s)\n", Console::FG_GREEN);
+                $passed++;
+            } else {
+                $this->stdout("❌ FAIL ({$testDuration}s)\n", Console::FG_RED);
+                $failed++;
+            }
+        }
+
+        $totalDuration = round(microtime(true) - $startTime, 2);
+        $this->stdout("\n📊 Test Suite Results:\n", Console::FG_YELLOW);
+        $this->stdout("  ✅ Passed: {$passed}\n", Console::FG_GREEN);
+        $this->stdout("  ❌ Failed: {$failed}\n", $failed > 0 ? Console::FG_RED : Console::FG_GREY);
+        $this->stdout("  ⏱️  Duration: {$totalDuration}s\n");
+
+        return $failed > 0 ? ExitCode::UNSPECIFIED_ERROR : ExitCode::OK;
+    }
+
+    /**
+     * Run all test suites
+     */
+    public function actionTestAll(): int
+    {
+        $testSuites = $this->discoverTestSuites();
+        
+        if (empty($testSuites)) {
+            $this->stdout("No test suites found.\n", Console::FG_YELLOW);
+            return ExitCode::OK;
+        }
+
+        $this->stdout("🧪 Running all test suites...\n", Console::FG_YELLOW);
+        if ($this->cleanup) {
+            $this->stdout("🧹 Cleanup enabled - will remove test data after each test\n", Console::FG_CYAN);
+        }
+        $this->stdout("\n");
+
+        $totalPassed = 0;
+        $totalFailed = 0;
+        $startTime = microtime(true);
+
+        foreach ($testSuites as $category => $tests) {
+            $this->stdout("📁 {$category}:\n", Console::FG_CYAN);
+            
+            foreach ($tests as $test) {
+                $this->stdout("  Running {$test['filename']}... ");
+                $testStartTime = microtime(true);
+                
+                $result = $this->executeTestFile($test['path'], $this->cleanup);
+                $testDuration = round(microtime(true) - $testStartTime, 2);
+
+                if ($result === ExitCode::OK) {
+                    $this->stdout("✅ PASS ({$testDuration}s)\n", Console::FG_GREEN);
+                    $totalPassed++;
+                } else {
+                    $this->stdout("❌ FAIL ({$testDuration}s)\n", Console::FG_RED);
+                    $totalFailed++;
+                }
+            }
+            $this->stdout("\n");
+        }
+
+        $totalDuration = round(microtime(true) - $startTime, 2);
+        $this->stdout("📊 Overall Test Results:\n", Console::FG_YELLOW);
+        $this->stdout("  ✅ Total Passed: {$totalPassed}\n", Console::FG_GREEN);
+        $this->stdout("  ❌ Total Failed: {$totalFailed}\n", $totalFailed > 0 ? Console::FG_RED : Console::FG_GREY);
+        $this->stdout("  ⏱️  Total Duration: {$totalDuration}s\n");
+
+        return $totalFailed > 0 ? ExitCode::UNSPECIFIED_ERROR : ExitCode::OK;
+    }
+
+    /**
      * Show help information
      */
     public function actionHelp(): int
@@ -1294,6 +1484,12 @@ INSTRUCTIONS;
         $this->stdout("  field-agent/generator/prune-configs [days]                       	Delete old config files (default: 7 days)\n");
         $this->stdout("  field-agent/generator/prune-all --confirm=1                      	Delete ALL configs and operations\n");
         $this->stdout("  field-agent/generator/help                                       	Show this help\n");
+
+        $this->stdout("\nTest Framework:\n", Console::FG_PURPLE);
+        $this->stdout("  field-agent/generator/test-list                                  	List available test suites\n");
+        $this->stdout("  field-agent/generator/test-run <test-name> [--cleanup]           	Run specific test (with optional cleanup)\n");
+        $this->stdout("  field-agent/generator/test-suite <category> [--cleanup]          	Run test suite category (with optional cleanup)\n");
+        $this->stdout("  field-agent/generator/test-all [--cleanup]                       	Run all tests (with optional cleanup)\n");
 
         $this->stdout("\nAI/LLM Integration:\n", Console::FG_GREEN);
         $this->stdout("  Providers: anthropic (default), openai\n");
@@ -1431,18 +1627,19 @@ INSTRUCTIONS;
     }
 
     /**
-     * List built-in presets
+     * List built-in presets (excluding tests)
      */
     private function listBuiltInPresets(): array
     {
         $presets = [];
-        $presetsDir = Plugin::getInstance()->getBasePath() . '/presets';
+        $storageDir = Craft::$app->path->getStoragePath() . '/field-agent/presets';
 
-        if (!is_dir($presetsDir)) {
+        if (!is_dir($storageDir)) {
             return $presets;
         }
 
-        $files = glob($presetsDir . '/*.json');
+        // Get all JSON files in the presets directory, but exclude the tests subdirectory
+        $files = glob($storageDir . '/*.json');
         foreach ($files as $file) {
             $filename = basename($file, '.json');
             $data = json_decode(file_get_contents($file), true);
@@ -1451,9 +1648,28 @@ INSTRUCTIONS;
                 $presets[] = [
                     'filename' => $filename,
                     'name' => $data['name'] ?? $filename,
-                    'description' => $data['description'] ?? 'Built-in preset',
+                    'description' => $data['description'] ?? 'User preset',
                     'version' => $data['version'] ?? '1.0.0'
                 ];
+            }
+        }
+
+        // Also check for built-in presets in the plugin directory
+        $pluginPresetsDir = Plugin::getInstance()->getBasePath() . '/presets';
+        if (is_dir($pluginPresetsDir)) {
+            $builtInFiles = glob($pluginPresetsDir . '/*.json');
+            foreach ($builtInFiles as $file) {
+                $filename = basename($file, '.json');
+                $data = json_decode(file_get_contents($file), true);
+
+                if ($data) {
+                    $presets[] = [
+                        'filename' => $filename,
+                        'name' => $data['name'] ?? $filename,
+                        'description' => $data['description'] ?? 'Built-in preset',
+                        'version' => $data['version'] ?? '1.0.0'
+                    ];
+                }
             }
         }
 
@@ -2628,5 +2844,217 @@ INSTRUCTIONS;
     private function count($array): int
     {
         return is_array($array) ? count($array) : 0;
+    }
+
+    /**
+     * Discover available test suites organized by category
+     */
+    private function discoverTestSuites(): array
+    {
+        $testSuites = [];
+        $testsDir = dirname(__DIR__, 3) . '/tests';
+
+        if (!is_dir($testsDir)) {
+            return $testSuites;
+        }
+
+        $categories = ['basic-operations', 'advanced-operations', 'integration-tests', 'edge-cases'];
+        
+        foreach ($categories as $category) {
+            $categoryDir = $testsDir . '/' . $category;
+            if (!is_dir($categoryDir)) {
+                continue;
+            }
+
+            $tests = [];
+            $files = glob($categoryDir . '/*.json');
+            
+            foreach ($files as $file) {
+                $filename = basename($file, '.json');
+                $data = json_decode(file_get_contents($file), true);
+
+                if ($data) {
+                    $tests[] = [
+                        'filename' => $filename,
+                        'path' => $file,
+                        'description' => $data['description'] ?? 'Test suite',
+                        'prerequisite' => $data['prerequisite'] ?? null,
+                        'expectedOutcome' => $data['expectedOutcome'] ?? []
+                    ];
+                }
+            }
+
+            if (!empty($tests)) {
+                // Sort tests by filename for consistent ordering
+                usort($tests, function($a, $b) {
+                    return strcmp($a['filename'], $b['filename']);
+                });
+                $testSuites[$category] = $tests;
+            }
+        }
+
+        return $testSuites;
+    }
+
+    /**
+     * Find a specific test file by name across all categories
+     */
+    private function findTestFile(string $testName): ?string
+    {
+        $testSuites = $this->discoverTestSuites();
+        
+        foreach ($testSuites as $category => $tests) {
+            foreach ($tests as $test) {
+                if ($test['filename'] === $testName) {
+                    return $test['path'];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Execute a test file and return the result
+     */
+    private function executeTestFile(string $testFile, bool $cleanup = false): int
+    {
+        if (!file_exists($testFile)) {
+            $this->stderr("Test file not found: $testFile\n", Console::FG_RED);
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+
+        $testData = json_decode(file_get_contents($testFile), true);
+        if (!$testData) {
+            $this->stderr("Invalid JSON in test file: $testFile\n", Console::FG_RED);
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+
+        // Check if this is an operations-based test or legacy field-based test
+        if (isset($testData['operations'])) {
+            // New operations-based test format
+            return $this->executeOperationsTest($testData, basename($testFile, '.json'), $cleanup);
+        } else {
+            // Legacy field-based test format - convert to operations
+            return $this->executeLegacyTest($testData, basename($testFile, '.json'), $cleanup);
+        }
+    }
+
+    /**
+     * Execute an operations-based test
+     */
+    private function executeOperationsTest(array $testData, string $testName, bool $cleanup = false): int
+    {
+        $plugin = Plugin::getInstance();
+        $operationsService = $plugin->operationsExecutorService;
+        $rollbackService = $plugin->rollbackService;
+        $operationId = null;
+
+        try {
+            // Execute the operations - pass the entire testData which contains the 'operations' key
+            $results = $operationsService->executeOperations($testData);
+
+            // Check if all operations succeeded
+            $allSucceeded = true;
+            $errors = [];
+            
+            $resultsArray = is_array($results) ? $results : [$results];
+            foreach ($resultsArray as $result) {
+                if (is_array($result) && isset($result['success']) && !$result['success']) {
+                    $allSucceeded = false;
+                    $errors[] = $result['message'] ?? 'Unknown error';
+                }
+            }
+
+            if ($allSucceeded) {
+                // If cleanup is enabled and test passed, record and rollback the operation
+                if ($cleanup) {
+                    // Record the operation so it can be rolled back
+                    $operationId = $rollbackService->recordTestOperation($testName, $testData, $results);
+                    if ($operationId) {
+                        $this->performTestCleanup($operationId);
+                    }
+                }
+                return ExitCode::OK;
+            } else {
+                $this->stderr("\nTest failed with errors:\n", Console::FG_RED);
+                foreach ($errors as $error) {
+                    $this->stderr("  - $error\n");
+                }
+                return ExitCode::UNSPECIFIED_ERROR;
+            }
+        } catch (\Exception $e) {
+            $this->stderr("\nTest failed with exception: " . $e->getMessage() . "\n", Console::FG_RED);
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+    }
+
+    /**
+     * Execute a legacy field-based test (converts to operations first)
+     */
+    private function executeLegacyTest(array $testData, string $testName, bool $cleanup = false): int
+    {
+        // Convert legacy field format to operations format
+        $operations = [];
+        
+        if (isset($testData['fields'])) {
+            foreach ($testData['fields'] as $field) {
+                $operations[] = [
+                    'type' => 'create',
+                    'target' => 'field',
+                    'data' => $field
+                ];
+            }
+        }
+
+        if (isset($testData['sections'])) {
+            foreach ($testData['sections'] as $section) {
+                $operations[] = [
+                    'type' => 'create',
+                    'target' => 'section',
+                    'data' => $section
+                ];
+            }
+        }
+
+        if (isset($testData['entryTypes'])) {
+            foreach ($testData['entryTypes'] as $entryType) {
+                $operations[] = [
+                    'type' => 'create',
+                    'target' => 'entryType',
+                    'data' => $entryType
+                ];
+            }
+        }
+
+        $operationsData = ['operations' => $operations];
+        return $this->executeOperationsTest($operationsData, $testName, $cleanup);
+    }
+
+    /**
+     * Perform cleanup for a test operation
+     */
+    private function performTestCleanup(string $operationId): void
+    {
+        try {
+            $plugin = Plugin::getInstance();
+            $rollbackService = $plugin->rollbackService;
+            
+            $this->stdout(" 🧹 Cleaning up test data...", Console::FG_CYAN);
+            $result = $rollbackService->rollbackOperation($operationId);
+            
+            // Check if anything was deleted (success is indicated by having deletion results)
+            $totalDeleted = count($result['deleted']['fields'] ?? []) + 
+                           count($result['deleted']['entryTypes'] ?? []) + 
+                           count($result['deleted']['sections'] ?? []);
+            
+            if ($totalDeleted > 0) {
+                $this->stdout(" ✅ Cleanup complete ({$totalDeleted} items removed)\n", Console::FG_GREEN);
+            } else {
+                $this->stdout(" ⚠️ Cleanup completed but no items were removed\n", Console::FG_YELLOW);
+            }
+        } catch (\Exception $e) {
+            $this->stdout(" ❌ Cleanup failed: " . $e->getMessage() . "\n", Console::FG_YELLOW);
+        }
     }
 }

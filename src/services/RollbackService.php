@@ -434,6 +434,89 @@ class RollbackService extends Component
 
 
     /**
+     * Record a test operation for rollback purposes
+     */
+    public function recordTestOperation(string $testName, array $testData, array $results): ?string
+    {
+        try {
+            $operation = new Operation();
+            $operation->id = $this->generateOperationId();
+            $operation->type = 'test';
+            $operation->source = "Test: {$testName}";
+            $operation->timestamp = time();
+            $operation->description = "Test operation for: {$testName}";
+            
+            // Extract created items from results
+            if (is_array($results)) {
+                foreach ($results as $result) {
+                    if (is_array($result) && isset($result['success']) && $result['success'] && isset($result['created'])) {
+                        $created = $result['created'];
+                        switch ($created['type'] ?? '') {
+                            case 'field':
+                                $operation->createdFields[] = [
+                                    'id' => $created['id'] ?? null,
+                                    'handle' => $created['handle'] ?? '',
+                                    'name' => $created['name'] ?? '',
+                                    'type' => $created['fieldType'] ?? ''
+                                ];
+                                
+                                // If this is a Matrix field, also capture its block fields and entry types
+                                if (isset($result['matrix_blocks'])) {
+                                    $matrixBlocks = $result['matrix_blocks'];
+                                    
+                                    // Add Matrix block fields
+                                    if (isset($matrixBlocks['fields']) && is_array($matrixBlocks['fields'])) {
+                                        foreach ($matrixBlocks['fields'] as $blockField) {
+                                            $operation->createdFields[] = [
+                                                'id' => $blockField['id'] ?? null,
+                                                'handle' => $blockField['handle'] ?? '',
+                                                'name' => $blockField['name'] ?? '',
+                                                'type' => $blockField['type'] ?? ''
+                                            ];
+                                        }
+                                    }
+                                    
+                                    // Add Matrix block entry types
+                                    if (isset($matrixBlocks['entry_types']) && is_array($matrixBlocks['entry_types'])) {
+                                        foreach ($matrixBlocks['entry_types'] as $blockEntryType) {
+                                            $operation->createdEntryTypes[] = [
+                                                'id' => $blockEntryType['id'] ?? null,
+                                                'handle' => $blockEntryType['handle'] ?? '',
+                                                'name' => $blockEntryType['name'] ?? ''
+                                            ];
+                                        }
+                                    }
+                                }
+                                break;
+                            case 'entryType':
+                                $operation->createdEntryTypes[] = [
+                                    'id' => $created['id'] ?? null,
+                                    'handle' => $created['handle'] ?? '',
+                                    'name' => $created['name'] ?? ''
+                                ];
+                                break;
+                            case 'section':
+                                $operation->createdSections[] = [
+                                    'id' => $created['id'] ?? null,
+                                    'handle' => $created['handle'] ?? '',
+                                    'name' => $created['name'] ?? ''
+                                ];
+                                break;
+                        }
+                    }
+                }
+            }
+            
+            $this->saveOperation($operation);
+            return $operation->id;
+        } catch (\Exception $e) {
+            // Log error but don't fail the test
+            Craft::error("Failed to record test operation: " . $e->getMessage(), __METHOD__);
+            return null;
+        }
+    }
+
+    /**
      * Mark an operation as rolled back
      */
     private function markOperationRolledBack(string $operationId): void

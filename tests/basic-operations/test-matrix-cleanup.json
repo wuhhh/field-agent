@@ -1,0 +1,41 @@
+{
+    "name": "Matrix Cleanup Test",
+    "description": "Test Matrix field cleanup with block types and fields",
+    "operations": [
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Test Matrix Field",
+                    "handle": "testMatrixCleanup",
+                    "field_type": "matrix",
+                    "settings": {
+                        "minEntries": 1,
+                        "maxEntries": 5,
+                        "entryTypes": [
+                            {
+                                "name": "Simple Block",
+                                "handle": "simpleBlock",
+                                "fields": [
+                                    {
+                                        "name": "Block Title",
+                                        "handle": "blockTitle",
+                                        "field_type": "plain_text",
+                                        "required": true
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ],
+    "expectedOutcome": {
+        "fieldsCreated": 2,
+        "matrixFieldsCreated": 1,
+        "blockTypesCreated": 1,
+        "purpose": "Test that Matrix field cleanup removes all associated fields and entry types"
+    }
+}

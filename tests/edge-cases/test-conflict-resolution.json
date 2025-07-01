@@ -1,0 +1,135 @@
+{
+  "name": "Conflict Resolution Test",
+  "description": "Tests automatic handle conflict resolution with reserved names and existing field detection",
+  "operations": [
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Page Title",
+          "handle": "pageTitle",
+          "field_type": "plain_text",
+          "settings": {
+            "charLimit": 200
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Body Content", 
+          "handle": "bodyContent",
+          "field_type": "rich_text"
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Writer",
+          "handle": "writer",
+          "field_type": "plain_text",
+          "settings": {
+            "charLimit": 100
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Custom ID",
+          "handle": "customId",
+          "field_type": "plain_text",
+          "settings": {
+            "charLimit": 50
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Page URL",
+          "handle": "pageUrl",
+          "field_type": "link",
+          "settings": {
+            "types": ["url"],
+            "showLabelField": true
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Meta Description",
+          "handle": "metaDescription",
+          "field_type": "plain_text",
+          "settings": {
+            "multiline": true,
+            "charLimit": 160
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "entryType",
+      "create": {
+        "entryType": {
+          "name": "Conflict Test Entry",
+          "handle": "conflictTestEntry",
+          "hasTitleField": true,
+          "fields": [
+            {"handle": "pageTitle", "required": true},
+            {"handle": "bodyContent", "required": true},
+            {"handle": "writer", "required": false},
+            {"handle": "customId", "required": false},
+            {"handle": "pageUrl", "required": false},
+            {"handle": "metaDescription", "required": false}
+          ]
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "section",
+      "create": {
+        "section": {
+          "name": "Conflict Test",
+          "handle": "conflictTest",
+          "type": "channel",
+          "entryTypes": [
+            {"handle": "conflictTestEntry"}
+          ]
+        }
+      }
+    }
+  ],
+  "expectedOutcome": {
+    "fieldsCreated": 6,
+    "entryTypesCreated": 1,
+    "sectionsCreated": 1,
+    "conflictsResolved": {
+      "title": "pageTitle",
+      "content": "bodyContent", 
+      "author": "writer",
+      "id": "customId",
+      "url": "pageUrl"
+    },
+    "purpose": "Demonstrates field handle conflict resolution and reserved name avoidance"
+  }
+}

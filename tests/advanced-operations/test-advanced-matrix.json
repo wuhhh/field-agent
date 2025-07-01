@@ -1,0 +1,338 @@
+{
+  "name": "Advanced Page Builder Matrix",
+  "description": "Creates a comprehensive page builder matrix with hero, testimonial, feature grid and video blocks",
+  "operations": [
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Hero Image",
+          "handle": "heroImage",
+          "field_type": "image",
+          "settings": {
+            "maxRelations": 1
+          }
+        }
+      }
+    },
+    {
+      "type": "create", 
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Hero Title",
+          "handle": "heroTitle",
+          "field_type": "plain_text",
+          "settings": {
+            "charLimit": 200
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Hero Description",
+          "handle": "heroDescription",
+          "field_type": "rich_text"
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Hero Button Text",
+          "handle": "heroButtonText",
+          "field_type": "plain_text",
+          "settings": {
+            "charLimit": 50
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Hero Button Link",
+          "handle": "heroButtonLink",
+          "field_type": "link",
+          "settings": {
+            "types": ["url", "entry"],
+            "showLabelField": true
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Testimonial Quote",
+          "handle": "testimonialQuote",
+          "field_type": "rich_text"
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Testimonial Author",
+          "handle": "testimonialAuthor",
+          "field_type": "plain_text",
+          "settings": {
+            "charLimit": 100
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Testimonial Author Title",
+          "handle": "testimonialAuthorTitle",
+          "field_type": "plain_text",
+          "settings": {
+            "charLimit": 100
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Testimonial Author Image",
+          "handle": "testimonialAuthorImage",
+          "field_type": "image",
+          "settings": {
+            "maxRelations": 1
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Feature Grid Title",
+          "handle": "featureGridTitle",
+          "field_type": "plain_text",
+          "settings": {
+            "charLimit": 200
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Feature Items",
+          "handle": "featureItems",
+          "field_type": "matrix",
+          "settings": {
+            "entryTypes": [
+              {
+                "name": "Feature Item",
+                "handle": "featureItem",
+                "fields": [
+                  {
+                    "name": "Feature Title",
+                    "handle": "featureTitle",
+                    "field_type": "plain_text",
+                    "required": true
+                  },
+                  {
+                    "name": "Feature Description",
+                    "handle": "featureDescription",
+                    "field_type": "rich_text",
+                    "required": true
+                  },
+                  {
+                    "name": "Feature Icon",
+                    "handle": "featureIcon",
+                    "field_type": "icon",
+                    "required": false
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Video URL",
+          "handle": "videoUrl",
+          "field_type": "link",
+          "settings": {
+            "types": ["url"]
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Video Title",
+          "handle": "videoTitle",
+          "field_type": "plain_text",
+          "settings": {
+            "charLimit": 200
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Video Description",
+          "handle": "videoDescription",
+          "field_type": "rich_text"
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Video Poster Image",
+          "handle": "videoPosterImage",
+          "field_type": "image",
+          "settings": {
+            "maxRelations": 1
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Page Builder",
+          "handle": "pageBuilder",
+          "field_type": "matrix",
+          "settings": {
+            "entryTypes": [
+              {
+                "name": "Hero Block",
+                "handle": "heroBlock",
+                "fields": [
+                  {
+                    "handle": "heroTitle",
+                    "required": true
+                  },
+                  {
+                    "handle": "heroDescription",
+                    "required": true
+                  },
+                  {
+                    "handle": "heroImage",
+                    "required": true
+                  },
+                  {
+                    "handle": "heroButtonText",
+                    "required": false
+                  },
+                  {
+                    "handle": "heroButtonLink",
+                    "required": false
+                  }
+                ]
+              },
+              {
+                "name": "Testimonial Block",
+                "handle": "testimonialBlock",
+                "fields": [
+                  {
+                    "handle": "testimonialQuote",
+                    "required": true
+                  },
+                  {
+                    "handle": "testimonialAuthor",
+                    "required": true
+                  },
+                  {
+                    "handle": "testimonialAuthorTitle",
+                    "required": false
+                  },
+                  {
+                    "handle": "testimonialAuthorImage",
+                    "required": false
+                  }
+                ]
+              },
+              {
+                "name": "Feature Grid Block",
+                "handle": "featureGridBlock",
+                "fields": [
+                  {
+                    "handle": "featureGridTitle",
+                    "required": true
+                  },
+                  {
+                    "handle": "featureItems",
+                    "required": true
+                  }
+                ]
+              },
+              {
+                "name": "Video Block",
+                "handle": "videoBlock",
+                "fields": [
+                  {
+                    "handle": "videoTitle",
+                    "required": true
+                  },
+                  {
+                    "handle": "videoDescription",
+                    "required": false
+                  },
+                  {
+                    "handle": "videoUrl",
+                    "required": true
+                  },
+                  {
+                    "handle": "videoPosterImage",
+                    "required": false
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "expectedOutcome": {
+    "fieldsCreated": 16,
+    "matrixFields": 2,
+    "matrixBlockTypes": 5,
+    "purpose": "Advanced page builder with nested matrix structures and comprehensive block types"
+  }
+}

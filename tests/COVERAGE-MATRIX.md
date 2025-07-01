@@ -180,30 +180,30 @@ This document provides a detailed breakdown of test coverage across all Field Ag
 
 ### Standalone Tests (No Dependencies)
 
-| Test File | Operations | Duration | Complexity |
-|-----------|------------|----------|------------|
-| test-create-fields.json | 24 | 2-3 min | Low |
-| test-sections.json | 18 | 3-4 min | Medium |
-| test-conflict-resolution.json | 23 | 2-3 min | Medium |
-| test-error-conditions.json | 31 | 2-4 min | Low |
+| Test File | Operations | Complexity |
+|-----------|------------|------------|
+| test-create-fields.json | 24 | Low |
+| test-sections.json | 18 | Medium |
+| test-conflict-resolution.json | 23 | Medium |
+| test-error-conditions.json | 31 | Low |
 
 ### Sequential Tests (With Dependencies)
 
-| Sequence | Tests | Total Operations | Duration |
-|----------|-------|------------------|----------|
-| Matrix Testing | test-matrix-fields → test-matrix-modifications | 25 → 15 | 8-12 min |
-| Field Modification | test-create-fields → test-modify-fields | 24 → 10 | 5-8 min |
-| Complete Integration | test-complete-site standalone | 22 | 10-15 min |
+| Sequence | Tests | Total Operations |
+|----------|-------|------------------|
+| Matrix Testing | test-matrix-fields → test-matrix-modifications | 25 → 15 |
+| Field Modification | test-create-fields → test-modify-fields | 24 → 10 |
+| Complete Integration | test-complete-site standalone | 22 |
 
 ### Full Suite Execution
 
-| Phase | Test Count | Total Operations | Duration |
-|-------|------------|------------------|----------|
-| Basic Operations | 4 tests | ~75 operations | 15-20 min |
-| Advanced Operations | 4 tests | ~85 operations | 20-25 min |
-| Integration Tests | 3 tests | ~65 operations | 25-35 min |
-| Edge Cases | 3 tests | ~75 operations | 10-15 min |
-| **Total** | **14 tests** | **~300 operations** | **70-95 min** |
+| Phase | Test Count | Total Operations |
+|-------|------------|------------------|
+| Basic Operations | 4 tests | ~75 operations |
+| Advanced Operations | 4 tests | ~85 operations |
+| Integration Tests | 3 tests | ~65 operations |
+| Edge Cases | 3 tests | ~75 operations |
+| **Total** | **14 tests** | **~300 operations** |
 
 ## Quality Assurance Metrics
 

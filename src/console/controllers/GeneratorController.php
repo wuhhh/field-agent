@@ -132,24 +132,24 @@ class GeneratorController extends Controller
                                     'type' => $field::class,
                                     'id' => $field->id
                                 ];
-                                
+
                                 // If this is a matrix field, also track its block fields and entry types
                                 if ($field instanceof \craft\fields\Matrix) {
                                     $blockFields = $plugin->fieldGeneratorService->getCreatedBlockFields();
                                     $blockEntryTypes = $plugin->fieldGeneratorService->getCreatedBlockEntryTypes();
-                                    
+
                                     // Add block fields to created fields
                                     foreach ($blockFields as $blockField) {
                                         $this->stdout("  → Block field: {$blockField['name']} ({$blockField['handle']})\n", Console::FG_BLUE);
                                         $createdFields[] = $blockField;
                                     }
-                                    
+
                                     // Add block entry types to created entry types
                                     foreach ($blockEntryTypes as $blockEntryType) {
                                         $this->stdout("  → Block type: {$blockEntryType['name']} ({$blockEntryType['handle']})\n", Console::FG_CYAN);
                                         $createdEntryTypes[] = $blockEntryType;
                                     }
-                                    
+
                                     // Clear the tracking arrays for next matrix field
                                     $plugin->fieldGeneratorService->clearBlockTracking();
                                 }
@@ -1386,7 +1386,7 @@ INSTRUCTIONS;
         foreach ($tests as $test) {
             $this->stdout("Running {$test['filename']}... ", Console::FG_CYAN);
             $testStartTime = microtime(true);
-            
+
             $result = $this->executeTestFile($test['path'], $this->cleanup);
             $testDuration = round(microtime(true) - $testStartTime, 2);
 
@@ -1414,7 +1414,7 @@ INSTRUCTIONS;
     public function actionTestAll(): int
     {
         $testSuites = $this->discoverTestSuites();
-        
+
         if (empty($testSuites)) {
             $this->stdout("No test suites found.\n", Console::FG_YELLOW);
             return ExitCode::OK;
@@ -1432,11 +1432,11 @@ INSTRUCTIONS;
 
         foreach ($testSuites as $category => $tests) {
             $this->stdout("📁 {$category}:\n", Console::FG_CYAN);
-            
+
             foreach ($tests as $test) {
                 $this->stdout("  Running {$test['filename']}... ");
                 $testStartTime = microtime(true);
-                
+
                 $result = $this->executeTestFile($test['path'], $this->cleanup);
                 $testDuration = round(microtime(true) - $testStartTime, 2);
 
@@ -1523,11 +1523,6 @@ INSTRUCTIONS;
         $this->stdout("  field-agent/generator/prompt \"Create a team page\" anthropic --debug --dry-run\n");
         $this->stdout("  field-agent/generator/test-llm openai --debug\n");
 
-        $this->stdout("\n💡 Important: When using options like --debug, --dry-run, or --output,\n", Console::FG_CYAN);
-        $this->stdout("   always use the FULL action path (with slashes) for proper routing:\n");
-        $this->stdout("   ✓ field-agent/generator/prompt \"text\" --debug\n");
-        $this->stdout("   ✗ field-agent/generator prompt \"text\" --debug (will fail)\n");
-
         $this->stdout("\nBuilt-in presets:\n", Console::FG_GREEN);
         $presets = $this->listBuiltInPresets();
         if (!empty($presets)) {
@@ -1547,46 +1542,9 @@ INSTRUCTIONS;
         $this->stdout("  Date/Time: date, time\n");
         $this->stdout("  UI: color, lightswitch, button_group, icon\n");
         $this->stdout("  Relational: entries, users\n");
-        $this->stdout("  Complex: matrix\n");
+        $this->stdout("  Complex: matrix\n\n");
         // $this->stdout("  Relational: categories, entries, tags, users\n"); // Not implemented yet
         // $this->stdout("  Complex: table, matrix\n"); // Not implemented yet
-
-        $this->stdout("\nExample JSON config:\n", Console::FG_YELLOW);
-        $this->stdout('{
-  "sections": [
-    {
-      "name": "Blog",
-      "handle": "blog",
-      "type": "single|channel|structure",
-      "enableVersioning": true,
-      "uri": "blog/{slug}",
-      "template": "blog/_entry"
-    }
-  ],
-  "fields": [
-    {
-      "name": "Field Name",
-      "handle": "fieldHandle",
-      "field_type": "plain_text|rich_text|email|image|asset|number|money|range|url|dropdown|radio_buttons|checkboxes|multi_select|country|date|time|color|lightswitch|button_group|icon|table|categories|entries|tags|users|matrix",
-      "instructions": "Optional instructions",
-      "required": false,
-      "searchable": true,
-      "options": ["Option 1", "Option 2"] // For selection fields
-    }
-  ],
-  "entryTypes": [
-    {
-      "name": "Entry Type Name",
-      "handle": "entryTypeHandle",
-      "section": "sectionHandle",
-      "hasTitleField": true,
-      "titleFormat": "{title}",
-      "fields": [
-        {"handle": "fieldHandle", "required": false}
-      ]
-    }
-  ]
-}' . "\n");
 
         return ExitCode::OK;
     }
@@ -2548,23 +2506,23 @@ INSTRUCTIONS;
         foreach ($results as $result) {
             if ($result['success']) {
                 $this->stdout("✓ {$result['message']}\n", Console::FG_GREEN);
-                
+
                 // Display matrix block details if present
                 if (isset($result['matrix_blocks'])) {
                     $blockFields = $result['matrix_blocks']['fields'] ?? [];
                     $blockEntryTypes = $result['matrix_blocks']['entry_types'] ?? [];
-                    
+
                     foreach ($blockEntryTypes as $blockType) {
                         $this->stdout("  → Block type: {$blockType['name']} ({$blockType['handle']})\n", Console::FG_CYAN);
                         $totalBlockTypes++;
                     }
-                    
+
                     foreach ($blockFields as $blockField) {
                         $this->stdout("    • Block field: {$blockField['name']} ({$blockField['handle']})\n", Console::FG_BLUE);
                         $totalBlockFields++;
                     }
                 }
-                
+
                 $successful++;
             } else {
                 $this->stdout("✗ Operation {$result['index']}: {$result['message']}\n", Console::FG_RED);
@@ -2577,7 +2535,7 @@ INSTRUCTIONS;
         }
 
         $this->stdout("\nSummary: $successful successful, $failed failed\n", Console::FG_CYAN);
-        
+
         if ($totalBlockTypes > 0 || $totalBlockFields > 0) {
             $this->stdout("Matrix blocks: $totalBlockTypes block types, $totalBlockFields block fields\n", Console::FG_CYAN);
         }
@@ -2692,7 +2650,7 @@ INSTRUCTIONS;
 
     /**
      * Clean up all sections, entry types, and fields - useful for testing
-     * 
+     *
      * @param bool $force Skip confirmation prompt
      * @return int Exit code
      */
@@ -2703,12 +2661,12 @@ INSTRUCTIONS;
 
         // Get project config
         $projectConfig = Craft::$app->getProjectConfig();
-        
+
         // Count items
         $sectionsConfig = $projectConfig->get('sections') ?? [];
         $entryTypesConfig = $projectConfig->get('entryTypes') ?? [];
         $fieldsConfig = $projectConfig->get('fields') ?? [];
-        
+
         $sectionCount = count($sectionsConfig);
         $entryTypeCount = count($entryTypesConfig);
         $fieldCount = count($fieldsConfig);
@@ -2806,7 +2764,7 @@ INSTRUCTIONS;
         $this->stdout("  ✓ Deleted {$this->count($deletedSections)} sections\n", Console::FG_GREEN);
         $this->stdout("  ✓ Deleted {$this->count($deletedEntryTypes)} entry types\n", Console::FG_GREEN);
         $this->stdout("  ✓ Deleted {$this->count($deletedFields)} fields\n", Console::FG_GREEN);
-        
+
         if (!empty($errors)) {
             $this->stdout("\n  ⚠️  {$this->count($errors)} errors occurred:\n", Console::FG_RED);
             foreach ($errors as $error) {
@@ -2828,13 +2786,13 @@ INSTRUCTIONS;
                 $deletedSections,
                 'Manual cleanup - deleted all sections, entry types, and fields'
             );
-            
+
             $this->stdout("\n📋 Cleanup operation recorded with ID: $operationId\n", Console::FG_CYAN);
             $this->stdout("   (Note: This operation cannot be rolled back as items were deleted)\n", Console::FG_YELLOW);
         }
 
         $this->stdout("\nDone! Run 'ddev craft up' to apply changes.\n", Console::FG_GREEN);
-        
+
         return empty($errors) ? ExitCode::OK : ExitCode::UNSPECIFIED_ERROR;
     }
 
@@ -2859,7 +2817,7 @@ INSTRUCTIONS;
         }
 
         $categories = ['basic-operations', 'advanced-operations', 'integration-tests', 'edge-cases'];
-        
+
         foreach ($categories as $category) {
             $categoryDir = $testsDir . '/' . $category;
             if (!is_dir($categoryDir)) {
@@ -2868,7 +2826,7 @@ INSTRUCTIONS;
 
             $tests = [];
             $files = glob($categoryDir . '/*.json');
-            
+
             foreach ($files as $file) {
                 $filename = basename($file, '.json');
                 $data = json_decode(file_get_contents($file), true);
@@ -2902,7 +2860,7 @@ INSTRUCTIONS;
     private function findTestFile(string $testName): ?string
     {
         $testSuites = $this->discoverTestSuites();
-        
+
         foreach ($testSuites as $category => $tests) {
             foreach ($tests as $test) {
                 if ($test['filename'] === $testName) {
@@ -2957,7 +2915,7 @@ INSTRUCTIONS;
             // Check if all operations succeeded
             $allSucceeded = true;
             $errors = [];
-            
+
             $resultsArray = is_array($results) ? $results : [$results];
             foreach ($resultsArray as $result) {
                 if (is_array($result) && isset($result['success']) && !$result['success']) {
@@ -2996,7 +2954,7 @@ INSTRUCTIONS;
     {
         // Convert legacy field format to operations format
         $operations = [];
-        
+
         if (isset($testData['fields'])) {
             foreach ($testData['fields'] as $field) {
                 $operations[] = [
@@ -3039,15 +2997,15 @@ INSTRUCTIONS;
         try {
             $plugin = Plugin::getInstance();
             $rollbackService = $plugin->rollbackService;
-            
+
             $this->stdout(" 🧹 Cleaning up test data...", Console::FG_CYAN);
             $result = $rollbackService->rollbackOperation($operationId);
-            
+
             // Check if anything was deleted (success is indicated by having deletion results)
-            $totalDeleted = count($result['deleted']['fields'] ?? []) + 
-                           count($result['deleted']['entryTypes'] ?? []) + 
+            $totalDeleted = count($result['deleted']['fields'] ?? []) +
+                           count($result['deleted']['entryTypes'] ?? []) +
                            count($result['deleted']['sections'] ?? []);
-            
+
             if ($totalDeleted > 0) {
                 $this->stdout(" ✅ Cleanup complete ({$totalDeleted} items removed)\n", Console::FG_GREEN);
             } else {

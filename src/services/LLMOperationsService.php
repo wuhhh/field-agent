@@ -394,14 +394,133 @@ PROMPT;
     }
 
     /**
-     * Call OpenAI API (reuse from existing service)
+     * Call OpenAI API with operations schema
      */
     private function callOpenAI(string $systemPrompt, string $userPrompt, array $schema, bool $debug): array
     {
-        // Implementation would be similar to existing LLMIntegrationService
-        // For now, we'll delegate to the existing service
-        $plugin = Plugin::getInstance();
-        return $plugin->llmIntegrationService->callOpenAI($systemPrompt, $userPrompt, $schema, $debug);
+        $apiKey = $this->getApiKey('OPENAI_API_KEY');
+        if (!$apiKey) {
+            throw new Exception("OpenAI API key not found in environment variables");
+        }
+
+        $payload = [
+            'model' => 'gpt-4o-2024-08-06',
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => $systemPrompt
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $userPrompt
+                ]
+            ],
+            'response_format' => [
+                'type' => 'json_schema',
+                'json_schema' => [
+                    'name' => 'operations_configuration',
+                    'schema' => $schema
+                ]
+            ],
+            'max_tokens' => 4000,
+            'temperature' => 0.1
+        ];
+
+        if ($debug) {
+            $this->logDebug("=== OpenAI REQUEST ===");
+            $this->logDebug("- Model: " . $payload['model']);
+            $this->logDebug("- Schema Name: operations_configuration");
+            $this->logDebug("- Schema Keys: " . implode(', ', array_keys($schema['properties'] ?? [])));
+            $this->logDebug("- System Prompt Length: " . strlen($systemPrompt) . " chars");
+            $this->logDebug("- User Prompt: " . $userPrompt);
+        }
+
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => 'https://api.openai.com/v1/chat/completions',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 120,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $apiKey,
+            ],
+        ]);
+
+        $response = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($curl);
+        curl_close($curl);
+
+        if ($curlError) {
+            throw new Exception("cURL error: $curlError");
+        }
+
+        if ($debug) {
+            $this->logDebug("=== OpenAI RESPONSE ===");
+            $this->logDebug("- HTTP Code: $httpCode");
+            $this->logDebug("- Response Body: $response");
+        }
+
+        if ($httpCode !== 200) {
+            throw new Exception("HTTP request failed with code $httpCode: $response");
+        }
+
+        $data = json_decode($response, true);
+        if (!$data) {
+            throw new Exception("Invalid JSON response from OpenAI API");
+        }
+
+        if (isset($data['error'])) {
+            if ($debug) {
+                $this->logDebug("- Error Type: " . ($data['error']['type'] ?? 'unknown'));
+                $this->logDebug("- Error Message: " . ($data['error']['message'] ?? 'no message'));
+            }
+            throw new Exception("OpenAI API error: " . ($data['error']['message'] ?? 'Unknown error'));
+        }
+
+        if (!isset($data['choices'][0]['message']['content'])) {
+            throw new Exception("Unexpected OpenAI API response structure");
+        }
+
+        $content = $data['choices'][0]['message']['content'];
+        $parsedContent = json_decode($content, true);
+
+        if (!$parsedContent) {
+            throw new Exception("Failed to parse OpenAI response as JSON: $content");
+        }
+
+        return $parsedContent;
+    }
+
+    /**
+     * Get API key from environment or Craft config
+     */
+    private function getApiKey(string $keyName): ?string
+    {
+        // Try environment variable first
+        $apiKey = $_ENV[$keyName] ?? getenv($keyName);
+        if ($apiKey) {
+            return $apiKey;
+        }
+
+        // Try Craft config system
+        try {
+            if ($keyName === 'OPENAI_API_KEY') {
+                return \Craft::parseEnv('$OPENAI_API_KEY');
+            } elseif ($keyName === 'ANTHROPIC_API_KEY') {
+                return \Craft::parseEnv('$ANTHROPIC_API_KEY');
+            }
+        } catch (\Exception $e) {
+            // Config parsing failed, return null
+        }
+
+        return null;
     }
 
     /**

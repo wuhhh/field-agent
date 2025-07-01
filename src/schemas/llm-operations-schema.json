@@ -182,7 +182,8 @@
                       "enum": [
                         "addField", "removeField", "updateField",
                         "addEntryType", "removeEntryType", "updateEntryType",
-                        "updateSettings"
+                        "updateSettings",
+                        "addMatrixBlockType", "removeMatrixBlockType", "modifyMatrixBlockType"
                       ]
                     },
                     "field": {
@@ -197,6 +198,38 @@
                     "updates": {
                       "type": "object",
                       "description": "Updates to apply for updateField/updateSettings"
+                    },
+                    "blockType": {
+                      "type": "object",
+                      "description": "Block type definition for addMatrixBlockType action",
+                      "properties": {
+                        "name": {"type": "string"},
+                        "handle": {"type": "string", "pattern": "^[a-z][a-zA-Z0-9]*$"},
+                        "fields": {
+                          "type": "array",
+                          "items": {"$ref": "#/definitions/field"}
+                        }
+                      }
+                    },
+                    "blockTypeHandle": {
+                      "type": "string",
+                      "description": "Block type handle for removeMatrixBlockType/modifyMatrixBlockType",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "blockTypeUpdates": {
+                      "type": "object",
+                      "description": "Updates to apply to matrix block type",
+                      "properties": {
+                        "name": {"type": "string"},
+                        "addFields": {
+                          "type": "array",
+                          "items": {"$ref": "#/definitions/field"}
+                        },
+                        "removeFields": {
+                          "type": "array",
+                          "items": {"type": "string"}
+                        }
+                      }
                     }
                   },
                   "required": ["action"],

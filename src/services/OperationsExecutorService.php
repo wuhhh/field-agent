@@ -278,8 +278,41 @@ class OperationsExecutorService extends Component
 
                 case 'removeField':
                     $fieldHandle = $action['fieldHandle'];
-                    // Implementation for removing fields would go here
-                    $modifications[] = "Remove field '{$fieldHandle}' (not implemented yet)";
+                    $field = Craft::$app->getFields()->getFieldByHandle($fieldHandle);
+                    if ($field) {
+                        // Get current field layout
+                        $fieldLayout = $entryType->getFieldLayout();
+                        $elements = [];
+                        
+                        // Rebuild layout excluding the target field
+                        foreach ($fieldLayout->getTabs() as $tab) {
+                            foreach ($tab->getElements() as $element) {
+                                if ($element instanceof \craft\fieldlayoutelements\CustomField) {
+                                    $elementField = Craft::$app->getFields()->getFieldByUid($element->fieldUid);
+                                    if ($elementField && $elementField->handle !== $fieldHandle) {
+                                        $elements[] = $element;
+                                    }
+                                } else {
+                                    $elements[] = $element;
+                                }
+                            }
+                        }
+                        
+                        // Update field layout
+                        $newFieldLayout = new \craft\models\FieldLayout();
+                        $newFieldLayout->type = \craft\models\EntryType::class;
+                        $newFieldLayout->setTabs([
+                            [
+                                'name' => 'Content',
+                                'elements' => $elements,
+                            ]
+                        ]);
+                        $entryType->setFieldLayout($newFieldLayout);
+                        
+                        $modifications[] = "Removed field '{$fieldHandle}' from entry type";
+                    } else {
+                        $modifications[] = "Field '{$fieldHandle}' not found (may already be removed)";
+                    }
                     break;
 
                 default:
@@ -338,6 +371,41 @@ class OperationsExecutorService extends Component
                         $settings[$setting] = $value;
                         $field->setSettings($settings);
                         $modifications[] = "Updated setting {$setting} to " . (is_bool($value) ? ($value ? 'true' : 'false') : $value);
+                    }
+                }
+            } elseif ($action['action'] === 'addMatrixBlockType' && $field instanceof \craft\fields\Matrix) {
+                $blockTypeConfig = $action['blockType'] ?? null;
+                if ($blockTypeConfig) {
+                    $plugin = Plugin::getInstance();
+                    if ($plugin->fieldGeneratorService->addMatrixBlockType($field, $blockTypeConfig)) {
+                        $modifications[] = "Added matrix block type '{$blockTypeConfig['name']}'";
+                    }
+                }
+            } elseif ($action['action'] === 'removeMatrixBlockType' && $field instanceof \craft\fields\Matrix) {
+                $blockTypeHandle = $action['blockTypeHandle'] ?? null;
+                if ($blockTypeHandle) {
+                    $plugin = Plugin::getInstance();
+                    if ($plugin->fieldGeneratorService->removeMatrixBlockType($field, $blockTypeHandle)) {
+                        $modifications[] = "Removed matrix block type '{$blockTypeHandle}'";
+                    }
+                }
+            } elseif ($action['action'] === 'modifyMatrixBlockType' && $field instanceof \craft\fields\Matrix) {
+                $blockTypeHandle = $action['blockTypeHandle'] ?? null;
+                $blockTypeUpdates = $action['blockTypeUpdates'] ?? null;
+                if ($blockTypeHandle && $blockTypeUpdates) {
+                    $plugin = Plugin::getInstance();
+                    if ($plugin->fieldGeneratorService->modifyMatrixBlockType($field, $blockTypeHandle, $blockTypeUpdates)) {
+                        $changeDesc = [];
+                        if (isset($blockTypeUpdates['addFields'])) {
+                            $changeDesc[] = "added " . count($blockTypeUpdates['addFields']) . " fields";
+                        }
+                        if (isset($blockTypeUpdates['removeFields'])) {
+                            $changeDesc[] = "removed " . count($blockTypeUpdates['removeFields']) . " fields";
+                        }
+                        if (isset($blockTypeUpdates['name'])) {
+                            $changeDesc[] = "updated name to '{$blockTypeUpdates['name']}'";
+                        }
+                        $modifications[] = "Modified matrix block type '{$blockTypeHandle}': " . implode(', ', $changeDesc);
                     }
                 }
             }

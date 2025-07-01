@@ -4,6 +4,7 @@ namespace craftcms\fieldagent\services;
 
 use Craft;
 use craft\base\Component;
+use craft\elements\Entry;
 use craftcms\fieldagent\Plugin;
 use yii\base\Exception;
 
@@ -328,13 +329,77 @@ class OperationsExecutorService extends Component
     }
 
     /**
-     * Modify a section (placeholder)
+     * Modify a section
      */
     private function modifySection(array $operation, array $result): array
     {
         $targetId = $operation['targetId'];
-        $result['success'] = true;
-        $result['message'] = "Section modification for '{$targetId}' not implemented yet";
+        $section = Craft::$app->getEntries()->getSectionByHandle($targetId);
+        
+        if (!$section) {
+            $result['success'] = false;
+            $result['message'] = "Section with handle '{$targetId}' not found";
+            return $result;
+        }
+        
+        // Handle both direct actions and nested modify structure
+        $actions = null;
+        if (isset($operation['actions']) && is_array($operation['actions'])) {
+            $actions = $operation['actions'];
+        } elseif (isset($operation['modify']['actions']) && is_array($operation['modify']['actions'])) {
+            $actions = $operation['modify']['actions'];
+        }
+        
+        if (!$actions) {
+            $result['success'] = false;
+            $result['message'] = "Modify operation for section requires 'actions' array";
+            return $result;
+        }
+        
+        $modificationResults = [];
+        $hasError = false;
+        
+        foreach ($actions as $action) {
+            $actionType = $action['action'] ?? null;
+            
+            switch ($actionType) {
+                case 'addEntryType':
+                    $actionResult = $this->addEntryTypeToSection($section, $action);
+                    break;
+                    
+                case 'removeEntryType':
+                    $actionResult = $this->removeEntryTypeFromSection($section, $action);
+                    break;
+                    
+                case 'updateSettings':
+                    $actionResult = $this->updateSectionSettings($section, $action);
+                    break;
+                    
+                default:
+                    $actionResult = [
+                        'success' => false,
+                        'message' => "Unknown section action: {$actionType}"
+                    ];
+            }
+            
+            $modificationResults[] = $actionResult;
+            if (!$actionResult['success']) {
+                $hasError = true;
+            }
+        }
+        
+        if ($hasError) {
+            $result['success'] = false;
+            $failedActions = array_filter($modificationResults, fn($r) => !$r['success']);
+            $result['message'] = "Section modification failed: " . 
+                implode('; ', array_column($failedActions, 'message'));
+        } else {
+            $result['success'] = true;
+            $result['message'] = "Section '{$targetId}' modified successfully";
+        }
+        
+        $result['actionResults'] = $modificationResults;
+        
         return $result;
     }
 
@@ -444,5 +509,239 @@ class OperationsExecutorService extends Component
         $result['success'] = true;
         $result['message'] = "Delete operation for '{$targetId}' not implemented yet (safety first!)";
         return $result;
+    }
+    
+    /**
+     * Add an entry type to a section
+     */
+    private function addEntryTypeToSection($section, array $action): array
+    {
+        // Handle both direct entryTypeHandle and nested entryType structure
+        $entryTypeHandle = $action['entryTypeHandle'] ?? $action['entryType']['handle'] ?? null;
+        
+        if (!$entryTypeHandle) {
+            return [
+                'success' => false,
+                'message' => "Entry type handle is required for addEntryType action"
+            ];
+        }
+        
+        // Get the entry type by handle
+        $entryType = null;
+        $allEntryTypes = Craft::$app->getEntries()->getAllEntryTypes();
+        foreach ($allEntryTypes as $et) {
+            if ($et->handle === $entryTypeHandle) {
+                $entryType = $et;
+                break;
+            }
+        }
+        
+        if (!$entryType) {
+            return [
+                'success' => false,
+                'message' => "Entry type with handle '{$entryTypeHandle}' not found"
+            ];
+        }
+        
+        // Get current entry types for the section
+        $currentEntryTypes = $section->getEntryTypes();
+        
+        // Check if entry type is already in this section
+        foreach ($currentEntryTypes as $existing) {
+            if ($existing->id === $entryType->id) {
+                return [
+                    'success' => true,
+                    'message' => "Entry type '{$entryTypeHandle}' is already in section '{$section->handle}'"
+                ];
+            }
+        }
+        
+        // Add the new entry type
+        $currentEntryTypes[] = $entryType;
+        $section->setEntryTypes($currentEntryTypes);
+        
+        // Save the section
+        if (!Craft::$app->getEntries()->saveSection($section)) {
+            $errors = $section->getFirstErrors();
+            return [
+                'success' => false,
+                'message' => "Failed to add entry type to section: " . implode(', ', $errors)
+            ];
+        }
+        
+        return [
+            'success' => true,
+            'message' => "Entry type '{$entryTypeHandle}' added to section '{$section->handle}'"
+        ];
+    }
+    
+    /**
+     * Remove an entry type from a section
+     */
+    private function removeEntryTypeFromSection($section, array $action): array
+    {
+        // Handle both direct entryTypeHandle and nested entryType structure
+        $entryTypeHandle = $action['entryTypeHandle'] ?? $action['entryType']['handle'] ?? null;
+        
+        if (!$entryTypeHandle) {
+            return [
+                'success' => false,
+                'message' => "Entry type handle is required for removeEntryType action"
+            ];
+        }
+        
+        // Get current entry types for the section
+        $currentEntryTypes = $section->getEntryTypes();
+        $filteredEntryTypes = [];
+        $found = false;
+        
+        foreach ($currentEntryTypes as $entryType) {
+            if ($entryType->handle === $entryTypeHandle) {
+                $found = true;
+                
+                // Check if there are entries using this entry type
+                $entryQuery = Entry::find()
+                    ->sectionId($section->id)
+                    ->typeId($entryType->id)
+                    ->limit(1);
+                    
+                if ($entryQuery->exists()) {
+                    return [
+                        'success' => false,
+                        'message' => "Cannot remove entry type '{$entryTypeHandle}' - entries exist using this type"
+                    ];
+                }
+            } else {
+                $filteredEntryTypes[] = $entryType;
+            }
+        }
+        
+        if (!$found) {
+            return [
+                'success' => false,
+                'message' => "Entry type '{$entryTypeHandle}' not found in section '{$section->handle}'"
+            ];
+        }
+        
+        // Ensure we're not removing the last entry type
+        if (empty($filteredEntryTypes)) {
+            return [
+                'success' => false,
+                'message' => "Cannot remove the last entry type from section '{$section->handle}'"
+            ];
+        }
+        
+        // Update the section with filtered entry types
+        $section->setEntryTypes($filteredEntryTypes);
+        
+        // Save the section
+        if (!Craft::$app->getEntries()->saveSection($section)) {
+            $errors = $section->getFirstErrors();
+            return [
+                'success' => false,
+                'message' => "Failed to remove entry type from section: " . implode(', ', $errors)
+            ];
+        }
+        
+        return [
+            'success' => true,
+            'message' => "Entry type '{$entryTypeHandle}' removed from section '{$section->handle}'"
+        ];
+    }
+    
+    /**
+     * Update section settings
+     */
+    private function updateSectionSettings($section, array $action): array
+    {
+        $updates = $action['updates'] ?? [];
+        
+        if (empty($updates)) {
+            return [
+                'success' => false,
+                'message' => "No updates provided for updateSettings action"
+            ];
+        }
+        
+        // Apply updates to section
+        $updatedFields = [];
+        
+        // Basic section properties
+        if (isset($updates['name'])) {
+            $section->name = $updates['name'];
+            $updatedFields[] = 'name';
+        }
+        
+        if (isset($updates['type'])) {
+            if (!in_array($updates['type'], ['single', 'channel', 'structure'])) {
+                return [
+                    'success' => false,
+                    'message' => "Invalid section type: {$updates['type']}"
+                ];
+            }
+            $section->type = $updates['type'];
+            $updatedFields[] = 'type';
+        }
+        
+        if (isset($updates['enableVersioning'])) {
+            $section->enableVersioning = (bool)$updates['enableVersioning'];
+            $updatedFields[] = 'enableVersioning';
+        }
+        
+        if (isset($updates['maxAuthors'])) {
+            $section->maxAuthors = (int)$updates['maxAuthors'];
+            $updatedFields[] = 'maxAuthors';
+        }
+        
+        if (isset($updates['defaultPlacement'])) {
+            $section->defaultPlacement = $updates['defaultPlacement'];
+            $updatedFields[] = 'defaultPlacement';
+        }
+        
+        if (isset($updates['propagationMethod'])) {
+            $section->propagationMethod = $updates['propagationMethod'];
+            $updatedFields[] = 'propagationMethod';
+        }
+        
+        // Site-specific settings
+        if (isset($updates['siteSettings'])) {
+            $siteSettings = $section->getSiteSettings();
+            foreach ($updates['siteSettings'] as $siteId => $settings) {
+                if (isset($siteSettings[$siteId])) {
+                    if (isset($settings['enabledByDefault'])) {
+                        $siteSettings[$siteId]->enabledByDefault = (bool)$settings['enabledByDefault'];
+                    }
+                    if (isset($settings['uriFormat'])) {
+                        $siteSettings[$siteId]->uriFormat = $settings['uriFormat'];
+                    }
+                    if (isset($settings['template'])) {
+                        $siteSettings[$siteId]->template = $settings['template'];
+                    }
+                }
+            }
+            $section->setSiteSettings($siteSettings);
+            $updatedFields[] = 'siteSettings';
+        }
+        
+        if (empty($updatedFields)) {
+            return [
+                'success' => true,
+                'message' => "No valid updates to apply to section '{$section->handle}'"
+            ];
+        }
+        
+        // Save the section
+        if (!Craft::$app->getEntries()->saveSection($section)) {
+            $errors = $section->getFirstErrors();
+            return [
+                'success' => false,
+                'message' => "Failed to update section settings: " . implode(', ', $errors)
+            ];
+        }
+        
+        return [
+            'success' => true,
+            'message' => "Section '{$section->handle}' settings updated: " . implode(', ', $updatedFields)
+        ];
     }
 }

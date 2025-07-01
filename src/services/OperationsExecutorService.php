@@ -373,39 +373,39 @@ class OperationsExecutorService extends Component
                         $modifications[] = "Updated setting {$setting} to " . (is_bool($value) ? ($value ? 'true' : 'false') : $value);
                     }
                 }
-            } elseif ($action['action'] === 'addMatrixBlockType' && $field instanceof \craft\fields\Matrix) {
-                $blockTypeConfig = $action['blockType'] ?? null;
-                if ($blockTypeConfig) {
+            } elseif ($action['action'] === 'addMatrixEntryType' && $field instanceof \craft\fields\Matrix) {
+                $entryTypeConfig = $action['matrixEntryType'] ?? null;
+                if ($entryTypeConfig) {
                     $plugin = Plugin::getInstance();
-                    if ($plugin->fieldGeneratorService->addMatrixBlockType($field, $blockTypeConfig)) {
-                        $modifications[] = "Added matrix block type '{$blockTypeConfig['name']}'";
+                    if ($plugin->fieldGeneratorService->addMatrixEntryType($field, $entryTypeConfig)) {
+                        $modifications[] = "Added matrix entry type '{$entryTypeConfig['name']}'";
                     }
                 }
-            } elseif ($action['action'] === 'removeMatrixBlockType' && $field instanceof \craft\fields\Matrix) {
-                $blockTypeHandle = $action['blockTypeHandle'] ?? null;
-                if ($blockTypeHandle) {
+            } elseif ($action['action'] === 'removeMatrixEntryType' && $field instanceof \craft\fields\Matrix) {
+                $entryTypeHandle = $action['matrixEntryTypeHandle'] ?? null;
+                if ($entryTypeHandle) {
                     $plugin = Plugin::getInstance();
-                    if ($plugin->fieldGeneratorService->removeMatrixBlockType($field, $blockTypeHandle)) {
-                        $modifications[] = "Removed matrix block type '{$blockTypeHandle}'";
+                    if ($plugin->fieldGeneratorService->removeMatrixEntryType($field, $entryTypeHandle)) {
+                        $modifications[] = "Removed matrix entry type '{$entryTypeHandle}'";
                     }
                 }
-            } elseif ($action['action'] === 'modifyMatrixBlockType' && $field instanceof \craft\fields\Matrix) {
-                $blockTypeHandle = $action['blockTypeHandle'] ?? null;
-                $blockTypeUpdates = $action['blockTypeUpdates'] ?? null;
-                if ($blockTypeHandle && $blockTypeUpdates) {
+            } elseif ($action['action'] === 'modifyMatrixEntryType' && $field instanceof \craft\fields\Matrix) {
+                $entryTypeHandle = $action['matrixEntryTypeHandle'] ?? null;
+                $entryTypeUpdates = $action['matrixEntryTypeUpdates'] ?? null;
+                if ($entryTypeHandle && $entryTypeUpdates) {
                     $plugin = Plugin::getInstance();
-                    if ($plugin->fieldGeneratorService->modifyMatrixBlockType($field, $blockTypeHandle, $blockTypeUpdates)) {
+                    if ($plugin->fieldGeneratorService->modifyMatrixEntryType($field, $entryTypeHandle, $entryTypeUpdates)) {
                         $changeDesc = [];
-                        if (isset($blockTypeUpdates['addFields'])) {
-                            $changeDesc[] = "added " . count($blockTypeUpdates['addFields']) . " fields";
+                        if (isset($entryTypeUpdates['addFields'])) {
+                            $changeDesc[] = "added " . count($entryTypeUpdates['addFields']) . " fields";
                         }
-                        if (isset($blockTypeUpdates['removeFields'])) {
-                            $changeDesc[] = "removed " . count($blockTypeUpdates['removeFields']) . " fields";
+                        if (isset($entryTypeUpdates['removeFields'])) {
+                            $changeDesc[] = "removed " . count($entryTypeUpdates['removeFields']) . " fields";
                         }
-                        if (isset($blockTypeUpdates['name'])) {
-                            $changeDesc[] = "updated name to '{$blockTypeUpdates['name']}'";
+                        if (isset($entryTypeUpdates['name'])) {
+                            $changeDesc[] = "updated name to '{$entryTypeUpdates['name']}'";
                         }
-                        $modifications[] = "Modified matrix block type '{$blockTypeHandle}': " . implode(', ', $changeDesc);
+                        $modifications[] = "Modified matrix entry type '{$entryTypeHandle}': " . implode(', ', $changeDesc);
                     }
                 }
             }

@@ -77,7 +77,37 @@
                   },
                   "settings": {
                     "type": "object",
-                    "description": "Field-type specific settings"
+                    "description": "Field-type specific settings",
+                    "properties": {
+                      "entryTypes": {
+                        "type": "array",
+                        "description": "Matrix field entry types configuration",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {"type": "string"},
+                            "handle": {"type": "string", "pattern": "^[a-z][a-zA-Z0-9]*$"},
+                            "fields": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "handle": {"type": "string", "pattern": "^[a-z][a-zA-Z0-9]*$"},
+                                  "field_type": {"type": "string"},
+                                  "name": {"type": "string"},
+                                  "required": {"type": "boolean"},
+                                  "settings": {"type": "object"}
+                                },
+                                "required": ["handle"],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": ["name", "handle"],
+                          "additionalProperties": false
+                        }
+                      }
+                    }
                   }
                 },
                 "required": ["name", "handle", "field_type"],
@@ -183,7 +213,7 @@
                         "addField", "removeField", "updateField",
                         "addEntryType", "removeEntryType", "updateEntryType",
                         "updateSettings",
-                        "addMatrixBlockType", "removeMatrixBlockType", "modifyMatrixBlockType"
+                        "addMatrixEntryType", "removeMatrixEntryType", "modifyMatrixEntryType"
                       ]
                     },
                     "field": {
@@ -199,26 +229,32 @@
                       "type": "object",
                       "description": "Updates to apply for updateField/updateSettings"
                     },
-                    "blockType": {
+                    "matrixEntryType": {
                       "type": "object",
-                      "description": "Block type definition for addMatrixBlockType action",
+                      "description": "Entry type definition for addMatrixEntryType action",
                       "properties": {
                         "name": {"type": "string"},
                         "handle": {"type": "string", "pattern": "^[a-z][a-zA-Z0-9]*$"},
                         "fields": {
                           "type": "array",
+                          "description": "Inline field definitions for the entry type",
                           "items": {"$ref": "#/definitions/field"}
+                        },
+                        "entryTypeHandle": {
+                          "type": "string",
+                          "description": "Handle of existing entry type to add to matrix field",
+                          "pattern": "^[a-z][a-zA-Z0-9]*$"
                         }
                       }
                     },
-                    "blockTypeHandle": {
+                    "matrixEntryTypeHandle": {
                       "type": "string",
-                      "description": "Block type handle for removeMatrixBlockType/modifyMatrixBlockType",
+                      "description": "Entry type handle for removeMatrixEntryType/modifyMatrixEntryType",
                       "pattern": "^[a-z][a-zA-Z0-9]*$"
                     },
-                    "blockTypeUpdates": {
+                    "matrixEntryTypeUpdates": {
                       "type": "object",
-                      "description": "Updates to apply to matrix block type",
+                      "description": "Updates to apply to matrix entry type",
                       "properties": {
                         "name": {"type": "string"},
                         "addFields": {

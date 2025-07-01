@@ -109,10 +109,24 @@ class GetFields extends BaseTool
             $field instanceof \craft\fields\RadioButtons || 
             $field instanceof \craft\fields\Checkboxes) {
             $settings['options'] = array_map(function($option) {
-                return [
-                    'label' => $option->label,
-                    'value' => $option->value,
-                ];
+                // Handle both object and array formats
+                if (is_object($option)) {
+                    return [
+                        'label' => $option->label ?? $option->value ?? '',
+                        'value' => $option->value ?? '',
+                    ];
+                } elseif (is_array($option)) {
+                    return [
+                        'label' => $option['label'] ?? $option['value'] ?? '',
+                        'value' => $option['value'] ?? '',
+                    ];
+                } else {
+                    // Handle string options
+                    return [
+                        'label' => (string)$option,
+                        'value' => (string)$option,
+                    ];
+                }
             }, $field->options);
         }
         

@@ -359,9 +359,9 @@ class FieldGeneratorService extends Component
                 };
                 $field->propagationMethod = \craft\enums\PropagationMethod::All;
                 
-                // Create and associate block types (entry types)
-                if (isset($normalizedConfig['blockTypes']) && is_array($normalizedConfig['blockTypes'])) {
-                    $entryTypes = $this->createMatrixBlockTypes($normalizedConfig['blockTypes']);
+                // Create and associate entry types
+                if (isset($normalizedConfig['entryTypes']) && is_array($normalizedConfig['entryTypes'])) {
+                    $entryTypes = $this->createMatrixBlockTypes($normalizedConfig['entryTypes']);
                     $field->setEntryTypes($entryTypes);
                 }
                 break;
@@ -531,7 +531,19 @@ class FieldGeneratorService extends Component
         $entriesService = \Craft::$app->getEntries();
 
         foreach ($blockTypesConfig as $blockTypeConfig) {
-            // Create entry type for this block type
+            // Check if this references an existing entry type
+            if (isset($blockTypeConfig['entryTypeHandle'])) {
+                // Reference existing entry type
+                $existingEntryType = $entriesService->getEntryTypeByHandle($blockTypeConfig['entryTypeHandle']);
+                if ($existingEntryType) {
+                    $entryTypes[] = $existingEntryType;
+                    continue;
+                } else {
+                    throw new Exception("Referenced entry type '{$blockTypeConfig['entryTypeHandle']}' not found");
+                }
+            }
+            
+            // Create new entry type for this block type
             $entryType = new \craft\models\EntryType();
             $entryType->name = $blockTypeConfig['name'];
             $entryType->handle = $blockTypeConfig['handle'];
@@ -539,51 +551,73 @@ class FieldGeneratorService extends Component
             $entryType->titleTranslationMethod = 'site';
             $entryType->titleTranslationKeyFormat = null;
             
-            // Create fields for this block type
+            // Create fields for this block type (only if fields are provided)
             $blockFields = [];
             $fieldLayoutElements = [];
             
-            foreach ($blockTypeConfig['fields'] as $fieldConfig) {
-                // Make field handle unique by prefixing with block type handle
-                $fieldConfig['handle'] = $blockTypeConfig['handle'] . ucfirst($fieldConfig['handle']);
-                $fieldConfig['name'] = $blockTypeConfig['name'] . ' ' . $fieldConfig['name'];
-                
-                // Create the field for this block type
-                $blockField = $this->createFieldFromConfig($fieldConfig);
-                
-                if ($blockField) {
-                    // Save the field
-                    if (!$fieldsService->saveField($blockField)) {
-                        $errors = $blockField->getErrors();
-                        $errorMessage = "Failed to save field '{$blockField->name}' for block type '{$entryType->name}'";
-                        if (!empty($errors)) {
-                            $errorMessage .= ": " . implode(', ', array_map(function($err) {
-                                return is_array($err) ? implode(', ', $err) : $err;
-                            }, $errors));
+            if (isset($blockTypeConfig['fields']) && is_array($blockTypeConfig['fields'])) {
+                foreach ($blockTypeConfig['fields'] as $fieldConfig) {
+                    // Handle case where field is just a reference (handle + required) vs full field definition
+                    if (!isset($fieldConfig['name']) && isset($fieldConfig['handle'])) {
+                        // This is a field reference - look up existing field or generate name
+                        $existingField = $fieldsService->getFieldByHandle($fieldConfig['handle']);
+                        if ($existingField) {
+                            // Use existing field instead of creating new one
+                            $fieldLayoutElement = new \craft\fieldlayoutelements\CustomField();
+                            $fieldLayoutElement->fieldUid = $existingField->uid;
+                            $fieldLayoutElement->required = $fieldConfig['required'] ?? false;
+                            $fieldLayoutElements[] = $fieldLayoutElement;
+                            continue;
+                        } else {
+                            // Generate a name based on handle for new field creation
+                            $fieldConfig['name'] = ucwords(str_replace(['-', '_'], ' ', $fieldConfig['handle']));
                         }
-                        throw new Exception($errorMessage);
                     }
                     
-                    $blockFields[] = $blockField;
+                    // For new field creation, make handle unique and adjust name
+                    if (isset($fieldConfig['field_type'])) {
+                        // This is a full field definition for inline creation
+                        $fieldConfig['handle'] = $blockTypeConfig['handle'] . ucfirst($fieldConfig['handle']);
+                        $fieldConfig['name'] = $blockTypeConfig['name'] . ' ' . $fieldConfig['name'];
                     
-                    // Track created block field
-                    $this->createdBlockFields[] = [
-                        'type' => 'block-field',
-                        'handle' => $blockField->handle,
-                        'name' => $blockField->name,
-                        'id' => $blockField->id,
-                        'blockType' => $blockTypeConfig['handle']
-                    ];
-                    
-                    // Create field layout element
-                    $fieldLayoutElement = new \craft\fieldlayoutelements\CustomField();
-                    $fieldLayoutElement->fieldUid = $blockField->uid;
-                    $fieldLayoutElement->required = $fieldConfig['required'] ?? false;
-                    $fieldLayoutElements[] = $fieldLayoutElement;
+                        // Create the field for this block type
+                        $blockField = $this->createFieldFromConfig($fieldConfig);
+                        
+                        if ($blockField) {
+                            // Save the field
+                            if (!$fieldsService->saveField($blockField)) {
+                                $errors = $blockField->getErrors();
+                                $errorMessage = "Failed to save field '{$blockField->name}' for block type '{$entryType->name}'";
+                                if (!empty($errors)) {
+                                    $errorMessage .= ": " . implode(', ', array_map(function($err) {
+                                        return is_array($err) ? implode(', ', $err) : $err;
+                                    }, $errors));
+                                }
+                                throw new Exception($errorMessage);
+                            }
+                            
+                            $blockFields[] = $blockField;
+                            
+                            // Track created block field
+                            $this->createdBlockFields[] = [
+                                'type' => 'block-field',
+                                'handle' => $blockField->handle,
+                                'name' => $blockField->name,
+                                'id' => $blockField->id,
+                                'blockType' => $blockTypeConfig['handle']
+                            ];
+                            
+                            // Create field layout element
+                            $fieldLayoutElement = new \craft\fieldlayoutelements\CustomField();
+                            $fieldLayoutElement->fieldUid = $blockField->uid;
+                            $fieldLayoutElement->required = $fieldConfig['required'] ?? false;
+                            $fieldLayoutElements[] = $fieldLayoutElement;
+                        }
+                    }
                 }
             }
             
-            // Create field layout for the entry type
+            // Create field layout for the entry type (only needed for new entry types)
             $fieldLayout = new \craft\models\FieldLayout();
             $fieldLayout->type = \craft\models\EntryType::class;
             
@@ -768,9 +802,9 @@ class FieldGeneratorService extends Component
     }
 
     /**
-     * Add a new block type to an existing matrix field
+     * Add a new entry type to an existing matrix field
      */
-    public function addMatrixBlockType(\craft\fields\Matrix $matrixField, array $blockTypeConfig): bool
+    public function addMatrixEntryType(\craft\fields\Matrix $matrixField, array $entryTypeConfig): bool
     {
         $fieldsService = \Craft::$app->getFields();
         $entriesService = \Craft::$app->getEntries();
@@ -778,14 +812,32 @@ class FieldGeneratorService extends Component
         // Get existing entry types
         $existingEntryTypes = $matrixField->getEntryTypes();
         
-        // Create new block type (entry type)
-        $newBlockTypes = $this->createMatrixBlockTypes([$blockTypeConfig]);
-        if (empty($newBlockTypes)) {
-            throw new \Exception("Failed to create block type '{$blockTypeConfig['name']}'");
+        // Check if we should reference an existing entry type or create a new one
+        if (isset($entryTypeConfig['entryTypeHandle'])) {
+            // Reference existing entry type
+            $entryType = $entriesService->getEntryTypeByHandle($entryTypeConfig['entryTypeHandle']);
+            if (!$entryType) {
+                throw new \Exception("Entry type '{$entryTypeConfig['entryTypeHandle']}' not found");
+            }
+            
+            // Check if this entry type is already associated with the matrix field
+            foreach ($existingEntryTypes as $existingType) {
+                if ($existingType->handle === $entryType->handle) {
+                    throw new \Exception("Entry type '{$entryType->handle}' is already associated with matrix field '{$matrixField->handle}'");
+                }
+            }
+            
+            $newEntryTypes = [$entryType];
+        } else {
+            // Create new entry type using traditional method
+            $newEntryTypes = $this->createMatrixBlockTypes([$entryTypeConfig]);
+            if (empty($newEntryTypes)) {
+                throw new \Exception("Failed to create entry type '{$entryTypeConfig['name']}'");
+            }
         }
         
         // Combine existing and new entry types
-        $allEntryTypes = array_merge($existingEntryTypes, $newBlockTypes);
+        $allEntryTypes = array_merge($existingEntryTypes, $newEntryTypes);
         $matrixField->setEntryTypes($allEntryTypes);
         
         // Save the matrix field with updated block types
@@ -793,9 +845,9 @@ class FieldGeneratorService extends Component
     }
 
     /**
-     * Remove a block type from an existing matrix field
+     * Remove an entry type from an existing matrix field
      */
-    public function removeMatrixBlockType(\craft\fields\Matrix $matrixField, string $blockTypeHandle): bool
+    public function removeMatrixEntryType(\craft\fields\Matrix $matrixField, string $entryTypeHandle): bool
     {
         $fieldsService = \Craft::$app->getFields();
         $entriesService = \Craft::$app->getEntries();
@@ -803,13 +855,13 @@ class FieldGeneratorService extends Component
         // Get existing entry types
         $existingEntryTypes = $matrixField->getEntryTypes();
         
-        // Filter out the block type to remove
-        $remainingEntryTypes = array_filter($existingEntryTypes, function($entryType) use ($blockTypeHandle) {
-            return $entryType->handle !== $blockTypeHandle;
+        // Filter out the entry type to remove
+        $remainingEntryTypes = array_filter($existingEntryTypes, function($entryType) use ($entryTypeHandle) {
+            return $entryType->handle !== $entryTypeHandle;
         });
         
         if (count($remainingEntryTypes) === count($existingEntryTypes)) {
-            throw new \Exception("Block type '{$blockTypeHandle}' not found in matrix field");
+            throw new \Exception("Entry type '{$entryTypeHandle}' not found in matrix field");
         }
         
         // Update matrix field with remaining entry types
@@ -823,7 +875,7 @@ class FieldGeneratorService extends Component
         // Find and delete the entry type that was removed
         $removedEntryType = null;
         foreach ($existingEntryTypes as $entryType) {
-            if ($entryType->handle === $blockTypeHandle) {
+            if ($entryType->handle === $entryTypeHandle) {
                 $removedEntryType = $entryType;
                 break;
             }
@@ -837,25 +889,26 @@ class FieldGeneratorService extends Component
         return true;
     }
 
+
     /**
-     * Modify an existing matrix block type (add/remove fields)
+     * Modify an existing matrix entry type (add/remove fields)
      */
-    public function modifyMatrixBlockType(\craft\fields\Matrix $matrixField, string $blockTypeHandle, array $modifications): bool
+    public function modifyMatrixEntryType(\craft\fields\Matrix $matrixField, string $entryTypeHandle, array $modifications): bool
     {
         $fieldsService = \Craft::$app->getFields();
         $entriesService = \Craft::$app->getEntries();
         
-        // Find the entry type for this block type
+        // Find the entry type for this entry type handle
         $targetEntryType = null;
         foreach ($matrixField->getEntryTypes() as $entryType) {
-            if ($entryType->handle === $blockTypeHandle) {
+            if ($entryType->handle === $entryTypeHandle) {
                 $targetEntryType = $entryType;
                 break;
             }
         }
         
         if (!$targetEntryType) {
-            throw new \Exception("Block type '{$blockTypeHandle}' not found in matrix field");
+            throw new \Exception("Entry type '{$entryTypeHandle}' not found in matrix field");
         }
         
         $fieldLayout = $targetEntryType->getFieldLayout();
@@ -872,8 +925,8 @@ class FieldGeneratorService extends Component
         // Add new fields if specified
         if (isset($modifications['addFields'])) {
             foreach ($modifications['addFields'] as $fieldConfig) {
-                // Prefix field handle with block type handle to ensure uniqueness
-                $fieldConfig['handle'] = $blockTypeHandle . ucfirst($fieldConfig['handle']);
+                // Prefix field handle with entry type handle to ensure uniqueness
+                $fieldConfig['handle'] = $entryTypeHandle . ucfirst($fieldConfig['handle']);
                 $fieldConfig['name'] = $targetEntryType->name . ' ' . $fieldConfig['name'];
                 
                 // Create the field

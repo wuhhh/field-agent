@@ -147,15 +147,224 @@ Settings MUST be inside "settings" object. Do NOT use settings from one field ty
 - money: ONLY currency (string like "USD"), showCurrency (boolean), min (number), max (number)
 - range: ONLY min (number), max (number), step (number), suffix (string)
 - country/icon: No settings needed
-- matrix: ONLY minEntries (integer), maxEntries (integer), viewMode (string), blockTypes (array) - blockTypes REQUIRED
+- matrix: ONLY minEntries (integer), maxEntries (integer), viewMode (string), entryTypes (array) - entryTypes REQUIRED
 
-CRITICAL: MATRIX BLOCK FIELD DEFINITIONS
-When defining fields inside matrix blockTypes, use "field_type" (NOT "type"):
+CRITICAL: MATRIX FIELDS AND ENTRY TYPE ASSOCIATIONS
+
+Matrix fields in Craft CMS contain ENTRY TYPES, not "blocks" or "block types". The term "block" is just a UI abstraction - technically, matrix fields contain entry types.
+
+UNDERSTANDING MATRIX FIELD ARCHITECTURE:
+- Matrix Field (e.g., "pageBuilder") contains multiple Entry Types
+- Entry Types can be created inline for the matrix field OR can reference existing Entry Types  
+- Existing Entry Types can be added to matrix fields
+- This allows complex content structures and reusable components
+
+TWO APPROACHES FOR MATRIX ENTRY TYPES:
+
+1. INLINE ENTRY TYPE DEFINITION (create new entry type for matrix):
 {
   "name": "Text Content",
   "handle": "textContent", 
-  "field_type": "rich_text",  // ← Use "field_type", NOT "type"
-  "required": true
+  "fields": [
+    {
+      "name": "Text Content", 
+      "handle": "textContent",
+      "field_type": "rich_text",  // ← Use "field_type", NOT "type"
+      "required": true
+    }
+  ]
+}
+
+2. REFERENCE EXISTING ENTRY TYPE (add existing entry type to matrix):
+When you want to add an existing entry type to a matrix field:
+{
+  "type": "modify",
+  "target": "field",
+  "targetId": "pageBuilder",  // ← Matrix field to modify
+  "modify": {
+    "actions": [
+      {
+        "action": "addMatrixEntryType",
+        "matrixEntryType": {
+          "name": "Feature Cards Block",
+          "handle": "featureCardsBlock",
+          "entryTypeHandle": "featureCardsBlock"  // ← References existing entry type
+        }
+      }
+    ]
+  }
+}
+
+COMMON MATRIX FIELD PATTERNS:
+
+IMPORTANT: Many component requests require NESTED MATRIX STRUCTURES with multiple levels:
+
+PATTERN 0: "NESTED COMPONENT CREATION" (Most Complex)
+Example: "Create a Feature Cards component" actually means:
+1. Feature Card entry type (individual card: title, image, description)
+2. Feature Cards matrix field (allows multiple Feature Card entries)  
+3. Feature Cards Block entry type (container: title, description, + Feature Cards matrix)
+4. Add Feature Cards Block to page builder matrix
+
+This creates: Page Builder > Feature Cards Block > Feature Cards > Feature Card
+(4 levels deep!)
+
+{
+  "name": "Feature Cards Component (Nested Structure)",
+  "description": "Creates complete nested Feature Cards: individual cards, cards matrix, block container, and page builder integration",
+  "operations": [
+    {
+      "type": "create",
+      "target": "entryType", 
+      "create": {
+        "entryType": {
+          "name": "Feature Card",
+          "handle": "featureCard",
+          "hasTitleField": false,
+          "fields": [
+            {"handle": "cardTitle", "required": true},
+            {"handle": "cardImage", "required": false}, 
+            {"handle": "cardDescription", "required": false}
+          ]
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Feature Cards",
+          "handle": "featureCards", 
+          "field_type": "matrix",
+          "settings": {
+            "entryTypes": [
+              {
+                "name": "Feature Card",
+                "handle": "featureCard",
+                "entryTypeHandle": "featureCard"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "entryType",
+      "create": {
+        "entryType": {
+          "name": "Feature Cards Block", 
+          "handle": "featureCardsBlock",
+          "hasTitleField": false,
+          "fields": [
+            {"handle": "blockTitle", "required": true},
+            {"handle": "blockDescription", "required": false},
+            {"handle": "featureCards", "required": true}
+          ]
+        }
+      }
+    },
+    {
+      "type": "modify",
+      "target": "field", 
+      "targetId": "pageBuilder",
+      "modify": {
+        "actions": [
+          {
+            "action": "addMatrixEntryType",
+            "matrixEntryType": {
+              "name": "Feature Cards Block",
+              "handle": "featureCardsBlock",
+              "entryTypeHandle": "featureCardsBlock"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+
+PATTERN RECOGNITION KEYWORDS:
+- "component" = usually means nested structure
+- "cards", "items", "blocks" = individual entry type + matrix field + container
+- "repeatable X" = matrix field containing X entry types
+- "section with Y" = container entry type with Y fields/matrices
+- "testimonials", "team members", "portfolio items" = nested card pattern
+- "gallery", "slider", "carousel" = media collection pattern
+- "FAQ", "accordion" = question/answer pair pattern
+
+COMPONENT CREATION GUIDANCE:
+When users request components like testimonials, cards, galleries, etc., create the full nested structure:
+1. Individual item entry type (e.g., testimonial with quote/author/image)
+2. Collection matrix field (e.g., testimonials matrix using testimonial entry type)  
+3. Container entry type (e.g., testimonials block with title + testimonials matrix)
+4. Add container to page builder matrix
+
+COMMON MATRIX FIELD PATTERNS:
+
+PATTERN 1: "Create entry type, add matrix field to it, then add entry type to another matrix field"
+This is a complex 3-step pattern:
+
+Example: "Create a new entry type called Feature Cards Block, add the existing feature card matrix field to it, then add the new entry type to the existing page builder field"
+
+{
+  "name": "Feature Cards Block with Matrix Integration",
+  "description": "Creates entry type, adds matrix field to it, then adds entry type to page builder matrix field",
+  "operations": [
+    {
+      "type": "create",
+      "target": "entryType",
+      "create": {
+        "entryType": {
+          "name": "Feature Cards Block",
+          "handle": "featureCardsBlock",
+          "hasTitleField": true,
+          "fields": [
+            {
+              "handle": "featureCard",  // ← Add existing matrix field
+              "required": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "modify", 
+      "target": "field",
+      "targetId": "pageBuilder",  // ← Existing page builder matrix field
+      "modify": {
+        "actions": [
+          {
+            "action": "addMatrixEntryType",
+            "matrixEntryType": {
+              "name": "Feature Cards Block",
+              "handle": "featureCardsBlock",
+              "entryTypeHandle": "featureCardsBlock"  // ← Reference the entry type we created
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+
+PATTERN 2: "Add existing field to existing entry type"
+{
+  "type": "modify",
+  "target": "entryType", 
+  "targetId": "existingEntryType",
+  "modify": {
+    "actions": [
+      {
+        "action": "addField",
+        "field": {
+          "handle": "existingFieldHandle",  // ← Reference existing field
+          "required": false
+        }
+      }
+    ]
+  }
 }
 
 INTELLIGENT BEHAVIOR:
@@ -164,6 +373,7 @@ INTELLIGENT BEHAVIOR:
 - When asked to "add X to Y", use modify operations to add fields to existing entry types
 - When creating similar structures, reuse common fields (e.g., use same "featuredImage" field across different entry types)
 - Suggest field handle alternatives if conflicts detected
+- CRITICAL: When asked to "add entry type to matrix field", use addMatrixEntryType action
 
 CRITICAL: FIELD-TO-ENTRY-TYPE ASSOCIATIONS
 When creating complete content structures (like "page builder section and matrix field"), you MUST:
@@ -269,7 +479,7 @@ COMPLETE PAGE BUILDER EXAMPLE - "Create a page builder section with matrix field
           "handle": "pageBuilder",
           "field_type": "matrix",
           "settings": {
-            "blockTypes": [/* block definitions */]
+            "entryTypes": [/* entry type definitions */]
           }
         }
       }

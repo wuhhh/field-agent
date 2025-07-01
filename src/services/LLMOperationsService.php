@@ -149,12 +149,39 @@ Settings MUST be inside "settings" object. Do NOT use settings from one field ty
 - country/icon: No settings needed
 - matrix: ONLY minEntries (integer), maxEntries (integer), viewMode (string), blockTypes (array) - blockTypes REQUIRED
 
+CRITICAL: MATRIX BLOCK FIELD DEFINITIONS
+When defining fields inside matrix blockTypes, use "field_type" (NOT "type"):
+{
+  "name": "Text Content",
+  "handle": "textContent", 
+  "field_type": "rich_text",  // ← Use "field_type", NOT "type"
+  "required": true
+}
+
 INTELLIGENT BEHAVIOR:
 - Reuse existing fields when appropriate (e.g., if "title" field exists, use it instead of creating "blogTitle")
 - Check field handles to avoid conflicts (existing handles are shown above)
 - When asked to "add X to Y", use modify operations to add fields to existing entry types
 - When creating similar structures, reuse common fields (e.g., use same "featuredImage" field across different entry types)
 - Suggest field handle alternatives if conflicts detected
+
+CRITICAL: FIELD-TO-ENTRY-TYPE ASSOCIATIONS
+When creating complete content structures (like "page builder section and matrix field"), you MUST:
+1. Create the fields first
+2. Create the entry types AND associate the fields with them
+3. Create the sections last
+
+NEVER create fields in isolation - they must be associated with entry types to be useful!
+
+Example: If creating "page builder with matrix field":
+- Create the matrix field (pageBuilder)
+- Create the entry type (page) AND add the matrix field to it in the same operation
+- Create the section (pages) with the entry type
+
+ASSOCIATION PATTERNS:
+- "Create X section with Y field" = Create field + Create entry type WITH field + Create section
+- "Create X with matrix field" = Create matrix field + Create entry type WITH matrix field + Create section
+- "Page builder" typically means: matrix field + entry type that uses the matrix field + section for pages
 
 OPERATION STRUCTURE:
 {
@@ -228,7 +255,58 @@ FIELD REUSE EXAMPLE - If asked to "Create a news section similar to blog":
 - Only create new fields that are unique to news (e.g., publicationDate)
 - Use modify operations to assign reused fields to the new entry type
 
-Remember: Be smart about field reuse, avoid duplication, and maintain consistency across the project structure.
+COMPLETE PAGE BUILDER EXAMPLE - "Create a page builder section with matrix field":
+{
+  "name": "Page Builder System",
+  "description": "Creates a complete page builder with matrix field for flexible content",
+  "operations": [
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Page Builder",
+          "handle": "pageBuilder",
+          "field_type": "matrix",
+          "settings": {
+            "blockTypes": [/* block definitions */]
+          }
+        }
+      }
+    },
+    {
+      "type": "create", 
+      "target": "entryType",
+      "create": {
+        "entryType": {
+          "name": "Page",
+          "handle": "page",
+          "hasTitleField": true,
+          "fields": [
+            {
+              "handle": "pageBuilder",  // ← CRITICAL: Associate the field!
+              "required": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "section", 
+      "create": {
+        "section": {
+          "name": "Pages",
+          "handle": "pages",
+          "type": "channel",
+          "entryTypes": [{"handle": "page"}]
+        }
+      }
+    }
+  ]
+}
+
+Remember: Be smart about field reuse, avoid duplication, maintain consistency across the project structure, and ALWAYS associate fields with entry types!
 PROMPT;
     }
 

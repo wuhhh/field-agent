@@ -127,6 +127,27 @@ class GeneratorController extends Controller
                                     'type' => $field::class,
                                     'id' => $field->id
                                 ];
+                                
+                                // If this is a matrix field, also track its block fields and entry types
+                                if ($field instanceof \craft\fields\Matrix) {
+                                    $blockFields = $plugin->fieldGeneratorService->getCreatedBlockFields();
+                                    $blockEntryTypes = $plugin->fieldGeneratorService->getCreatedBlockEntryTypes();
+                                    
+                                    // Add block fields to created fields
+                                    foreach ($blockFields as $blockField) {
+                                        $this->stdout("  → Block field: {$blockField['name']} ({$blockField['handle']})\n", Console::FG_BLUE);
+                                        $createdFields[] = $blockField;
+                                    }
+                                    
+                                    // Add block entry types to created entry types
+                                    foreach ($blockEntryTypes as $blockEntryType) {
+                                        $this->stdout("  → Block type: {$blockEntryType['name']} ({$blockEntryType['handle']})\n", Console::FG_CYAN);
+                                        $createdEntryTypes[] = $blockEntryType;
+                                    }
+                                    
+                                    // Clear the tracking arrays for next matrix field
+                                    $plugin->fieldGeneratorService->clearBlockTracking();
+                                }
                             } else {
                                 $this->stderr("✗ Failed to create field: {$fieldConfig['name']}\n", Console::FG_RED);
                                 $this->stderr("  Errors: " . implode(', ', $field->getFirstErrors()) . "\n");
@@ -307,8 +328,8 @@ class GeneratorController extends Controller
             $options[] = 'confirm';
         }
 
-        // Add force option for rollback-all action
-        if ($actionID === 'rollback-all') {
+        // Add force option for rollback-all and cleanup actions
+        if ($actionID === 'rollback-all' || $actionID === 'cleanup') {
             $options[] = 'force';
         }
 
@@ -391,6 +412,21 @@ class GeneratorController extends Controller
                         switch ($result['created']['type']) {
                             case 'field':
                                 $createdFields[] = $result['created'];
+                                // Check for matrix blocks
+                                if (isset($result['matrix_blocks'])) {
+                                    // Add block fields to the created fields array
+                                    if (isset($result['matrix_blocks']['fields'])) {
+                                        foreach ($result['matrix_blocks']['fields'] as $blockField) {
+                                            $createdFields[] = $blockField;
+                                        }
+                                    }
+                                    // Add block entry types to the created entry types array
+                                    if (isset($result['matrix_blocks']['entry_types'])) {
+                                        foreach ($result['matrix_blocks']['entry_types'] as $blockEntryType) {
+                                            $createdEntryTypes[] = $blockEntryType;
+                                        }
+                                    }
+                                }
                                 break;
                             case 'entryType':
                                 $createdEntryTypes[] = $result['created'];
@@ -2140,6 +2176,21 @@ INSTRUCTIONS;
                     switch ($result['created']['type']) {
                         case 'field':
                             $createdFields[] = $result['created'];
+                            // Check for matrix blocks
+                            if (isset($result['matrix_blocks'])) {
+                                // Add block fields to the created fields array
+                                if (isset($result['matrix_blocks']['fields'])) {
+                                    foreach ($result['matrix_blocks']['fields'] as $blockField) {
+                                        $createdFields[] = $blockField;
+                                    }
+                                }
+                                // Add block entry types to the created entry types array
+                                if (isset($result['matrix_blocks']['entry_types'])) {
+                                    foreach ($result['matrix_blocks']['entry_types'] as $blockEntryType) {
+                                        $createdEntryTypes[] = $blockEntryType;
+                                    }
+                                }
+                            }
                             break;
                         case 'entryType':
                             $createdEntryTypes[] = $result['created'];
@@ -2421,5 +2472,161 @@ INSTRUCTIONS;
         }
 
         return round($bytes, $precision) . ' ' . $units[$i];
+    }
+
+    /**
+     * Clean up all sections, entry types, and fields - useful for testing
+     * 
+     * @param bool $force Skip confirmation prompt
+     * @return int Exit code
+     */
+    public function actionCleanup(): int
+    {
+        $this->stdout("⚠️  WARNING: This will DELETE ALL sections, entry types, and fields!\n", Console::FG_RED);
+        $this->stdout("This action cannot be undone through normal rollback.\n\n", Console::FG_YELLOW);
+
+        // Get project config
+        $projectConfig = Craft::$app->getProjectConfig();
+        
+        // Count items
+        $sectionsConfig = $projectConfig->get('sections') ?? [];
+        $entryTypesConfig = $projectConfig->get('entryTypes') ?? [];
+        $fieldsConfig = $projectConfig->get('fields') ?? [];
+        
+        $sectionCount = count($sectionsConfig);
+        $entryTypeCount = count($entryTypesConfig);
+        $fieldCount = count($fieldsConfig);
+
+        if ($sectionCount === 0 && $fieldCount === 0) {
+            $this->stdout("No sections or fields found. System is already clean.\n", Console::FG_GREEN);
+            return ExitCode::OK;
+        }
+
+        $this->stdout("Current state:\n", Console::FG_CYAN);
+        $this->stdout("  • {$sectionCount} sections\n");
+        $this->stdout("  • {$entryTypeCount} entry types\n");
+        $this->stdout("  • {$fieldCount} fields\n\n");
+
+        // Confirm unless force flag is set
+        if (!$this->force) {
+            $confirm = $this->confirm('Are you sure you want to delete everything? Type YES to confirm:');
+            if (!$confirm) {
+                $this->stdout("Cleanup cancelled.\n", Console::FG_YELLOW);
+                return ExitCode::OK;
+            }
+        }
+
+        $this->stdout("\nStarting cleanup...\n", Console::FG_YELLOW);
+
+        // Track what we delete for reporting
+        $deletedSections = [];
+        $deletedEntryTypes = [];
+        $deletedFields = [];
+        $errors = [];
+
+        // Step 1: Delete all sections through project config
+        if ($sectionCount > 0) {
+            $this->stdout("\n🗑️  Deleting sections...\n", Console::FG_YELLOW);
+            foreach ($sectionsConfig as $uid => $sectionConfig) {
+                try {
+                    $projectConfig->remove("sections.{$uid}");
+                    $this->stdout("  ✓ Deleted section: {$sectionConfig['name']} ({$sectionConfig['handle']})\n", Console::FG_GREEN);
+                    $deletedSections[] = [
+                        'handle' => $sectionConfig['handle'],
+                        'name' => $sectionConfig['name'],
+                        'type' => $sectionConfig['type'] ?? 'channel',
+                        'id' => $uid
+                    ];
+                } catch (\Exception $e) {
+                    $this->stderr("  ✗ Error deleting section {$sectionConfig['name']}: {$e->getMessage()}\n", Console::FG_RED);
+                    $errors[] = "Error deleting section {$sectionConfig['name']}: {$e->getMessage()}";
+                }
+            }
+        }
+
+        // Step 2: Delete orphaned entry types (if any remain)
+        $remainingEntryTypes = $projectConfig->get('entryTypes') ?? [];
+        if (!empty($remainingEntryTypes)) {
+            $this->stdout("\n🗑️  Deleting orphaned entry types...\n", Console::FG_YELLOW);
+            foreach ($remainingEntryTypes as $uid => $entryTypeConfig) {
+                try {
+                    $projectConfig->remove("entryTypes.{$uid}");
+                    $this->stdout("  ✓ Deleted entry type: {$entryTypeConfig['name']} ({$entryTypeConfig['handle']})\n", Console::FG_GREEN);
+                    $deletedEntryTypes[] = [
+                        'handle' => $entryTypeConfig['handle'],
+                        'name' => $entryTypeConfig['name'],
+                        'id' => $uid
+                    ];
+                } catch (\Exception $e) {
+                    $this->stderr("  ✗ Error deleting entry type {$entryTypeConfig['name']}: {$e->getMessage()}\n", Console::FG_RED);
+                    $errors[] = "Error deleting entry type {$entryTypeConfig['name']}: {$e->getMessage()}";
+                }
+            }
+        }
+
+        // Step 3: Delete all fields through project config
+        if ($fieldCount > 0) {
+            $this->stdout("\n🗑️  Deleting fields...\n", Console::FG_YELLOW);
+            foreach ($fieldsConfig as $uid => $fieldConfig) {
+                try {
+                    $projectConfig->remove("fields.{$uid}");
+                    $this->stdout("  ✓ Deleted field: {$fieldConfig['name']} ({$fieldConfig['handle']})\n", Console::FG_GREEN);
+                    $deletedFields[] = [
+                        'handle' => $fieldConfig['handle'],
+                        'name' => $fieldConfig['name'],
+                        'type' => $fieldConfig['type'] ?? 'unknown',
+                        'id' => $uid
+                    ];
+                } catch (\Exception $e) {
+                    $this->stderr("  ✗ Error deleting field {$fieldConfig['name']}: {$e->getMessage()}\n", Console::FG_RED);
+                    $errors[] = "Error deleting field {$fieldConfig['name']}: {$e->getMessage()}";
+                }
+            }
+        }
+
+        // Summary
+        $this->stdout("\n" . str_repeat("=", 60) . "\n", Console::FG_CYAN);
+        $this->stdout("Cleanup Summary:\n", Console::FG_CYAN);
+        $this->stdout("  ✓ Deleted {$this->count($deletedSections)} sections\n", Console::FG_GREEN);
+        $this->stdout("  ✓ Deleted {$this->count($deletedEntryTypes)} entry types\n", Console::FG_GREEN);
+        $this->stdout("  ✓ Deleted {$this->count($deletedFields)} fields\n", Console::FG_GREEN);
+        
+        if (!empty($errors)) {
+            $this->stdout("\n  ⚠️  {$this->count($errors)} errors occurred:\n", Console::FG_RED);
+            foreach ($errors as $error) {
+                $this->stdout("    • {$error}\n", Console::FG_YELLOW);
+            }
+        }
+
+        // Record this as a special cleanup operation
+        if (!empty($deletedSections) || !empty($deletedFields) || !empty($deletedEntryTypes)) {
+            $plugin = Plugin::getInstance();
+            $operationId = $plugin->rollbackService->recordOperation(
+                'cleanup',
+                'manual cleanup command',
+                [], // createdFields
+                $deletedFields,
+                [], // createdEntryTypes
+                $deletedEntryTypes,
+                [], // createdSections
+                $deletedSections,
+                'Manual cleanup - deleted all sections, entry types, and fields'
+            );
+            
+            $this->stdout("\n📋 Cleanup operation recorded with ID: $operationId\n", Console::FG_CYAN);
+            $this->stdout("   (Note: This operation cannot be rolled back as items were deleted)\n", Console::FG_YELLOW);
+        }
+
+        $this->stdout("\nDone! Run 'ddev craft up' to apply changes.\n", Console::FG_GREEN);
+        
+        return empty($errors) ? ExitCode::OK : ExitCode::UNSPECIFIED_ERROR;
+    }
+
+    /**
+     * Helper to count arrays safely
+     */
+    private function count($array): int
+    {
+        return is_array($array) ? count($array) : 0;
     }
 }

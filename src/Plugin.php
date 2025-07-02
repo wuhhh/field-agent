@@ -13,6 +13,11 @@ use craftcms\fieldagent\services\LLMIntegrationService;
 use craftcms\fieldagent\services\LLMOperationsService;
 use craftcms\fieldagent\services\OperationsExecutorService;
 use craftcms\fieldagent\services\PruneService;
+use craftcms\fieldagent\services\TestingService;
+use craftcms\fieldagent\services\ConfigurationService;
+use craftcms\fieldagent\services\StatisticsService;
+use craftcms\fieldagent\services\FieldCreationService;
+use craftcms\fieldagent\services\EntryTypeService;
 use craftcms\fieldagent\models\Settings;
 use craftcms\fieldagent\console\controllers\GeneratorController;
 use craftcms\fieldagent\services\DiscoveryService;
@@ -31,6 +36,11 @@ use craftcms\fieldagent\services\DiscoveryService;
  * @property-read OperationsExecutorService $operationsExecutorService
  * @property-read PruneService $pruneService
  * @property-read DiscoveryService $discoveryService
+ * @property-read TestingService $testingService
+ * @property-read ConfigurationService $configurationService
+ * @property-read StatisticsService $statisticsService
+ * @property-read FieldCreationService $fieldCreationService
+ * @property-read EntryTypeService $entryTypeService
  * @author Craft CMS
  * @since 1.0.0
  */
@@ -52,6 +62,11 @@ class Plugin extends BasePlugin
                 'operationsExecutorService' => OperationsExecutorService::class,
                 'pruneService' => PruneService::class,
                 'discoveryService' => DiscoveryService::class,
+                'testingService' => TestingService::class,
+                'configurationService' => ConfigurationService::class,
+                'statisticsService' => StatisticsService::class,
+                'fieldCreationService' => FieldCreationService::class,
+                'entryTypeService' => EntryTypeService::class,
             ],
         ];
     }

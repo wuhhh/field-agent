@@ -21,55 +21,79 @@ class LLMOperationsService extends Component
      */
     public function generateOperationsFromPrompt(string $prompt, string $provider = self::PROVIDER_ANTHROPIC, bool $debug = false): array
     {
-        // Get project context from discovery service
-        $plugin = Plugin::getInstance();
-        $context = $plugin->discoveryService->getProjectContext();
+        try {
+            // Get project context from discovery service
+            $plugin = Plugin::getInstance();
+            $context = $plugin->discoveryService->getProjectContext();
 
-        // Load the operations schema
-        $schemaPath = Plugin::getInstance()->getBasePath() . '/schemas/llm-operations-schema.json';
-        if (!file_exists($schemaPath)) {
-            throw new Exception("Operations schema file not found: $schemaPath");
-        }
-
-        $schema = json_decode(file_get_contents($schemaPath), true);
-        if (!$schema) {
-            throw new Exception("Invalid JSON operations schema file");
-        }
-
-        // Generate the system prompt with context and schema
-        $systemPrompt = $this->buildOperationsSystemPrompt($schema, $context);
-
-        if ($debug) {
-            $this->logDebug("=== LLM OPERATIONS REQUEST DEBUG ===");
-            $this->logDebug("Provider: $provider");
-            $this->logDebug("User Prompt: $prompt");
-            $this->logDebug("Context Summary: " . $context['summary']);
-            $this->logDebug("Existing Fields: " . $context['fields']['count']);
-            $this->logDebug("Existing Sections: " . $context['sections']['count']);
-        }
-
-        // Call the appropriate LLM provider
-        $response = match ($provider) {
-            self::PROVIDER_ANTHROPIC => $this->callAnthropic($systemPrompt, $prompt, $schema, $debug),
-            self::PROVIDER_OPENAI => $this->callOpenAI($systemPrompt, $prompt, $schema, $debug),
-            default => throw new Exception("Unsupported LLM provider: $provider")
-        };
-
-        if ($debug) {
-            $this->logDebug("=== LLM OPERATIONS RESPONSE DEBUG ===");
-            $this->logDebug("Operations Count: " . count($response['operations'] ?? []));
-            foreach ($response['operations'] ?? [] as $i => $op) {
-                $this->logDebug("  [$i] {$op['type']} {$op['target']}" . (isset($op['targetId']) ? " ({$op['targetId']})" : ''));
+            // Load the operations schema
+            $schemaPath = Plugin::getInstance()->getBasePath() . '/schemas/llm-operations-schema.json';
+            if (!file_exists($schemaPath)) {
+                return [
+                    'success' => false,
+                    'error' => "Operations schema file not found: $schemaPath",
+                    'operations' => null
+                ];
             }
-        }
 
-        // Validate operations
-        $validation = $this->validateOperations($response);
-        if (!$validation['valid']) {
-            throw new Exception("Operations validation failed: " . implode(', ', $validation['errors']));
-        }
+            $schema = json_decode(file_get_contents($schemaPath), true);
+            if (!$schema) {
+                return [
+                    'success' => false,
+                    'error' => "Invalid JSON operations schema file",
+                    'operations' => null
+                ];
+            }
 
-        return $response;
+            // Generate the system prompt with context and schema
+            $systemPrompt = $this->buildOperationsSystemPrompt($schema, $context);
+
+            if ($debug) {
+                $this->logDebug("=== LLM OPERATIONS REQUEST DEBUG ===");
+                $this->logDebug("Provider: $provider");
+                $this->logDebug("User Prompt: $prompt");
+                $this->logDebug("Context Summary: " . $context['summary']);
+                $this->logDebug("Existing Fields: " . $context['fields']['count']);
+                $this->logDebug("Existing Sections: " . $context['sections']['count']);
+            }
+
+            // Call the appropriate LLM provider
+            $response = match ($provider) {
+                self::PROVIDER_ANTHROPIC => $this->callAnthropic($systemPrompt, $prompt, $schema, $debug),
+                self::PROVIDER_OPENAI => $this->callOpenAI($systemPrompt, $prompt, $schema, $debug),
+                default => throw new Exception("Unsupported LLM provider: $provider")
+            };
+
+            if ($debug) {
+                $this->logDebug("=== LLM OPERATIONS RESPONSE DEBUG ===");
+                $this->logDebug("Operations Count: " . count($response['operations'] ?? []));
+                foreach ($response['operations'] ?? [] as $i => $op) {
+                    $this->logDebug("  [$i] {$op['type']} {$op['target']}" . (isset($op['targetId']) ? " ({$op['targetId']})" : ''));
+                }
+            }
+
+            // Validate operations
+            $validation = $this->validateOperations($response);
+            if (!$validation['valid']) {
+                return [
+                    'success' => false,
+                    'error' => "Operations validation failed: " . implode(', ', $validation['errors']),
+                    'operations' => null
+                ];
+            }
+
+            return [
+                'success' => true,
+                'operations' => $response['operations'] ?? $response,
+                'error' => null
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'operations' => null
+            ];
+        }
     }
 
     /**

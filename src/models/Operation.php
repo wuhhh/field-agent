@@ -24,6 +24,7 @@ class Operation extends Model
     public array $createdTagGroups = [];
     public array $failedTagGroups = [];
     public ?string $description = null;
+    public bool $rolled_back = false;
 
     public function rules(): array
     {
@@ -31,6 +32,7 @@ class Operation extends Model
             [['id', 'type', 'source'], 'required'],
             [['id', 'type', 'source', 'description'], 'string'],
             [['timestamp'], 'integer'],
+            [['rolled_back'], 'boolean'],
             [['createdFields', 'failedFields', 'createdEntryTypes', 'failedEntryTypes', 'createdSections', 'failedSections', 'createdCategoryGroups', 'failedCategoryGroups', 'createdTagGroups', 'failedTagGroups'], 'safe'],
         ];
     }
@@ -88,6 +90,7 @@ class Operation extends Model
             'createdTagGroups' => $this->createdTagGroups,
             'failedTagGroups' => $this->failedTagGroups,
             'description' => $this->description,
+            'rolled_back' => $this->rolled_back,
         ];
     }
 
@@ -109,6 +112,7 @@ class Operation extends Model
         $operation->createdTagGroups = $data['createdTagGroups'] ?? [];
         $operation->failedTagGroups = $data['failedTagGroups'] ?? [];
         $operation->description = $data['description'] ?? null;
+        $operation->rolled_back = $data['rolled_back'] ?? false;
         return $operation;
     }
 }

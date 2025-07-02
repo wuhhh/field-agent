@@ -418,6 +418,129 @@ class RollbackService extends Component
     }
 
     /**
+     * Record operation from execution results (for operations-based workflows)
+     */
+    public function recordOperationFromResults(string $type, string $source, array $executionResults, ?string $description = null): string
+    {
+        // Parse execution results into the format expected by recordOperation
+        $createdFields = [];
+        $failedFields = [];
+        $createdEntryTypes = [];
+        $failedEntryTypes = [];
+        $createdSections = [];
+        $failedSections = [];
+        $createdCategoryGroups = [];
+        $failedCategoryGroups = [];
+        $createdTagGroups = [];
+        $failedTagGroups = [];
+
+        foreach ($executionResults as $result) {
+            if (!isset($result['created']) || !isset($result['success'])) {
+                continue;
+            }
+
+            $created = $result['created'];
+            $target = $result['operation']['target'] ?? '';
+
+            if ($result['success'] && isset($created['type'])) {
+                switch ($created['type']) {
+                    case 'field':
+                        $createdFields[] = [
+                            'id' => $created['id'] ?? null,
+                            'handle' => $created['handle'] ?? '',
+                            'name' => $created['name'] ?? '',
+                            'type' => $created['fieldType'] ?? ''
+                        ];
+                        break;
+                    case 'entryType':
+                        $createdEntryTypes[] = [
+                            'id' => $created['id'] ?? null,
+                            'handle' => $created['handle'] ?? '',
+                            'name' => $created['name'] ?? ''
+                        ];
+                        break;
+                    case 'section':
+                        $createdSections[] = [
+                            'id' => $created['id'] ?? null,
+                            'handle' => $created['handle'] ?? '',
+                            'name' => $created['name'] ?? ''
+                        ];
+                        break;
+                    case 'categoryGroup':
+                        $createdCategoryGroups[] = [
+                            'id' => $created['id'] ?? null,
+                            'handle' => $created['handle'] ?? '',
+                            'name' => $created['name'] ?? ''
+                        ];
+                        break;
+                    case 'tagGroup':
+                        $createdTagGroups[] = [
+                            'id' => $created['id'] ?? null,
+                            'handle' => $created['handle'] ?? '',
+                            'name' => $created['name'] ?? ''
+                        ];
+                        break;
+                }
+            } else {
+                // Handle failed operations
+                switch ($target) {
+                    case 'field':
+                        $failedFields[] = [
+                            'handle' => $created['handle'] ?? 'unknown',
+                            'name' => $created['name'] ?? 'unknown',
+                            'error' => $result['message'] ?? 'Unknown error'
+                        ];
+                        break;
+                    case 'entryType':
+                        $failedEntryTypes[] = [
+                            'handle' => $created['handle'] ?? 'unknown',
+                            'name' => $created['name'] ?? 'unknown',
+                            'error' => $result['message'] ?? 'Unknown error'
+                        ];
+                        break;
+                    case 'section':
+                        $failedSections[] = [
+                            'handle' => $created['handle'] ?? 'unknown',
+                            'name' => $created['name'] ?? 'unknown',
+                            'error' => $result['message'] ?? 'Unknown error'
+                        ];
+                        break;
+                    case 'categoryGroup':
+                        $failedCategoryGroups[] = [
+                            'handle' => $created['handle'] ?? 'unknown',
+                            'name' => $created['name'] ?? 'unknown',
+                            'error' => $result['message'] ?? 'Unknown error'
+                        ];
+                        break;
+                    case 'tagGroup':
+                        $failedTagGroups[] = [
+                            'handle' => $created['handle'] ?? 'unknown',
+                            'name' => $created['name'] ?? 'unknown',
+                            'error' => $result['message'] ?? 'Unknown error'
+                        ];
+                        break;
+                }
+            }
+        }
+
+        return $this->recordOperation(
+            $type, 
+            $source, 
+            $createdFields, 
+            $failedFields, 
+            $createdEntryTypes, 
+            $failedEntryTypes, 
+            $createdSections, 
+            $failedSections, 
+            $createdCategoryGroups, 
+            $failedCategoryGroups, 
+            $createdTagGroups, 
+            $failedTagGroups, 
+            $description
+        );
+    }
+
+    /**
      * Generate a unique operation ID
      */
     private function generateOperationId(): string
@@ -543,6 +666,7 @@ class RollbackService extends Component
         }
 
         $operation->description = ($operation->description ? $operation->description . ' ' : '') . '[ROLLED BACK]';
+        $operation->rolled_back = true;
         $this->saveOperation($operation);
     }
 

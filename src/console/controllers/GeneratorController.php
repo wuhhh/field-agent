@@ -962,6 +962,20 @@ INSTRUCTIONS;
                 }
             }
 
+            if (!empty($results['deleted']['categoryGroups'])) {
+                $this->stdout("✓ Successfully deleted category groups:\n", Console::FG_GREEN);
+                foreach ($results['deleted']['categoryGroups'] as $categoryGroup) {
+                    $this->stdout("  - {$categoryGroup['name']} ({$categoryGroup['handle']})\n");
+                }
+            }
+
+            if (!empty($results['deleted']['tagGroups'])) {
+                $this->stdout("✓ Successfully deleted tag groups:\n", Console::FG_GREEN);
+                foreach ($results['deleted']['tagGroups'] as $tagGroup) {
+                    $this->stdout("  - {$tagGroup['name']} ({$tagGroup['handle']})\n");
+                }
+            }
+
             // Display protected items
             if (!empty($results['protected']['sections'])) {
                 $this->stdout("\n⚠ Protected sections (contain entries):\n", Console::FG_YELLOW);
@@ -984,6 +998,20 @@ INSTRUCTIONS;
                 }
             }
 
+            if (!empty($results['protected']['categoryGroups'])) {
+                $this->stdout("\n⚠ Protected category groups (contain categories):\n", Console::FG_YELLOW);
+                foreach ($results['protected']['categoryGroups'] as $categoryGroup) {
+                    $this->stdout("  - {$categoryGroup['name']} ({$categoryGroup['handle']}): {$categoryGroup['reason']}\n");
+                }
+            }
+
+            if (!empty($results['protected']['tagGroups'])) {
+                $this->stdout("\n⚠ Protected tag groups (contain tags):\n", Console::FG_YELLOW);
+                foreach ($results['protected']['tagGroups'] as $tagGroup) {
+                    $this->stdout("  - {$tagGroup['name']} ({$tagGroup['handle']}): {$tagGroup['reason']}\n");
+                }
+            }
+
             // Display failed items
             if (!empty($results['failed']['sections'])) {
                 $this->stdout("\n✗ Failed to delete sections:\n", Console::FG_RED);
@@ -1003,6 +1031,20 @@ INSTRUCTIONS;
                 $this->stdout("\n✗ Failed to delete fields:\n", Console::FG_RED);
                 foreach ($results['failed']['fields'] as $field) {
                     $this->stdout("  - {$field['handle']}: {$field['reason']}\n");
+                }
+            }
+
+            if (!empty($results['failed']['categoryGroups'])) {
+                $this->stdout("\n✗ Failed to delete category groups:\n", Console::FG_RED);
+                foreach ($results['failed']['categoryGroups'] as $categoryGroup) {
+                    $this->stdout("  - {$categoryGroup['handle']}: {$categoryGroup['reason']}\n");
+                }
+            }
+
+            if (!empty($results['failed']['tagGroups'])) {
+                $this->stdout("\n✗ Failed to delete tag groups:\n", Console::FG_RED);
+                foreach ($results['failed']['tagGroups'] as $tagGroup) {
+                    $this->stdout("  - {$tagGroup['handle']}: {$tagGroup['reason']}\n");
                 }
             }
 
@@ -1075,7 +1117,22 @@ INSTRUCTIONS;
                 }
             }
 
-            if (!empty($results['protected']['sections']) || !empty($results['protected']['entryTypes']) || !empty($results['protected']['fields'])) {
+            if (!empty($results['deleted']['categoryGroups'])) {
+                $this->stdout("✓ Successfully deleted category groups:\n", Console::FG_GREEN);
+                foreach ($results['deleted']['categoryGroups'] as $categoryGroup) {
+                    $this->stdout("  - {$categoryGroup['name']} ({$categoryGroup['handle']})\n");
+                }
+            }
+
+            if (!empty($results['deleted']['tagGroups'])) {
+                $this->stdout("✓ Successfully deleted tag groups:\n", Console::FG_GREEN);
+                foreach ($results['deleted']['tagGroups'] as $tagGroup) {
+                    $this->stdout("  - {$tagGroup['name']} ({$tagGroup['handle']})\n");
+                }
+            }
+
+            if (!empty($results['protected']['sections']) || !empty($results['protected']['entryTypes']) || !empty($results['protected']['fields']) ||
+                !empty($results['protected']['categoryGroups']) || !empty($results['protected']['tagGroups'])) {
                 $this->stdout("⚠ Protected items (cannot delete, in use):\n", Console::FG_YELLOW);
                 foreach ($results['protected']['sections'] as $section) {
                     $this->stdout("  - Section: {$section['name']} - {$section['reason']}\n");
@@ -1086,9 +1143,16 @@ INSTRUCTIONS;
                 foreach ($results['protected']['fields'] as $field) {
                     $this->stdout("  - Field: {$field['name']} - {$field['reason']}\n");
                 }
+                foreach ($results['protected']['categoryGroups'] as $categoryGroup) {
+                    $this->stdout("  - Category Group: {$categoryGroup['name']} - {$categoryGroup['reason']}\n");
+                }
+                foreach ($results['protected']['tagGroups'] as $tagGroup) {
+                    $this->stdout("  - Tag Group: {$tagGroup['name']} - {$tagGroup['reason']}\n");
+                }
             }
 
-            if (!empty($results['failed']['sections']) || !empty($results['failed']['entryTypes']) || !empty($results['failed']['fields'])) {
+            if (!empty($results['failed']['sections']) || !empty($results['failed']['entryTypes']) || !empty($results['failed']['fields']) ||
+                !empty($results['failed']['categoryGroups']) || !empty($results['failed']['tagGroups'])) {
                 $this->stdout("✗ Failed to delete:\n", Console::FG_RED);
                 foreach ($results['failed']['sections'] as $section) {
                     $this->stdout("  - Section: {$section['name']} - {$section['reason']}\n");
@@ -1098,6 +1162,12 @@ INSTRUCTIONS;
                 }
                 foreach ($results['failed']['fields'] as $field) {
                     $this->stdout("  - Field: {$field['name']} - {$field['reason']}\n");
+                }
+                foreach ($results['failed']['categoryGroups'] as $categoryGroup) {
+                    $this->stdout("  - Category Group: {$categoryGroup['name']} - {$categoryGroup['reason']}\n");
+                }
+                foreach ($results['failed']['tagGroups'] as $tagGroup) {
+                    $this->stdout("  - Tag Group: {$tagGroup['name']} - {$tagGroup['reason']}\n");
                 }
             }
 
@@ -1169,9 +1239,9 @@ INSTRUCTIONS;
         $this->stdout("\nRolling back " . count($activeOperations) . " operations...\n", Console::FG_CYAN);
 
         $totalResults = [
-            'deleted' => ['sections' => [], 'entryTypes' => [], 'fields' => []],
-            'protected' => ['sections' => [], 'entryTypes' => [], 'fields' => []],
-            'failed' => ['sections' => [], 'entryTypes' => [], 'fields' => []],
+            'deleted' => ['sections' => [], 'entryTypes' => [], 'fields' => [], 'categoryGroups' => [], 'tagGroups' => []],
+            'protected' => ['sections' => [], 'entryTypes' => [], 'fields' => [], 'categoryGroups' => [], 'tagGroups' => []],
+            'failed' => ['sections' => [], 'entryTypes' => [], 'fields' => [], 'categoryGroups' => [], 'tagGroups' => []],
             'errors' => []
         ];
 
@@ -1186,7 +1256,7 @@ INSTRUCTIONS;
 
                 // Merge results
                 foreach (['deleted', 'protected', 'failed'] as $category) {
-                    foreach (['sections', 'entryTypes', 'fields'] as $type) {
+                    foreach (['sections', 'entryTypes', 'fields', 'categoryGroups', 'tagGroups'] as $type) {
                         $totalResults[$category][$type] = array_merge(
                             $totalResults[$category][$type],
                             $results[$category][$type] ?? []
@@ -1196,7 +1266,9 @@ INSTRUCTIONS;
 
                 $deletedCount = count($results['deleted']['sections'] ?? []) +
                                count($results['deleted']['entryTypes'] ?? []) +
-                               count($results['deleted']['fields'] ?? []);
+                               count($results['deleted']['fields'] ?? []) +
+                               count($results['deleted']['categoryGroups'] ?? []) +
+                               count($results['deleted']['tagGroups'] ?? []);
 
                 if ($deletedCount > 0) {
                     $this->stdout("✓ ({$deletedCount} items)\n", Console::FG_GREEN);

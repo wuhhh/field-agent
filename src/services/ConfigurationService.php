@@ -8,14 +8,14 @@ use craftcms\fieldagent\Plugin;
 
 /**
  * Configuration Service
- * 
+ *
  * Handles configuration management for the Field Agent plugin
  */
 class ConfigurationService extends Component
 {
     /**
      * Load configuration from file, built-in preset, or stored config
-     * 
+     *
      * @param string $config File path, preset name, or stored config name
      * @return array|null
      */
@@ -50,7 +50,7 @@ class ConfigurationService extends Component
 
     /**
      * List built-in presets (excluding tests)
-     * 
+     *
      * @return array
      */
     public function listBuiltInPresets(): array
@@ -102,7 +102,7 @@ class ConfigurationService extends Component
 
     /**
      * Load a built-in preset
-     * 
+     *
      * @param string $presetName
      * @return array|null
      */
@@ -126,7 +126,7 @@ class ConfigurationService extends Component
 
     /**
      * Store configuration for future use
-     * 
+     *
      * @param string $name Configuration name
      * @param array $configData Configuration data
      * @return bool
@@ -139,7 +139,7 @@ class ConfigurationService extends Component
 
     /**
      * Get all stored configurations
-     * 
+     *
      * @return array
      */
     public function listStoredConfigs(): array
@@ -150,7 +150,7 @@ class ConfigurationService extends Component
 
     /**
      * Get a stored configuration
-     * 
+     *
      * @param string $name
      * @return array|null
      */
@@ -161,62 +161,9 @@ class ConfigurationService extends Component
     }
 
     /**
-     * Generate basic fields configuration
-     * 
-     * @return array
-     */
-    public function generateBasicFieldsConfig(): array
-    {
-        return [
-            'fields' => [
-                [
-                    'name' => 'Text Field',
-                    'handle' => 'textField',
-                    'field_type' => 'plain_text',
-                    'instructions' => 'A simple text field',
-                    'searchable' => true,
-                    'columnType' => 'text'
-                ],
-                [
-                    'name' => 'Rich Text Field',
-                    'handle' => 'richTextField',
-                    'field_type' => 'rich_text',
-                    'instructions' => 'Rich text editor with formatting options',
-                    'searchable' => true,
-                    'columnType' => 'text'
-                ],
-                [
-                    'name' => 'Image',
-                    'handle' => 'imageField',
-                    'field_type' => 'image',
-                    'instructions' => 'Upload an image',
-                    'restrictFiles' => true,
-                    'allowedKinds' => ['image']
-                ],
-                [
-                    'name' => 'URL',
-                    'handle' => 'urlField',
-                    'field_type' => 'link',
-                    'instructions' => 'A URL field',
-                    'placeholder' => 'https://example.com'
-                ],
-                [
-                    'name' => 'Number',
-                    'handle' => 'numberField',
-                    'field_type' => 'number',
-                    'instructions' => 'Enter a number',
-                    'min' => 0,
-                    'max' => 100,
-                    'decimals' => 0
-                ]
-            ]
-        ];
-    }
-
-    /**
      * Generate configuration from natural language prompt
      * This is a placeholder method that will be enhanced by PromptService
-     * 
+     *
      * @param string $prompt
      * @return array
      */
@@ -267,7 +214,7 @@ class ConfigurationService extends Component
 
     /**
      * Export configuration to a file
-     * 
+     *
      * @param array $config Configuration data
      * @param string $outputPath Output file path
      * @return bool
@@ -275,7 +222,7 @@ class ConfigurationService extends Component
     public function exportConfig(array $config, string $outputPath): bool
     {
         $json = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        
+
         $dir = dirname($outputPath);
         if (!is_dir($dir)) {
             if (!@mkdir($dir, 0755, true)) {

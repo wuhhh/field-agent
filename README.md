@@ -279,9 +279,6 @@ ddev craft up
 # Generate from JSON configuration files
 ddev craft field-agent/generator/generate <config.json|stored-name>
 
-# Generate basic field presets
-ddev craft field-agent/generator/basic-fields
-
 # List stored configurations
 ddev craft field-agent/generator/list
 ```

@@ -10,7 +10,7 @@ use craft\base\Model;
 class Operation extends Model
 {
     public string $id;
-    public string $type; // 'generate', 'basic-fields', 'prompt'
+    public string $type; // 'generate', 'prompt'
     public string $source; // config filename, prompt text, etc.
     public int $timestamp;
     public array $createdFields = [];

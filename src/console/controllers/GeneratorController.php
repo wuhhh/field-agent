@@ -267,20 +267,6 @@ class GeneratorController extends Controller
     }
 
     /**
-     * Generate basic fields (text, rich text, image, url, number)
-     */
-    public function actionBasicFields(): int
-    {
-        $plugin = Plugin::getInstance();
-        $configService = $plugin->configurationService;
-
-        $this->stdout("Creating basic field set...\n", Console::FG_YELLOW);
-
-        $config = $configService->generateBasicFieldsConfig();
-        return $this->executeFieldGeneration('basic-fields', 'built-in', $config);
-    }
-
-    /**
      * Test LLM API connection
      */
     public function actionTestLlm(string $provider = 'anthropic'): int
@@ -773,8 +759,6 @@ class GeneratorController extends Controller
         $this->stdout("BASIC COMMANDS:\n", Console::FG_YELLOW);
         $this->stdout("  generate <config>", Console::FG_GREEN);
         $this->stdout(" - Generate from JSON config file or stored config\n");
-        $this->stdout("  basic-fields", Console::FG_GREEN);
-        $this->stdout(" - Create a basic set of commonly used fields\n");
         $this->stdout("  list", Console::FG_GREEN);
         $this->stdout(" - List available configurations and presets\n\n");
 
@@ -1091,11 +1075,11 @@ class GeneratorController extends Controller
 
         try {
             $plugin = Plugin::getInstance();
-            
+
             // Delete all sections (this will also delete entry types)
             $entriesService = Craft::$app->getEntries();
             $sections = $entriesService->getAllSections();
-            
+
             if (empty($sections)) {
                 $this->stdout("No sections found to delete.\n", Console::FG_YELLOW);
             } else {
@@ -1112,7 +1096,7 @@ class GeneratorController extends Controller
 
             // Delete any remaining entry types (in case some weren't deleted with sections)
             $allEntryTypes = $entriesService->getAllEntryTypes();
-            
+
             if (empty($allEntryTypes)) {
                 $this->stdout("No entry types found to delete.\n", Console::FG_YELLOW);
             } else {
@@ -1130,7 +1114,7 @@ class GeneratorController extends Controller
             // Delete all fields
             $fieldsService = Craft::$app->getFields();
             $fields = $fieldsService->getAllFields();
-            
+
             if (empty($fields)) {
                 $this->stdout("No fields found to delete.\n", Console::FG_YELLOW);
             } else {
@@ -1148,7 +1132,7 @@ class GeneratorController extends Controller
             // Delete all category groups
             $categoriesService = Craft::$app->getCategories();
             $categoryGroups = $categoriesService->getAllGroups();
-            
+
             if (empty($categoryGroups)) {
                 $this->stdout("No category groups found to delete.\n", Console::FG_YELLOW);
             } else {
@@ -1166,7 +1150,7 @@ class GeneratorController extends Controller
             // Delete all tag groups
             $tagsService = Craft::$app->getTags();
             $tagGroups = $tagsService->getAllTagGroups();
-            
+
             if (empty($tagGroups)) {
                 $this->stdout("No tag groups found to delete.\n", Console::FG_YELLOW);
             } else {
@@ -1184,7 +1168,7 @@ class GeneratorController extends Controller
             // Delete all operation records
             $rollbackService = $plugin->rollbackService;
             $operations = $rollbackService->getOperations();
-            
+
             if (empty($operations)) {
                 $this->stdout("No operation records found to delete.\n", Console::FG_YELLOW);
             } else {
@@ -1229,7 +1213,7 @@ class GeneratorController extends Controller
         $plugin = Plugin::getInstance();
         $rollbackService = $plugin->rollbackService;
         $operations = $rollbackService->getOperations();
-        
+
         if (empty($operations)) {
             $this->stdout("No operation records found to delete.\n", Console::FG_YELLOW);
             return ExitCode::OK;
@@ -1237,10 +1221,10 @@ class GeneratorController extends Controller
 
         $this->stdout("\nDeleting all operation records...\n", Console::FG_YELLOW);
         $this->stdout("Found " . count($operations) . " operation records to delete:\n", Console::FG_CYAN);
-        
+
         $deletedCount = 0;
         $failedCount = 0;
-        
+
         foreach ($operations as $operation) {
             if ($rollbackService->deleteOperation($operation->id)) {
                 $this->stdout("Deleting operation: {$operation->id} ({$operation->type})... ✓\n", Console::FG_GREEN);

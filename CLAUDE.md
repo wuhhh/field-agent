@@ -120,9 +120,6 @@ ddev craft field-agent/generator/prune-all --confirm=1
 # Generate from JSON config file or stored config name
 ddev craft field-agent/generator/generate <config.json|stored-name>
 
-# Generate basic field set
-ddev craft field-agent/generator/basic-fields
-
 # List stored configurations
 ddev craft field-agent/generator/list
 ```

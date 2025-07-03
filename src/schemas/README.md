@@ -36,9 +36,10 @@ For the initial proof of concept, we support these field types:
 
 The schema is used by:
 
-1. **LLMIntegrationService**: Validates responses from AI APIs
-2. **SchemaValidationService**: Performs validation and normalization
-3. **System Prompts**: Instructs the AI on expected output format
+1. **LLMIntegrationService**: Calls LLM services
+2. **LLMOperationsService**: AI operations generation 
+3. **SchemaValidationService**: Performs validation and normalization
+4. **System Prompts**: Instructs the AI on expected output format
 
 ## Schema Validation
 

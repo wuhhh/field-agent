@@ -10,8 +10,6 @@ use yii\helpers\Console;
 
 /**
  * Generator controller
- *
- * Refactored to delegate functionality to specialized services
  */
 class GeneratorController extends Controller
 {
@@ -268,6 +266,7 @@ class GeneratorController extends Controller
 
     /**
      * Test LLM API connection
+	 * TODO: This is broken
      */
     public function actionTestLlm(string $provider = 'anthropic'): int
     {

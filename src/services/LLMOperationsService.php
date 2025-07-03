@@ -2,8 +2,6 @@
 
 namespace craftcms\fieldagent\services;
 
-use Craft;
-use craft\helpers\App;
 use craft\base\Component;
 use craftcms\fieldagent\Plugin;
 use yii\base\Exception;
@@ -48,27 +46,30 @@ class LLMOperationsService extends Component
             // Generate the system prompt with context and schema
             $systemPrompt = $this->buildOperationsSystemPrompt($schema, $context);
 
+			// Integration service
+			$llmService = $plugin->llmIntegrationService;
+
             if ($debug) {
-                $this->logDebug("=== LLM OPERATIONS REQUEST DEBUG ===");
-                $this->logDebug("Provider: $provider");
-                $this->logDebug("User Prompt: $prompt");
-                $this->logDebug("Context Summary: " . $context['summary']);
-                $this->logDebug("Existing Fields: " . $context['fields']['count']);
-                $this->logDebug("Existing Sections: " . $context['sections']['count']);
+                $llmService->logDebug("=== LLM OPERATIONS REQUEST DEBUG ===");
+                $llmService->logDebug("Provider: $provider");
+                $llmService->logDebug("User Prompt: $prompt");
+                $llmService->logDebug("Context Summary: " . $context['summary']);
+                $llmService->logDebug("Existing Fields: " . $context['fields']['count']);
+                $llmService->logDebug("Existing Sections: " . $context['sections']['count']);
             }
 
             // Call the appropriate LLM provider
             $response = match ($provider) {
-                self::PROVIDER_ANTHROPIC => $plugin->llmIntegrationService->callAnthropic($systemPrompt, $prompt, $schema, $debug),
-                self::PROVIDER_OPENAI => $plugin->llmIntegrationService->callOpenAI($systemPrompt, $prompt, $schema, $debug),
+                self::PROVIDER_ANTHROPIC => $llmService->callAnthropic($systemPrompt, $prompt, $schema, $debug),
+                self::PROVIDER_OPENAI => $llmService->callOpenAI($systemPrompt, $prompt, $schema, $debug),
                 default => throw new Exception("Unsupported LLM provider: $provider")
             };
 
             if ($debug) {
-                $this->logDebug("=== LLM OPERATIONS RESPONSE DEBUG ===");
-                $this->logDebug("Operations Count: " . count($response['operations'] ?? []));
+                $llmService->logDebug("=== LLM OPERATIONS RESPONSE DEBUG ===");
+                $llmService->logDebug("Operations Count: " . count($response['operations'] ?? []));
                 foreach ($response['operations'] ?? [] as $i => $op) {
-                    $this->logDebug("  [$i] {$op['type']} {$op['target']}" . (isset($op['targetId']) ? " ({$op['targetId']})" : ''));
+                    $llmService->logDebug("  [$i] {$op['type']} {$op['target']}" . (isset($op['targetId']) ? " ({$op['targetId']})" : ''));
                 }
             }
 
@@ -718,12 +719,4 @@ PROMPT;
         ];
     }
 
-    /**
-     * Log debug information
-     */
-    private function logDebug(string $message): void
-    {
-        Craft::info("[field-agent-llm-operations] $message", __METHOD__);
-        echo "[DEBUG] $message\n";
-    }
 }

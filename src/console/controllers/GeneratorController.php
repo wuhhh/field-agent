@@ -281,7 +281,7 @@ class GeneratorController extends Controller
         if ($result['success']) {
             $this->stdout("\n✓ API connection successful!\n", Console::FG_GREEN);
             $this->stdout("Provider: {$result['provider']}\n");
-            $this->stdout("Model: {$result['model']}\n");
+            // $this->stdout("Model: {$result['model']}\n"); // Not implemented
             if (isset($result['response_time'])) {
                 $this->stdout("Response time: {$result['response_time']}ms\n");
             }

@@ -507,69 +507,23 @@ PROMPT;
             'temperature' => 0.1
         ];
 
-        if ($debug) {
-            $this->logDebug("=== OpenAI REQUEST ===");
-            $this->logDebug("- Model: " . $payload['model']);
-            $this->logDebug("- Schema Name: operations_configuration");
-            $this->logDebug("- Schema Keys: " . implode(', ', array_keys($schema['properties'] ?? [])));
-            $this->logDebug("- System Prompt Length: " . strlen($systemPrompt) . " chars");
-            $this->logDebug("- User Prompt: " . $userPrompt);
-        }
+        $headers = [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $apiKey,
+        ];
 
-        $curl = curl_init();
-        curl_setopt_array($curl, [
-            CURLOPT_URL => 'https://api.openai.com/v1/chat/completions',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 120,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => json_encode($payload),
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Authorization: Bearer ' . $apiKey,
-            ],
-        ]);
+        $response = $this->makeHttpRequest(
+            'https://api.openai.com/v1/chat/completions',
+            $headers,
+            $payload,
+            $debug
+        );
 
-        $response = curl_exec($curl);
-        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($curl);
-        curl_close($curl);
-
-        if ($curlError) {
-            throw new Exception("cURL error: $curlError");
-        }
-
-        if ($debug) {
-            $this->logDebug("=== OpenAI RESPONSE ===");
-            $this->logDebug("- HTTP Code: $httpCode");
-            $this->logDebug("- Response Body: $response");
-        }
-
-        if ($httpCode !== 200) {
-            throw new Exception("HTTP request failed with code $httpCode: $response");
-        }
-
-        $data = json_decode($response, true);
-        if (!$data) {
-            throw new Exception("Invalid JSON response from OpenAI API");
-        }
-
-        if (isset($data['error'])) {
-            if ($debug) {
-                $this->logDebug("- Error Type: " . ($data['error']['type'] ?? 'unknown'));
-                $this->logDebug("- Error Message: " . ($data['error']['message'] ?? 'no message'));
-            }
-            throw new Exception("OpenAI API error: " . ($data['error']['message'] ?? 'Unknown error'));
-        }
-
-        if (!isset($data['choices'][0]['message']['content'])) {
+        if (!isset($response['choices'][0]['message']['content'])) {
             throw new Exception("Unexpected OpenAI API response structure");
         }
 
-        $content = $data['choices'][0]['message']['content'];
+        $content = $response['choices'][0]['message']['content'];
         $parsedContent = json_decode($content, true);
 
         if (!$parsedContent) {

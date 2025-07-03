@@ -245,7 +245,7 @@ class LLMIntegrationService extends Component
         $key = $config[$configKey] ?? null;
 
         if ($key) {
-            $this->log("API key found via Craft config system");
+            // $this->log("API key found via Craft config system");
             return $key;
         }
 
@@ -276,24 +276,51 @@ class LLMIntegrationService extends Component
 	}
 
     /**
-     * Test API connection with a simple prompt
-	 * TODO: This is broken
+     * Test API connection and response with a simple prompt
      */
     public function testConnection(string $provider = self::PROVIDER_ANTHROPIC, bool $debug = false): array
     {
         try {
-            $testConfig = $this->generateFromPrompt(
-                "Create a simple blog with title, summary, content and featured image",
-                $provider,
-                $debug
-            );
+			$prompt = "This is a test prompt to check API connectivity. You should respond with a simple JSON object containing a 'response' key with the value 'success'.";
+			$schema = [
+				'type' => 'object',
+				'properties' => [
+					'response' => [
+						'type' => 'string',
+						'enum' => ['success']
+					]
+				],
+				'required' => ['response']
+			];
+
+			if ($debug) {
+				$this->logDebug("=== LLM TEST CONNECTION DEBUG ===");
+				$this->logDebug("Provider: $provider");
+				$this->logDebug("Test Prompt: $prompt");
+			}
+
+			// Call the appropriate LLM provider
+			$response = match ($provider) {
+				self::PROVIDER_ANTHROPIC => $this->callAnthropic("Test connection system prompt", $prompt, $schema, $debug),
+				self::PROVIDER_OPENAI => $this->callOpenAI("Test connection system prompt", $prompt, $schema, $debug),
+				default => throw new Exception("Unsupported LLM provider: $provider")
+			};
+
+			if ($debug) {
+				$this->logDebug("=== LLM TEST CONNECTION RESPONSE DEBUG ===");
+				$this->logDebug("Response: " . json_encode($response, JSON_PRETTY_PRINT));
+			}
+
+			// Check if the response contains the expected success message
+			if (!isset($response['response']) || $response['response'] !== 'success') {
+				throw new Exception("Unexpected response from LLM: " . json_encode($response));
+			}
 
             return [
                 'success' => true,
                 'provider' => $provider,
-                'message' => 'API connection successful',
-                'fieldCount' => count($testConfig['fields'] ?? [])
-            ];
+                'message' => 'API connection successful'
+			];
         } catch (\Exception $e) {
             return [
                 'success' => false,

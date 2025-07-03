@@ -19,7 +19,6 @@ use craftcms\fieldagent\services\StatisticsService;
 use craftcms\fieldagent\services\FieldCreationService;
 use craftcms\fieldagent\services\EntryTypeService;
 use craftcms\fieldagent\models\Settings;
-use craftcms\fieldagent\console\controllers\GeneratorController;
 use craftcms\fieldagent\services\DiscoveryService;
 
 /**

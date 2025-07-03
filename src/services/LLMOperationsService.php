@@ -3,9 +3,9 @@
 namespace craftcms\fieldagent\services;
 
 use Craft;
+use craft\helpers\App;
 use craft\base\Component;
 use craftcms\fieldagent\Plugin;
-use craftcms\fieldagent\services\DiscoveryService;
 use yii\base\Exception;
 
 /**
@@ -59,8 +59,8 @@ class LLMOperationsService extends Component
 
             // Call the appropriate LLM provider
             $response = match ($provider) {
-                self::PROVIDER_ANTHROPIC => $this->callAnthropic($systemPrompt, $prompt, $schema, $debug),
-                self::PROVIDER_OPENAI => $this->callOpenAI($systemPrompt, $prompt, $schema, $debug),
+                self::PROVIDER_ANTHROPIC => $plugin->llmIntegrationService->callAnthropic($systemPrompt, $prompt, $schema, $debug),
+                self::PROVIDER_OPENAI => $plugin->llmIntegrationService->callOpenAI($systemPrompt, $prompt, $schema, $debug),
                 default => throw new Exception("Unsupported LLM provider: $provider")
             };
 
@@ -134,7 +134,7 @@ Wrong order will cause failures!
 
 CRITICAL: FIELD TYPES (use these EXACT values only):
 - plain_text (NOT "text") - For text inputs with optional multiline and charLimit settings
-- rich_text - For CKEditor WYSIWYG content  
+- rich_text - For CKEditor WYSIWYG content
 - link (NOT "url") - For website links with types and sources settings
 - image - For image uploads with maxRelations setting
 - email - For email addresses with validation
@@ -149,7 +149,7 @@ CRITICAL: FIELD TYPES (use these EXACT values only):
 
 WHEN TO USE CATEGORIES vs TAGS vs MULTI_SELECT:
 - Use "categories" when content should be organized into hierarchical category groups (e.g., blog categories, product categories)
-- Use "tags" when content needs flexible tagging for SEO, filtering, or loose categorization (e.g., keywords, skills, topics)  
+- Use "tags" when content needs flexible tagging for SEO, filtering, or loose categorization (e.g., keywords, skills, topics)
 - Use "multi_select" only for predefined static options that are NOT categories or tags (e.g., sizes, colors, features)
 
 CRITICAL: CATEGORY AND TAG GROUP CREATION
@@ -160,7 +160,7 @@ Before creating categories or tags fields, you MUST create the groups they refer
 3. NAMING CONVENTION: Use descriptive group names like "Blog Categories", "Product Tags", etc.
 
 Example order for blog with categories:
-1. Create categoryGroup: "blogCategories" 
+1. Create categoryGroup: "blogCategories"
 2. Create categories field: references "blogCategories" group via sources: ["blogCategories"]
 3. Create entry type with the categories field
 4. Create section with the entry type
@@ -169,7 +169,7 @@ CRITICAL: RESERVED FIELD HANDLES (NEVER USE THESE):
 author, authorId, dateCreated, dateUpdated, id, slug, title, uid, uri, url, content, level, lft, rgt, root, parent, parentId, children, descendants, ancestors, next, prev, siblings, status, enabled, archived, trashed, postDate, expiryDate, revisionCreator, revisionNotes, section, sectionId, type, typeId, field, fieldId
 
 FIELD HANDLE ALTERNATIVES:
-- Instead of "title" → use "pageTitle", "blogTitle", "articleTitle" 
+- Instead of "title" → use "pageTitle", "blogTitle", "articleTitle"
 - Instead of "content" → use "bodyContent", "mainContent", "description"
 - Instead of "author" → use "writer", "creator", "byline"
 - Always prefix handles with the content type when possible (e.g., "blogContent", "newsTitle")
@@ -204,7 +204,7 @@ Matrix fields in Craft CMS contain ENTRY TYPES, not "blocks" or "block types". T
 
 UNDERSTANDING MATRIX FIELD ARCHITECTURE:
 - Matrix Field (e.g., "pageBuilder") contains multiple Entry Types
-- Entry Types can be created inline for the matrix field OR can reference existing Entry Types  
+- Entry Types can be created inline for the matrix field OR can reference existing Entry Types
 - Existing Entry Types can be added to matrix fields
 - This allows complex content structures and reusable components
 
@@ -214,10 +214,10 @@ TWO APPROACHES FOR MATRIX ENTRY TYPES:
 This format is ONLY used inside matrix field settings.entryTypes array:
 {
   "name": "Text Content",
-  "handle": "textContent", 
+  "handle": "textContent",
   "fields": [
     {
-      "name": "Text Content", 
+      "name": "Text Content",
       "handle": "textContent",
       "field_type": "rich_text",  // ← Use "field_type", NOT "type"
       "required": true
@@ -252,7 +252,7 @@ IMPORTANT: Many component requests require NESTED MATRIX STRUCTURES with multipl
 PATTERN 0: "NESTED COMPONENT CREATION" (Most Complex)
 Example: "Create a Feature Cards component" actually means:
 1. Feature Card entry type (individual card: title, image, description)
-2. Feature Cards matrix field (allows multiple Feature Card entries)  
+2. Feature Cards matrix field (allows multiple Feature Card entries)
 3. Feature Cards Block entry type (container: title, description, + Feature Cards matrix)
 4. Add Feature Cards Block to page builder matrix
 
@@ -265,7 +265,7 @@ This creates: Page Builder > Feature Cards Block > Feature Cards > Feature Card
   "operations": [
     {
       "type": "create",
-      "target": "entryType", 
+      "target": "entryType",
       "create": {
         "entryType": {
           "name": "Feature Card",
@@ -273,7 +273,7 @@ This creates: Page Builder > Feature Cards Block > Feature Cards > Feature Card
           "hasTitleField": false,
           "fields": [
             {"handle": "cardTitle", "required": true},
-            {"handle": "cardImage", "required": false}, 
+            {"handle": "cardImage", "required": false},
             {"handle": "cardDescription", "required": false}
           ]
         }
@@ -285,7 +285,7 @@ This creates: Page Builder > Feature Cards Block > Feature Cards > Feature Card
       "create": {
         "field": {
           "name": "Feature Cards",
-          "handle": "featureCards", 
+          "handle": "featureCards",
           "field_type": "matrix",
           "settings": {
             "entryTypes": [
@@ -304,7 +304,7 @@ This creates: Page Builder > Feature Cards Block > Feature Cards > Feature Card
       "target": "entryType",
       "create": {
         "entryType": {
-          "name": "Feature Cards Block", 
+          "name": "Feature Cards Block",
           "handle": "featureCardsBlock",
           "hasTitleField": false,
           "fields": [
@@ -317,7 +317,7 @@ This creates: Page Builder > Feature Cards Block > Feature Cards > Feature Card
     },
     {
       "type": "modify",
-      "target": "field", 
+      "target": "field",
       "targetId": "pageBuilder",
       "modify": {
         "actions": [
@@ -347,7 +347,7 @@ PATTERN RECOGNITION KEYWORDS:
 COMPONENT CREATION GUIDANCE:
 When users request components like testimonials, cards, galleries, etc., create the full nested structure:
 1. Individual item entry type (e.g., testimonial with quote/author/image)
-2. Collection matrix field (e.g., testimonials matrix using testimonial entry type)  
+2. Collection matrix field (e.g., testimonials matrix using testimonial entry type)
 3. Container entry type (e.g., testimonials block with title + testimonials matrix)
 4. Add container to page builder matrix
 
@@ -380,7 +380,7 @@ Example: "Create a new entry type called Feature Cards Block, add the existing f
       }
     },
     {
-      "type": "modify", 
+      "type": "modify",
       "target": "field",
       "targetId": "pageBuilder",  // ← Existing page builder matrix field
       "modify": {
@@ -402,7 +402,7 @@ Example: "Create a new entry type called Feature Cards Block, add the existing f
 PATTERN 2: "Add existing field to existing entry type"
 {
   "type": "modify",
-  "target": "entryType", 
+  "target": "entryType",
   "targetId": "existingEntryType",
   "modify": {
     "actions": [
@@ -545,7 +545,7 @@ Example: "Create a testimonial entry type with quote, author, and image fields"
     },
     {
       "type": "create",
-      "target": "field", 
+      "target": "field",
       "create": {
         "field": {
           "name": "Author Name",
@@ -611,7 +611,7 @@ COMPLETE PAGE BUILDER EXAMPLE - "Create a page builder section with matrix field
       }
     },
     {
-      "type": "create", 
+      "type": "create",
       "target": "entryType",
       "create": {
         "entryType": {
@@ -629,7 +629,7 @@ COMPLETE PAGE BUILDER EXAMPLE - "Create a page builder section with matrix field
     },
     {
       "type": "create",
-      "target": "section", 
+      "target": "section",
       "create": {
         "section": {
           "name": "Pages",
@@ -716,147 +716,6 @@ PROMPT;
             'valid' => empty($errors),
             'errors' => $errors
         ];
-    }
-
-    /**
-     * Call Anthropic API (reuse from existing service)
-     */
-    private function callAnthropic(string $systemPrompt, string $userPrompt, array $schema, bool $debug): array
-    {
-        // Implementation would be similar to existing LLMIntegrationService
-        // For now, we'll delegate to the existing service
-        $plugin = Plugin::getInstance();
-        return $plugin->llmIntegrationService->callAnthropic($systemPrompt, $userPrompt, $schema, $debug);
-    }
-
-    /**
-     * Call OpenAI API with operations schema
-     */
-    private function callOpenAI(string $systemPrompt, string $userPrompt, array $schema, bool $debug): array
-    {
-        $apiKey = $this->getApiKey('OPENAI_API_KEY');
-        if (!$apiKey) {
-            throw new Exception("OpenAI API key not found in environment variables");
-        }
-
-        $payload = [
-            'model' => 'gpt-4o-2024-08-06',
-            'messages' => [
-                [
-                    'role' => 'system',
-                    'content' => $systemPrompt
-                ],
-                [
-                    'role' => 'user',
-                    'content' => $userPrompt
-                ]
-            ],
-            'response_format' => [
-                'type' => 'json_schema',
-                'json_schema' => [
-                    'name' => 'operations_configuration',
-                    'schema' => $schema
-                ]
-            ],
-            'max_tokens' => 4000,
-            'temperature' => 0.1
-        ];
-
-        if ($debug) {
-            $this->logDebug("=== OpenAI REQUEST ===");
-            $this->logDebug("- Model: " . $payload['model']);
-            $this->logDebug("- Schema Name: operations_configuration");
-            $this->logDebug("- Schema Keys: " . implode(', ', array_keys($schema['properties'] ?? [])));
-            $this->logDebug("- System Prompt Length: " . strlen($systemPrompt) . " chars");
-            $this->logDebug("- User Prompt: " . $userPrompt);
-        }
-
-        $curl = curl_init();
-        curl_setopt_array($curl, [
-            CURLOPT_URL => 'https://api.openai.com/v1/chat/completions',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 120,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => json_encode($payload),
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Authorization: Bearer ' . $apiKey,
-            ],
-        ]);
-
-        $response = curl_exec($curl);
-        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($curl);
-        curl_close($curl);
-
-        if ($curlError) {
-            throw new Exception("cURL error: $curlError");
-        }
-
-        if ($debug) {
-            $this->logDebug("=== OpenAI RESPONSE ===");
-            $this->logDebug("- HTTP Code: $httpCode");
-            $this->logDebug("- Response Body: $response");
-        }
-
-        if ($httpCode !== 200) {
-            throw new Exception("HTTP request failed with code $httpCode: $response");
-        }
-
-        $data = json_decode($response, true);
-        if (!$data) {
-            throw new Exception("Invalid JSON response from OpenAI API");
-        }
-
-        if (isset($data['error'])) {
-            if ($debug) {
-                $this->logDebug("- Error Type: " . ($data['error']['type'] ?? 'unknown'));
-                $this->logDebug("- Error Message: " . ($data['error']['message'] ?? 'no message'));
-            }
-            throw new Exception("OpenAI API error: " . ($data['error']['message'] ?? 'Unknown error'));
-        }
-
-        if (!isset($data['choices'][0]['message']['content'])) {
-            throw new Exception("Unexpected OpenAI API response structure");
-        }
-
-        $content = $data['choices'][0]['message']['content'];
-        $parsedContent = json_decode($content, true);
-
-        if (!$parsedContent) {
-            throw new Exception("Failed to parse OpenAI response as JSON: $content");
-        }
-
-        return $parsedContent;
-    }
-
-    /**
-     * Get API key from environment or Craft config
-     */
-    private function getApiKey(string $keyName): ?string
-    {
-        // Try environment variable first
-        $apiKey = $_ENV[$keyName] ?? getenv($keyName);
-        if ($apiKey) {
-            return $apiKey;
-        }
-
-        // Try Craft config system
-        try {
-            if ($keyName === 'OPENAI_API_KEY') {
-                return \Craft::parseEnv('$OPENAI_API_KEY');
-            } elseif ($keyName === 'ANTHROPIC_API_KEY') {
-                return \Craft::parseEnv('$ANTHROPIC_API_KEY');
-            }
-        } catch (\Exception $e) {
-            // Config parsing failed, return null
-        }
-
-        return null;
     }
 
     /**

@@ -196,13 +196,13 @@ Field Type Guidelines with TYPE-SPECIFIC Settings:
     - maxEntries: integer 1-100 (maximum number of entries/blocks allowed, null for unlimited)
     - viewMode: string "cards", "blocks", or "index" (how blocks are displayed in admin)
     - blockTypes: array of block type objects (each represents a type of content block) - REQUIRED
-    
+
     Block Type Structure (inside blockTypes array):
     - name: Display name for the block type (e.g., "Text Block", "Image Block")
     - handle: Unique camelCase identifier (e.g., "textBlock", "imageBlock")
     - hasTitleField: true/false (usually false for block types)
     - fields: Array of field objects for this block type (simplified field types only)
-    
+
     Block Type Field Structure (inside blockTypes[].fields):
     - name: Display name for the field
     - handle: Unique camelCase identifier
@@ -210,14 +210,14 @@ Field Type Guidelines with TYPE-SPECIFIC Settings:
     - instructions: Help text for content editors
     - required: true/false
     - settings: Field-specific settings (simplified, same structure as main fields but limited options)
-    
+
     Matrix Field Usage Examples:
     - Page builder with text blocks, image blocks, gallery blocks
     - FAQ sections with question/answer pairs
     - Team member listings with name, photo, bio
     - Product features with icon, title, description
     - Testimonials with quote, author, image
-    
+
     IMPORTANT: Keep block types simple - use only basic field types within matrix blocks
     LIMITATION: Matrix fields cannot contain other matrix fields (no nesting)
 
@@ -475,9 +475,9 @@ PROMPT;
     }
 
     /**
-     * Call OpenAI API with structured output
+     * Call OpenAI API with operations schema
      */
-    public function callOpenAI(string $systemPrompt, string $userPrompt, array $schema, bool $debug = false): array
+    public function callOpenAI(string $systemPrompt, string $userPrompt, array $schema, bool $debug): array
     {
         $apiKey = $this->getApiKey('OPENAI_API_KEY');
         if (!$apiKey) {
@@ -499,7 +499,7 @@ PROMPT;
             'response_format' => [
                 'type' => 'json_schema',
                 'json_schema' => [
-                    'name' => 'field_configuration',
+                    'name' => 'operations_configuration',
                     'schema' => $schema
                 ]
             ],
@@ -508,47 +508,75 @@ PROMPT;
         ];
 
         if ($debug) {
-            $this->logDebug("=== OPENAI REQUEST ===");
-            $this->logDebug("URL: https://api.openai.com/v1/chat/completions");
-            $this->logDebug("Model: " . $payload['model']);
-            $this->logDebug("Max Tokens: " . $payload['max_tokens']);
-            $this->logDebug("Temperature: " . $payload['temperature']);
-            $this->logDebug("System Prompt: " . substr($systemPrompt, 0, 200) . "...");
-            $this->logDebug("User Prompt: $userPrompt");
-            $this->logDebug("Schema Keys: " . implode(', ', array_keys($schema)));
-            $this->logDebug("Full Payload: " . json_encode($payload, JSON_PRETTY_PRINT));
+            $this->logDebug("=== OpenAI REQUEST ===");
+            $this->logDebug("- Model: " . $payload['model']);
+            $this->logDebug("- Schema Name: operations_configuration");
+            $this->logDebug("- Schema Keys: " . implode(', ', array_keys($schema['properties'] ?? [])));
+            $this->logDebug("- System Prompt Length: " . strlen($systemPrompt) . " chars");
+            $this->logDebug("- User Prompt: " . $userPrompt);
         }
 
-        $response = $this->makeHttpRequest('https://api.openai.com/v1/chat/completions', [
-            'Authorization: Bearer ' . $apiKey,
-            'Content-Type: application/json'
-        ], $payload, $debug);
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => 'https://api.openai.com/v1/chat/completions',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 120,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $apiKey,
+            ],
+        ]);
 
-        if ($debug) {
-            $this->logDebug("=== OPENAI RESPONSE ===");
-            $this->logDebug("Full Response: " . json_encode($response, JSON_PRETTY_PRINT));
-        }
+        $response = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($curl);
+        curl_close($curl);
 
-        if (!isset($response['choices'][0]['message']['content'])) {
-            throw new Exception("Invalid response from OpenAI API");
-        }
-
-        $rawContent = $response['choices'][0]['message']['content'];
-
-        if ($debug) {
-            $this->logDebug("Raw Content: $rawContent");
-        }
-
-        $jsonResponse = json_decode($rawContent, true);
-        if (!$jsonResponse) {
-            throw new Exception("Failed to parse JSON from OpenAI response: $rawContent");
+        if ($curlError) {
+            throw new Exception("cURL error: $curlError");
         }
 
         if ($debug) {
-            $this->logDebug("Parsed JSON: " . json_encode($jsonResponse, JSON_PRETTY_PRINT));
+            $this->logDebug("=== OpenAI RESPONSE ===");
+            $this->logDebug("- HTTP Code: $httpCode");
+            $this->logDebug("- Response Body: $response");
         }
 
-        return $jsonResponse;
+        if ($httpCode !== 200) {
+            throw new Exception("HTTP request failed with code $httpCode: $response");
+        }
+
+        $data = json_decode($response, true);
+        if (!$data) {
+            throw new Exception("Invalid JSON response from OpenAI API");
+        }
+
+        if (isset($data['error'])) {
+            if ($debug) {
+                $this->logDebug("- Error Type: " . ($data['error']['type'] ?? 'unknown'));
+                $this->logDebug("- Error Message: " . ($data['error']['message'] ?? 'no message'));
+            }
+            throw new Exception("OpenAI API error: " . ($data['error']['message'] ?? 'Unknown error'));
+        }
+
+        if (!isset($data['choices'][0]['message']['content'])) {
+            throw new Exception("Unexpected OpenAI API response structure");
+        }
+
+        $content = $data['choices'][0]['message']['content'];
+        $parsedContent = json_decode($content, true);
+
+        if (!$parsedContent) {
+            throw new Exception("Failed to parse OpenAI response as JSON: $content");
+        }
+
+        return $parsedContent;
     }
 
     /**

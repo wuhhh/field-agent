@@ -31,14 +31,14 @@ plugins/field-agent/
 │   │   └── Operation.php
 │   ├── services/
 │   │   ├── FieldGeneratorService.php        # Core field creation
-│   │   ├── DiscoveryService.php            # Project context analysis ⭐
-│   │   ├── LLMOperationsService.php        # AI operations generation ⭐
-│   │   ├── OperationsExecutorService.php   # Operation execution ⭐
-│   │   ├── RollbackService.php             # Operation rollback
-│   │   ├── SectionGeneratorService.php     # Section creation
+│   │   ├── DiscoveryService.php             # Project context analysis ⭐
+│   │   ├── LLMIntegrationService.php        # LLM service requests / integration
+│   │   ├── LLMOperationsService.php         # AI operations generation ⭐
+│   │   ├── OperationsExecutorService.php    # Operation execution ⭐
+│   │   ├── RollbackService.php              # Operation rollback
+│   │   ├── SectionGeneratorService.php      # Section creation
 │   │   ├── SchemaValidationService.php
-│   │   ├── LLMIntegrationService.php       # Legacy LLM service
-│   │   └── tools/                          # Discovery tools ⭐
+│   │   └── tools/                           # Discovery tools ⭐
 │   │       ├── BaseTool.php
 │   │       ├── GetFields.php
 │   │       ├── GetSections.php

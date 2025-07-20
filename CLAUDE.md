@@ -56,12 +56,13 @@ plugins/field-agent/
 
 ## Important Commands
 
-### 🎯 Context-Aware Field Generation (NEW APPROACH)
+### 🎯 Context-Aware Field Generation (PRIMARY APPROACH)
 ```bash
 # Generate AND modify from natural language - ONE intelligent command
 ddev craft field-agent/generator/prompt "Add a featured image field to blog posts" [provider] [--debug]
 ddev craft field-agent/generator/prompt "Create a portfolio section with project fields" [provider] [--debug]
 ddev craft field-agent/generator/prompt "Modify the blog entry type to include author and tags" [provider] [--debug]
+ddev craft field-agent/generator/prompt "Create a content block field with title, description, and image" [provider] [--debug]
 
 # The system automatically determines whether to:
 # - Create new fields/entry types/sections
@@ -98,6 +99,23 @@ ddev craft field-agent/generator/export-prompt
 
 # Debug mode shows full request/response and operation details
 ddev craft field-agent/generator/prompt "Create a news section" anthropic --debug
+```
+
+### 🧪 Test Suite Commands
+```bash
+# Test framework commands
+ddev craft field-agent/generator/test-list                              # List all available tests
+ddev craft field-agent/generator/test-run <test-name> [--cleanup]       # Run individual test
+ddev craft field-agent/generator/test-suite <category> [--cleanup]      # Run test category
+ddev craft field-agent/generator/test-all [--cleanup]                   # Run complete test suite
+
+# Test categories: basic-operations, advanced-operations, integration-tests, edge-cases
+
+# Examples
+ddev craft field-agent/generator/test-run ai-test-all-field-types       # Test all 22 field types
+ddev craft field-agent/generator/test-run ai-test-all-field-types --cleanup  # Auto-cleanup after test
+ddev craft field-agent/generator/test-suite basic-operations            # Test core operations
+ddev craft field-agent/generator/test-all --cleanup                     # Full validation with cleanup
 ```
 
 ### 📋 Operation Management & Rollback
@@ -285,9 +303,11 @@ The system automatically prevents use of Craft CMS reserved field handles:
 
 ### 🧪 Comprehensive Test Suite
 - **AI-Generated Tests**: 4 critical test suites created using advanced LLM system
-- **Complete Coverage**: All 21 field types, matrix structures, site relationships, edge cases
+- **Complete Coverage**: All 22 field types, matrix structures, site relationships, edge cases
 - **Context-Aware Validation**: Tests understand existing project state and prevent conflicts
 - **Production-Ready Scenarios**: Real-world field generation and modification workflows
+- **Test Categories**: 20 test files across basic operations, advanced operations, integration tests, and edge cases
+- **Auto-Cleanup**: Optional `--cleanup` flag for quick validation workflows
 
 ## Current State - CONTEXT-AWARE SYSTEM COMPLETE ✅
 
@@ -295,7 +315,7 @@ The system automatically prevents use of Craft CMS reserved field handles:
 - ✅ **Context-aware operations system** with create/modify/delete operations
 - ✅ **Discovery service** for project structure analysis
 - ✅ **AI/LLM integration** with structured JSON schema validation
-- ✅ **21 field types** fully supported with comprehensive settings
+- ✅ **22 field types** fully supported with comprehensive settings
 - ✅ **Reserved field protection** with intelligent alternatives
 - ✅ **Operation dependency management** with proper ordering
 - ✅ **Complete rollback system** with safety checks and audit trails
@@ -310,7 +330,7 @@ The system automatically prevents use of Craft CMS reserved field handles:
 ### 🧪 Phase 3: AI-Powered Test Suite - ✅ COMPLETE
 - ✅ **Comprehensive test coverage** with 4 AI-generated test suites
 - ✅ **Context-aware test generation** using advanced LLM prompt engineering
-- ✅ **Complete field type validation** covering all 21 supported field types
+- ✅ **Complete field type validation** covering all 22 supported field types
 - ✅ **Complex scenario testing** including matrix fields, site structures, edge cases
 - ✅ **Automated conflict resolution validation** with reserved handle testing
 - ✅ **Production-ready test framework** with rollback tracking and execution metrics

@@ -465,14 +465,52 @@
                     }
                 }
             }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Content Block Test",
+                    "handle": "fieldTestContentBlock",
+                    "field_type": "content_block",
+                    "settings": {
+                        "viewMode": "grouped",
+                        "fields": [
+                            {
+                                "name": "Block Title",
+                                "handle": "blockTitle",
+                                "field_type": "plain_text",
+                                "required": true
+                            },
+                            {
+                                "name": "Block Content",
+                                "handle": "blockContent",
+                                "field_type": "rich_text",
+                                "required": true
+                            },
+                            {
+                                "name": "Block Image",
+                                "handle": "blockImage",
+                                "field_type": "image",
+                                "required": false,
+                                "settings": {
+                                    "maxRelations": 1
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
         }
     ],
     "expectedOutcome": {
-        "fieldsCreated": 25,
-        "fieldTypes": ["plain_text (2 variants)", "rich_text", "email", "image", "asset", "number", "money", "range", "link", "dropdown", "radio_buttons", "checkboxes", "multi_select", "country", "button_group", "date", "time", "color", "lightswitch", "icon", "categories", "tags", "users", "entries", "matrix"],
+        "fieldsCreated": 29,
+        "fieldTypes": ["plain_text (2 variants)", "rich_text", "email", "image", "asset", "number", "money", "range", "link", "dropdown", "radio_buttons", "checkboxes", "multi_select", "country", "button_group", "date", "time", "color", "lightswitch", "icon", "categories", "tags", "users", "entries", "matrix", "content_block"],
         "matrixBlockTypes": 3,
         "matrixFields": 6,
-        "coverage": "All 25 field types with comprehensive settings variations"
+        "contentBlockFields": 3,
+        "coverage": "All 26 field types with comprehensive settings variations"
     },
     "rollbackInstructions": "Use field-agent/generator/rollback <operation-id> to remove all AI-generated test fields",
     "executionCommand": "ddev craft field-agent/generator/test-run ai-test-all-field-types"

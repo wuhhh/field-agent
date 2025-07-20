@@ -1,7 +1,7 @@
 # Field Agent Plugin for Craft CMS
 
 **AI-Powered Context-Aware Field Generation**  
-Generate and intelligently modify Craft CMS fields, entry types, and sections from natural language prompts using advanced AI integration.
+Transform natural language into Craft CMS fields, entry types, and sections with intelligent AI that understands your existing project structure. Generate complete content architectures or modify existing structures with simple prompts.
 
 ## 🌟 Key Features
 
@@ -24,10 +24,12 @@ Generate and intelligently modify Craft CMS fields, entry types, and sections fr
 - **Operation History**: Full history with source prompts and success/failure tracking
 
 ### 🔧 Comprehensive Field Support
-- **21 Field Types**: Complete support for all major Craft field types
+- **25 Field Types**: Complete support for all Craft CMS field types including ContentBlock, Categories, and Tags
+- **Category & Tag Group Creation**: Automatically creates category and tag groups as needed
 - **Reserved Word Protection**: Automatic alternatives for Craft reserved handles
-- **Dependency Management**: Ensures proper creation order (fields → entry types → sections)
+- **Dependency Management**: Ensures proper creation order (groups → fields → entry types → sections)
 - **Matrix Fields**: AI-generated complex content block structures
+- **ContentBlock Fields**: Create reusable content structures with nested field layouts
 
 ## 🚀 Quick Start
 
@@ -61,6 +63,9 @@ ddev craft field-agent/generator/prompt "Add author and featured image to blog p
 
 # Smart field reuse across sections
 ddev craft field-agent/generator/prompt "Create news section with title, content, and featured image"
+
+# ContentBlock fields (Craft 5.8+ feature)
+ddev craft field-agent/generator/prompt "Create a content block field for hero sections with title, description, and background image"
 
 # Apply changes to Craft
 ddev craft up
@@ -174,7 +179,7 @@ ddev craft field-agent/generator/prompt "Create fields for title, content, and a
 - `content` → `bodyContent`, `mainContent`, `description`
 - `author` → `writer`, `creator`, `byline`
 
-## 🏗️ Supported Field Types (21 Types)
+## 🏗️ Supported Field Types (25 Types)
 
 ### Text & Content (3 types)
 - `plain_text` - Single/multi-line text with character limits
@@ -190,16 +195,21 @@ ddev craft field-agent/generator/prompt "Create fields for title, content, and a
 - `money` - Currency fields with currency settings
 - `range` - Slider/range inputs
 
-### Links (1 type)
+### Links & Relations (7 types)
 - `link` - Link fields supporting URLs and entry links
+- `entries` - Entry relationships with section sources
+- `categories` - Category relationships with automatic group creation
+- `tags` - Tag relationships with automatic group creation
+- `users` - User relationships
 
-### Selection & Choice (5 types)
+### Selection & Choice (6 types)
 - `dropdown` - Single selection with options
 - `radio_buttons` - Radio button groups
 - `checkboxes` - Multiple selection checkboxes
 - `multi_select` - Multiple selection dropdown
 - `country` - Country selection
 - `button_group` - Button group interface
+- `table` - Table fields for structured data
 
 ### Date & Time (2 types)
 - `date` - Date picker with time options
@@ -210,8 +220,10 @@ ddev craft field-agent/generator/prompt "Create fields for title, content, and a
 - `lightswitch` - Boolean toggle
 - `icon` - Icon picker
 
-### Complex Structure (1 type)
+### Complex Structures (3 types)
 - `matrix` - Flexible content blocks with AI-generated block types
+- `content_block` - **NEW!** Reusable content structures (Craft 5.8+)
+- `table` - Table fields for structured data
 
 ### Reserved Field Protection
 Automatically prevents use of Craft CMS reserved handles and provides intelligent alternatives.
@@ -316,10 +328,62 @@ All AI responses are validated against structured JSON schemas ensuring:
 
 ## 🏆 Advanced Features
 
+### Supported Field Types (25 Total)
+
+**Text & Content:**
+- `plain_text` - Single/multi-line text fields
+- `rich_text` - CKEditor WYSIWYG editor
+- `email` - Email validation
+
+**Assets & Media:**
+- `image` - Image uploads with gallery support
+- `asset` - General file uploads
+
+**Numbers & Measurements:**
+- `number` - Numeric fields with decimal support
+- `money` - Currency fields with formatting
+- `range` - Slider/range input fields
+
+**Links & Relations:**
+- `link` - URL and entry link fields
+- `entries` - Entry relationships with section sources
+- `categories` - Category relationships with automatic group creation
+- `tags` - Tag relationships with automatic group creation
+- `users` - User relationships
+
+**Selection & Choice:**
+- `dropdown` - Single selection dropdown
+- `radio_buttons` - Radio button groups
+- `checkboxes` - Multiple checkboxes
+- `multi_select` - Multi-selection dropdown
+- `country` - Country selection
+- `button_group` - Button group selection
+- `table` - Table fields for structured data
+
+**Date & Time:**
+- `date` - Date/time picker
+- `time` - Time-only picker
+
+**User Interface:**
+- `color` - Color picker
+- `lightswitch` - Boolean toggle
+- `icon` - Icon selection
+
+**Complex Structures:**
+- `matrix` - Flexible content blocks with entry types
+- `content_block` - **NEW!** Reusable content structures (Craft 5.8+)
+- `table` - Table fields for structured data
+
 ### Matrix Field Generation
 AI can generate complex matrix field structures with multiple block types:
 ```bash
 ddev craft field-agent/generator/prompt "Create a page builder with hero, content, and testimonial blocks"
+```
+
+### ContentBlock Fields (NEW!)
+Create reusable content structures with nested field layouts:
+```bash
+ddev craft field-agent/generator/prompt "Create a feature section content block with title, description, and image"
 ```
 
 ### Batch Operations

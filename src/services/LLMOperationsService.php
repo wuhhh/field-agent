@@ -50,12 +50,12 @@ class LLMOperationsService extends Component
 			$llmService = $plugin->llmIntegrationService;
 
             if ($debug) {
-                $llmService->logDebug("=== LLM OPERATIONS REQUEST DEBUG ===");
-                $llmService->logDebug("Provider: $provider");
-                $llmService->logDebug("User Prompt: $prompt");
-                $llmService->logDebug("Context Summary: " . $context['summary']);
-                $llmService->logDebug("Existing Fields: " . $context['fields']['count']);
-                $llmService->logDebug("Existing Sections: " . $context['sections']['count']);
+                \Craft::info("=== LLM OPERATIONS REQUEST DEBUG ===", __METHOD__);
+                \Craft::info("Provider: $provider", __METHOD__);
+                \Craft::info("User Prompt: $prompt", __METHOD__);
+                \Craft::info("Context Summary: " . $context['summary'], __METHOD__);
+                \Craft::info("Existing Fields: " . $context['fields']['count'], __METHOD__);
+                \Craft::info("Existing Sections: " . $context['sections']['count'], __METHOD__);
             }
 
             // Call the appropriate LLM provider
@@ -66,10 +66,10 @@ class LLMOperationsService extends Component
             };
 
             if ($debug) {
-                $llmService->logDebug("=== LLM OPERATIONS RESPONSE DEBUG ===");
-                $llmService->logDebug("Operations Count: " . count($response['operations'] ?? []));
+                \Craft::info("=== LLM OPERATIONS RESPONSE DEBUG ===", __METHOD__);
+                \Craft::info("Operations Count: " . count($response['operations'] ?? []), __METHOD__);
                 foreach ($response['operations'] ?? [] as $i => $op) {
-                    $llmService->logDebug("  [$i] {$op['type']} {$op['target']}" . (isset($op['targetId']) ? " ({$op['targetId']})" : ''));
+                    \Craft::info("  [$i] {$op['type']} {$op['target']}" . (isset($op['targetId']) ? " ({$op['targetId']})" : ''), __METHOD__);
                 }
             }
 
@@ -146,6 +146,7 @@ CRITICAL: FIELD TYPES (use these EXACT values only):
 - money - For currency amounts with currency setting
 - categories - For Craft CMS native category groups (NOT multi_select for categories!)
 - tags - For Craft CMS native tag groups (NOT multi_select for tags!)
+- content_block - For reusable content structures with nested fields (viewMode, fields settings)
 - All other supported: time, color, range, radio_buttons, checkboxes, multi_select, country, button_group, icon, asset, matrix, users, entries
 
 WHEN TO USE CATEGORIES vs TAGS vs MULTI_SELECT:

@@ -478,6 +478,18 @@ class FieldGeneratorService extends Component
                 }
                 break;
 
+            case 'content_block':
+            case 'contentblock':
+                $field = new \craft\fields\ContentBlock();
+                $field->viewMode = $normalizedConfig['viewMode'] ?? 'grouped'; // grouped, pane, or inline
+                
+                // Create field layout with nested fields (similar to entry types)
+                if (isset($normalizedConfig['fields']) && is_array($normalizedConfig['fields'])) {
+                    $fieldLayout = $this->createContentBlockFieldLayout($normalizedConfig['fields']);
+                    $field->setFieldLayout($fieldLayout);
+                }
+                break;
+
             default:
                 throw new Exception("Unsupported field type: $fieldType");
         }
@@ -717,6 +729,74 @@ class FieldGeneratorService extends Component
         }
 
         return $entryTypes;
+    }
+
+    /**
+     * Create field layout for ContentBlock fields
+     */
+    private function createContentBlockFieldLayout(array $fieldsConfig): \craft\models\FieldLayout
+    {
+        $fieldLayout = new \craft\models\FieldLayout();
+        $fieldLayout->type = \craft\fields\ContentBlock::class;
+        
+        $fieldLayoutElements = [];
+        $fieldsService = \Craft::$app->getFields();
+        
+        foreach ($fieldsConfig as $fieldConfig) {
+            // Check if this is a field reference (existing field)
+            if (!isset($fieldConfig['field_type']) && isset($fieldConfig['handle'])) {
+                // Look up existing field
+                $existingField = $fieldsService->getFieldByHandle($fieldConfig['handle']);
+                if ($existingField) {
+                    // Use existing field
+                    $fieldLayoutElement = new \craft\fieldlayoutelements\CustomField();
+                    $fieldLayoutElement->fieldUid = $existingField->uid;
+                    $fieldLayoutElement->required = $fieldConfig['required'] ?? false;
+                    $fieldLayoutElements[] = $fieldLayoutElement;
+                    continue;
+                } else {
+                    // If field doesn't exist and no field_type provided, skip
+                    Craft::warning("Field '{$fieldConfig['handle']}' not found for ContentBlock field layout", __METHOD__);
+                    continue;
+                }
+            }
+            
+            // This is a full field definition for inline creation
+            if (isset($fieldConfig['field_type'])) {
+                // Create the field
+                $blockField = $this->createFieldFromConfig($fieldConfig);
+                
+                if ($blockField) {
+                    // Save the field
+                    if (!$fieldsService->saveField($blockField)) {
+                        $errors = $blockField->getErrors();
+                        $errorMessage = "Failed to save field '{$blockField->name}' for ContentBlock";
+                        if (!empty($errors)) {
+                            $errorMessage .= ": " . implode(', ', array_map(function($err) {
+                                return is_array($err) ? implode(', ', $err) : $err;
+                            }, $errors));
+                        }
+                        throw new Exception($errorMessage);
+                    }
+                    
+                    // Create field layout element
+                    $fieldLayoutElement = new \craft\fieldlayoutelements\CustomField();
+                    $fieldLayoutElement->fieldUid = $blockField->uid;
+                    $fieldLayoutElement->required = $fieldConfig['required'] ?? false;
+                    $fieldLayoutElements[] = $fieldLayoutElement;
+                }
+            }
+        }
+        
+        // Set up the field layout tabs
+        $fieldLayout->setTabs([
+            [
+                'name' => 'Content',
+                'elements' => $fieldLayoutElements,
+            ]
+        ]);
+        
+        return $fieldLayout;
     }
 
     /**

@@ -28,6 +28,7 @@ use craft\fields\Entries;
 use craft\fields\Tags;
 use craft\fields\Users;
 use craft\fields\Matrix;
+use craft\fields\ContentBlock;
 use craft\ckeditor\Field as CKEditorField;
 
 /**
@@ -228,6 +229,17 @@ class FieldCreationService extends Component
                 // For now, we'll skip creating Matrix fields and guide users to the admin panel
                 Craft::warning("Matrix fields require block type configuration and cannot be created via this tool.", __METHOD__);
                 return null;
+
+            case 'content_block':
+            case 'contentblock':
+                $field = new ContentBlock();
+                $field->viewMode = $config['view_mode'] ?? 'grouped'; // grouped, pane, or inline
+                
+                // ContentBlock fields require field layouts which are complex to create programmatically
+                // For now, we'll create a basic ContentBlock without nested fields
+                // The field layout can be configured through the admin panel
+                Craft::info("ContentBlock field created. Configure nested fields through the admin panel.", __METHOD__);
+                break;
 
             default:
                 Craft::error("Unsupported field type: $fieldType", __METHOD__);
@@ -465,7 +477,8 @@ class FieldCreationService extends Component
             'entries' => 'Entries',
             'tags' => 'Tags',
             'users' => 'Users',
-            'matrix' => 'Matrix (not fully supported)'
+            'matrix' => 'Matrix (not fully supported)',
+            'content_block' => 'Content Block'
         ];
     }
 }

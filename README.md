@@ -10,7 +10,7 @@ This plugin uses AI to generate Craft CMS fields, entry types, and sections from
 This plugin is not yet available in the Craft Plugin Store. To install for testing:
 
 ```bash
-composer require wuhhh/field-agent:@alpha
+composer require wuhhh/field-agent:v1.0.1-alpha
 ./craft plugin/install field-agent
 ```
 

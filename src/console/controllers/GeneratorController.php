@@ -77,7 +77,7 @@ class GeneratorController extends Controller
             $this->stderr("Use the 'prompt' command to generate valid configurations.\n");
             return ExitCode::UNSPECIFIED_ERROR;
         }
-        
+
         // Use the operations executor
         return $this->executeOperations($config, $configData);
     }
@@ -90,7 +90,7 @@ class GeneratorController extends Controller
         $plugin = Plugin::getInstance();
         $operationsExecutor = $plugin->operationsExecutorService;
         $rollbackService = $plugin->rollbackService;
-        
+
         // Validate the operations configuration
         $validation = $plugin->schemaValidationService->validateOperations($configData);
         if (!$validation['valid']) {
@@ -100,22 +100,22 @@ class GeneratorController extends Controller
             }
             return ExitCode::UNSPECIFIED_ERROR;
         }
-        
+
         $this->stdout("\n=== Executing Operations from Config ===\n", Console::FG_CYAN);
         $this->stdout("Source: $source\n");
         $this->stdout("Operations to execute: " . count($configData['operations']) . "\n\n");
-        
+
         // Execute operations using the same executor as the prompt command
         try {
             $results = $operationsExecutor->executeOperations($configData);
-            
+
             // Record the operation for rollback using the same method as prompt command
             $operationId = $rollbackService->recordOperationFromResults('generate', $source, $results);
-            
+
             // Display results
             $successCount = 0;
             $failureCount = 0;
-            
+
             foreach ($results as $result) {
                 if ($result['success']) {
                     $successCount++;
@@ -126,21 +126,16 @@ class GeneratorController extends Controller
                     $this->stderr("  ✗ {$result['operation']['type']}: {$result['operation']['target']} - {$errorMsg}\n", Console::FG_RED);
                 }
             }
-            
+
             $this->stdout("\n=== Operations Complete ===\n", Console::FG_GREEN);
             $this->stdout("Successful: $successCount\n");
             if ($failureCount > 0) {
                 $this->stderr("Failed: $failureCount\n", Console::FG_RED);
             }
             $this->stdout("Operation ID: $operationId (use for rollback if needed)\n");
-            
-            // Remind user to apply project config changes
-            $this->stdout("\nRemember to run ", Console::FG_YELLOW);
-            $this->stdout("ddev craft up", Console::FG_CYAN);
-            $this->stdout(" to apply project config changes.\n", Console::FG_YELLOW);
-            
+
             return $failureCount > 0 ? ExitCode::UNSPECIFIED_ERROR : ExitCode::OK;
-            
+
         } catch (\Exception $e) {
             $this->stderr("\nError executing operations: " . $e->getMessage() . "\n", Console::FG_RED);
             return ExitCode::UNSPECIFIED_ERROR;
@@ -316,7 +311,7 @@ class GeneratorController extends Controller
 
         $result = $llmOperationsService->exportPromptAndSchema();
 
-        $outputDir = Craft::$app->path->getRuntimePath() . '/field-agent-exports';
+        $outputDir = Plugin::getInstance()->getStoragePath() . '/exports';
         if (!is_dir($outputDir)) {
             mkdir($outputDir, 0755, true);
         }
@@ -335,7 +330,7 @@ class GeneratorController extends Controller
 
         // Save example prompt
         $exampleFile = "$outputDir/example-prompt-$timestamp.txt";
-        file_put_contents($exampleFile, $result['examplePrompt']);
+        file_put_contents($exampleFile, $result['exampleUserPrompt']);
         $this->stdout("Example prompt saved to: $exampleFile\n", Console::FG_GREEN);
 
         $this->stdout("\nYou can use these files to test the LLM API manually.\n", Console::FG_CYAN);
@@ -924,7 +919,7 @@ class GeneratorController extends Controller
         if (!empty($results['deleted'])) {
             $this->stdout("Deleted " . count($results['deleted']) . " config files:\n", Console::FG_GREEN);
             foreach ($results['deleted'] as $file) {
-                $this->stdout("  - {$file['name']} - {$file['date']}\n");
+                $this->stdout("  - {$file['file']} ({$file['age_days']} days old)\n");
             }
         } else {
             $this->stdout("No config files to prune.\n", Console::FG_YELLOW);
@@ -1009,7 +1004,8 @@ class GeneratorController extends Controller
             foreach ($sections as $section) {
                 $this->stdout("    - {$section['name']} ({$section['handle']}) - Type: {$section['type']}\n");
                 foreach ($section['entryTypes'] as $entryType) {
-                    $this->stdout("      → {$entryType['name']} ({$entryType['handle']}) - {$entryType['fieldCount']} fields\n");
+                    $fieldCount = isset($entryType['fields']) ? count($entryType['fields']) : 0;
+                    $this->stdout("      → {$entryType['name']} ({$entryType['handle']}) - {$fieldCount} fields\n");
                 }
             }
         }

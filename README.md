@@ -1,402 +1,144 @@
 # Field Agent Plugin for Craft CMS
+⚠️ **ALPHA SOFTWARE - USE WITH CAUTION** ⚠️
 
-**AI-Powered Context-Aware Field Generation**  
-Transform natural language into Craft CMS fields, entry types, and sections with intelligent AI that understands your existing project structure. Generate complete content architectures or modify existing structures with simple prompts.
+This plugin uses AI to generate Craft CMS fields, entry types, and sections from natural language prompts. 
 
-## 🌟 Key Features
+**WARNING: This is an experimental plugin and you should not use it on production sites. Always backup your database before testing it.**
 
-### 🎯 Context-Aware Intelligence
-- **Project Analysis**: Understands existing field layouts and structures
-- **Smart Modification**: Add fields to existing entry types without breaking current content
-- **Intelligent Field Reuse**: Automatically reuses appropriate existing fields across entry types
-- **Conflict Prevention**: Avoids handle conflicts and reserved word usage automatically
+## Alpha Installation
 
-### 🤖 Advanced AI Integration
-- **Natural Language Processing**: Understands complex modification and creation requests
-- **Multi-Provider Support**: Anthropic Claude & OpenAI GPT-4 integration
-- **Structured Output**: JSON schema validation ensures reliable, consistent results
-- **Debug Mode**: Complete request/response logging and operation tracking
-
-### 📊 Operation Management System
-- **Complete Audit Trail**: Track all field generation activities with timestamps
-- **Granular Rollback**: Undo individual or bulk operations safely
-- **Safety Checks**: Prevent deletion of fields/types with existing content
-- **Operation History**: Full history with source prompts and success/failure tracking
-
-### 🔧 Comprehensive Field Support
-- **25 Field Types**: Complete support for all Craft CMS field types including ContentBlock, Categories, and Tags
-- **Category & Tag Group Creation**: Automatically creates category and tag groups as needed
-- **Reserved Word Protection**: Automatic alternatives for Craft reserved handles
-- **Dependency Management**: Ensures proper creation order (groups → fields → entry types → sections)
-- **Matrix Fields**: AI-generated complex content block structures
-- **ContentBlock Fields**: Create reusable content structures with nested field layouts
-
-## 🚀 Quick Start
-
-### 1. Installation & Setup
-
-The plugin is already installed as a local Composer package. Set up AI integration:
-
-**Add API keys to `.ddev/config.yaml`** (Recommended):
-```yaml
-webimage_extra_environment:
-  - ANTHROPIC_API_KEY=sk-ant-your-key-here
-  - OPENAI_API_KEY=sk-your-key-here
-```
-Then run: `ddev restart`
-
-**Verify setup:**
-```bash
-ddev craft field-agent/generator/test-llm
-```
-
-### 2. Context-Aware Field Generation
-
-The system automatically determines whether to create new structures or modify existing ones:
+This plugin is not yet available in the Craft Plugin Store. To install for testing:
 
 ```bash
-# Create new structures from scratch
-ddev craft field-agent/generator/prompt "Create a portfolio section with project fields"
-
-# Intelligently modify existing structures
-ddev craft field-agent/generator/prompt "Add author and featured image to blog posts"
-
-# Smart field reuse across sections
-ddev craft field-agent/generator/prompt "Create news section with title, content, and featured image"
-
-# ContentBlock fields (Craft 5.8+ feature)
-ddev craft field-agent/generator/prompt "Create a content block field for hero sections with title, description, and background image"
-
-# Apply changes to Craft
-ddev craft up
+composer require wuhhh/field-agent:@alpha
+./craft plugin/install field-agent
 ```
 
-## 📋 Core Commands
+### API Setup
 
-### 🎯 Context-Aware Generation (Primary Interface)
-
+Add your AI provider API key to `.env`:
 ```bash
-# One intelligent command handles everything
-ddev craft field-agent/generator/prompt "<description>" [provider] [--debug]
-
-# Examples:
-ddev craft field-agent/generator/prompt "Add testimonials to the landing page"
-ddev craft field-agent/generator/prompt "Create a team section with member profiles"
-ddev craft field-agent/generator/prompt "Modify blog posts to include tags and categories"
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+OPENAI_API_KEY=sk-your-key-here  # optional
 ```
 
-**The system automatically:**
-- Analyzes existing project structure
-- Determines appropriate operations (create/modify)
-- Reuses existing fields when beneficial
-- Prevents handle conflicts
-- Executes operations in proper dependency order
-
-### 🔍 Project Discovery & Analysis
-
+Test your setup:
 ```bash
-# Analyze current project state
-ddev craft field-agent/generator/test-discovery
-
-# Get detailed field information
-ddev craft field-agent/generator/discovery/fields
-
-# Analyze sections and entry types
-ddev craft field-agent/generator/discovery/sections
-
-# Check handle availability
-ddev craft field-agent/generator/discovery/check-handle <handle>
+./craft field-agent/generator/test-llm
 ```
 
-### 📊 Operation Management
+## Basic Usage
 
+The plugin analyzes your existing Craft setup and creates or modifies fields/entry types/sections based on natural language prompts.
+
+**Main command:**
 ```bash
-# List all operations with detailed history
-ddev craft field-agent/generator/operations
-
-# Rollback specific operation
-ddev craft field-agent/generator/rollback <operation-id>
-
-# Rollback ALL operations (with confirmation)
-ddev craft field-agent/generator/rollback-all
-
-# Clean up old operations and configs
-ddev craft field-agent/generator/prune-all --confirm=1
+./craft field-agent/generator/prompt "your description here"
 ```
 
-### 🤖 AI Provider Options
-
+**Examples:**
 ```bash
-# Use Anthropic Claude (default)
-ddev craft field-agent/generator/prompt "Create blog fields" anthropic
+# Create new structures
+./craft field-agent/generator/prompt "Create a portfolio section with project fields"
 
-# Use OpenAI GPT-4
-ddev craft field-agent/generator/prompt "Create blog fields" openai
+# Modify existing structures  
+./craft field-agent/generator/prompt "Add author and featured image to blog posts"
 
-# Test API connections
-ddev craft field-agent/generator/test-llm anthropic --debug
-ddev craft field-agent/generator/test-llm openai --debug
+# Always apply changes after generation
+./craft up
 ```
 
-### 🔧 Debug & Development
+The system will automatically:
+- Analyze existing project structure
+- Avoid naming conflicts with reserved Craft handles
+- Reuse existing fields when appropriate
+- Create fields, then entry types, then sections in proper order
 
+## Commands
+
+### Generation
 ```bash
-# Enable debug mode for full operation visibility
-ddev craft field-agent/generator/prompt "Create portfolio" --debug
+# Main prompt command (uses Anthropic Claude by default)
+./craft field-agent/generator/prompt "description" [provider] [--debug]
 
-# Export API templates for manual testing
-ddev craft field-agent/generator/export-prompt
+# Use OpenAI instead
+./craft field-agent/generator/prompt "description" openai
+
+# Debug mode (shows full AI request/response)  
+./craft field-agent/generator/prompt "description" --debug
 ```
 
-## 🎨 Example Workflows
-
-### ✨ Intelligent Modification
-Starting with an existing blog section:
+### Operation Management
 ```bash
-ddev craft field-agent/generator/prompt "Add author and featured image to blog posts"
-```
-**System intelligently:**
-1. Creates `author` and `featuredImage` fields
-2. Adds them to existing `blogPost` entry type
-3. Preserves all existing fields and settings
+# List all generation operations
+./craft field-agent/generator/operations
 
-### 🎯 Smart Field Reuse
-With existing `featuredImage` field:
+# Rollback specific operation by ID
+./craft field-agent/generator/rollback <operation-id>
+
+# ⚠️ DESTRUCTIVE: Rollback ALL operations
+./craft field-agent/generator/rollback-all
+
+# Clean up old data
+./craft field-agent/generator/prune-all --confirm=1
+```
+
+## Supported Field Types
+
+The plugin supports 22 Craft CMS field types:
+
+**Text & Content:** ckeditor, email, plain_text, table
+**Assets:** image, asset
+**Numbers:** number, money, range
+**Selection:** dropdown, radio_buttons, checkboxes, multi_select, country, button_group
+**Relations:** entries, categories, matrix, tags, users
+**Date/Time:** date, time
+**Interface:** color, lightswitch, icon
+
+**Reserved Field Protection:** The system automatically avoids Craft's reserved field handles (`title`, `content`, `author`, etc.) and suggests alternatives like `pageTitle`, `bodyContent`, `writer`.
+
+## Troubleshooting
+
+### API Issues
 ```bash
-ddev craft field-agent/generator/prompt "Create news section with title, content, and featured image"
-```
-**System intelligently:**
-1. Creates `newsTitle` and `newsContent` fields (avoiding reserved names)
-2. Reuses existing `featuredImage` field
-3. Creates news section and entry type with proper relationships
+# Test your API connection
+./craft field-agent/generator/test-llm --debug
 
-### 🛡️ Automatic Conflict Prevention
+# Check environment variables are loaded
+./craft field-agent/generator/test-llm
+```
+
+### Common Problems
+- **401 errors:** Verify your API key is correct and has credits
+- **Field conflicts:** System handles automatically, check operation history  
+- **Operation failures:** Use `--debug` mode to see detailed error information
+
+### Debug Mode
+Add `--debug` to see full AI request/response and operation details:
 ```bash
-ddev craft field-agent/generator/prompt "Create fields for title, content, and author"
-```
-**System automatically uses safe alternatives:**
-- `title` → `pageTitle`, `blogTitle`, `articleTitle`
-- `content` → `bodyContent`, `mainContent`, `description`
-- `author` → `writer`, `creator`, `byline`
-
-## 🏗️ Supported Field Types (25 Types)
-
-### Text & Content (3 types)
-- `plain_text` - Single/multi-line text with character limits
-- `rich_text` - CKEditor WYSIWYG content
-- `email` - Email validation
-
-### Assets & Media (2 types)
-- `image` - Image uploads with relation limits
-- `asset` - General file uploads
-
-### Numbers & Measurements (3 types)
-- `number` - Numeric fields with decimals, min/max
-- `money` - Currency fields with currency settings
-- `range` - Slider/range inputs
-
-### Links & Relations (7 types)
-- `link` - Link fields supporting URLs and entry links
-- `entries` - Entry relationships with section sources
-- `categories` - Category relationships with automatic group creation
-- `tags` - Tag relationships with automatic group creation
-- `users` - User relationships
-
-### Selection & Choice (6 types)
-- `dropdown` - Single selection with options
-- `radio_buttons` - Radio button groups
-- `checkboxes` - Multiple selection checkboxes
-- `multi_select` - Multiple selection dropdown
-- `country` - Country selection
-- `button_group` - Button group interface
-- `table` - Table fields for structured data
-
-### Date & Time (2 types)
-- `date` - Date picker with time options
-- `time` - Time picker
-
-### User Interface (3 types)
-- `color` - Color picker
-- `lightswitch` - Boolean toggle
-- `icon` - Icon picker
-
-### Complex Structures (3 types)
-- `matrix` - Flexible content blocks with AI-generated block types
-- `content_block` - **NEW!** Reusable content structures (Craft 5.8+)
-- `table` - Table fields for structured data
-
-### Reserved Field Protection
-Automatically prevents use of Craft CMS reserved handles and provides intelligent alternatives.
-
-## 🔍 Debug Features
-
-### Context-Aware Debug Mode
-```bash
-ddev craft field-agent/generator/prompt "Create portfolio" --debug
-```
-Shows complete operation flow:
-- Project context analysis and structure detection
-- AI prompt generation with schema validation
-- Operation planning and dependency resolution
-- Field creation and database persistence verification
-- Entry type modification with field assignment tracking
-
-### Discovery Service Analysis
-Real-time project state analysis:
-- Field enumeration with type and setting details
-- Section and entry type relationship mapping
-- Handle availability checking
-- Conflict detection and resolution suggestions
-
-## 🏛️ Architecture Overview
-
-### Context-Aware Operations System
-- **Discovery Service**: Analyzes existing project structures
-- **Operations Generator**: AI-powered operation planning from natural language
-- **Operations Executor**: Dependency-aware execution of operation sequences
-- **Rollback System**: Complete audit trail with granular undo capabilities
-
-### Hybrid AI Architecture
-- **Discovery Layer**: Real-time project analysis for contextual decisions
-- **AI Planning**: LLM generates appropriate operations based on existing structures
-- **Execution Layer**: Reliable field creation using Craft's native APIs
-- **Validation**: Structured JSON schemas ensure consistent, reliable output
-
-## 🚨 Important Notes
-
-### Apply Changes
-Always run after field generation:
-```bash
-ddev craft up
+./craft field-agent/generator/prompt "create blog fields" --debug
 ```
 
-### System Capabilities
-- ✅ Creating new fields, entry types, and sections from scratch
-- ✅ Adding fields to existing entry types intelligently
-- ✅ Reusing existing fields across different entry types
-- ✅ Modifying existing structures while preserving content
-- ✅ Conflict detection and automatic resolution
-- ✅ Complete site structure generation and enhancement
+## What It Does
 
-**Notes:**
-- Discovery analysis adds minimal overhead
-- Context awareness significantly improves success rates
-- AI-powered planning reduces trial-and-error iterations
-- Operation-based approach enables precise rollbacks
+This plugin generates Craft CMS fields, entry types, and sections using AI from natural language descriptions. It analyzes your existing Craft setup to avoid conflicts and reuse appropriate fields.
 
-## 🔧 Legacy Commands (Still Available)
+**Key capabilities:**
+- Understands 22 Craft field types including matrix and relations
+- Modifies existing entry types without breaking content
+- Avoids reserved Craft handles and suggests alternatives  
+- Creates related structures (category groups, tag groups) automatically
+- Provides complete rollback of all operations
 
-```bash
-# Generate from JSON configuration files
-ddev craft field-agent/generator/generate <config.json|stored-name>
+## Alpha Testing Notes
 
-# List stored configurations
-ddev craft field-agent/generator/list
-```
+This is experimental software. It works well but may have edge cases. Please:
 
-## 🚨 Troubleshooting
+- Test on development sites only
+- Backup your database before major operations
+- Report issues at: https://github.com/wuhhh/field-agent/issues
+- Use `--debug` mode to understand what's happening
 
-### API Key Issues
-```bash
-# Verify configuration
-ddev craft field-agent/generator/test-llm [provider] --debug
+## License
 
-# Check environment setup
-ddev exec env | grep API_KEY
-```
-
-### Common Solutions
-1. **401 Authentication**: Verify API key format and validity
-2. **Operation Failures**: Check debug output for detailed error information
-3. **Handle Conflicts**: System automatically resolves, check operation history
-4. **Field Not Found**: Use discovery tools to verify current project state
-
-### Debug Logs
-- Console output during operations (real-time)
-- Craft logs: `storage/logs/web.log` (tagged as `field-agent`)
-- Operation history: `field-agent/generator/operations`
-
-## 📊 Schema & Validation
-
-All AI responses are validated against structured JSON schemas ensuring:
-- Required operation types and targets
-- Proper field handle formatting (camelCase)
-- Supported field types and settings
-- Dependency order compliance
-- Conflict prevention rules
-
-## 🏆 Advanced Features
-
-### Supported Field Types (25 Total)
-
-**Text & Content:**
-- `plain_text` - Single/multi-line text fields
-- `rich_text` - CKEditor WYSIWYG editor
-- `email` - Email validation
-
-**Assets & Media:**
-- `image` - Image uploads with gallery support
-- `asset` - General file uploads
-
-**Numbers & Measurements:**
-- `number` - Numeric fields with decimal support
-- `money` - Currency fields with formatting
-- `range` - Slider/range input fields
-
-**Links & Relations:**
-- `link` - URL and entry link fields
-- `entries` - Entry relationships with section sources
-- `categories` - Category relationships with automatic group creation
-- `tags` - Tag relationships with automatic group creation
-- `users` - User relationships
-
-**Selection & Choice:**
-- `dropdown` - Single selection dropdown
-- `radio_buttons` - Radio button groups
-- `checkboxes` - Multiple checkboxes
-- `multi_select` - Multi-selection dropdown
-- `country` - Country selection
-- `button_group` - Button group selection
-- `table` - Table fields for structured data
-
-**Date & Time:**
-- `date` - Date/time picker
-- `time` - Time-only picker
-
-**User Interface:**
-- `color` - Color picker
-- `lightswitch` - Boolean toggle
-- `icon` - Icon selection
-
-**Complex Structures:**
-- `matrix` - Flexible content blocks with entry types
-- `content_block` - **NEW!** Reusable content structures (Craft 5.8+)
-- `table` - Table fields for structured data
-
-### Matrix Field Generation
-AI can generate complex matrix field structures with multiple block types:
-```bash
-ddev craft field-agent/generator/prompt "Create a page builder with hero, content, and testimonial blocks"
-```
-
-### ContentBlock Fields (NEW!)
-Create reusable content structures with nested field layouts:
-```bash
-ddev craft field-agent/generator/prompt "Create a feature section content block with title, description, and image"
-```
-
-### Batch Operations
-Single prompts can generate multiple related structures:
-```bash
-ddev craft field-agent/generator/prompt "Create complete e-commerce product catalog with categories, variants, and reviews"
-```
-
-### Safety Systems
-- Rollback protection for content-bearing fields/sections
-- Automatic backup of operation sequences
-- Conflict detection before execution
-- Validation at every step
-
-## 📄 License
-
-Craft License - See LICENSE.txt file for details.
+Proprietary - Commercial plugin for Craft CMS

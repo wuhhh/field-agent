@@ -421,7 +421,6 @@ Combines the best of both approaches:
 - **Webhook Support**: Async LLM processing for complex operations
 
 ## Notes
-- Always run `ddev craft up` to apply config changes
 - The system maintains compatibility with existing project configurations
 - All generated structures use proper Craft UUID format
 - Git is initialized in the main project directory

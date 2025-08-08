@@ -1,0 +1,130 @@
+{
+  "name": "Portfolio System",
+  "description": "Creates a complete portfolio with project fields, tag group, entry type, and section",
+  "operations": [
+    {
+      "type": "create",
+      "target": "tagGroup",
+      "create": {
+        "tagGroup": {
+          "name": "Technologies",
+          "handle": "technologies"
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Client Name",
+          "handle": "projectClient",
+          "field_type": "plain_text",
+          "required": false,
+          "settings": {
+            "charLimit": 255
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Project Description",
+          "handle": "projectDescription",
+          "field_type": "rich_text",
+          "required": true
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Project Images",
+          "handle": "projectImages",
+          "field_type": "asset",
+          "required": false,
+          "settings": {
+            "maxRelations": 10
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Technologies",
+          "handle": "projectTechnologies",
+          "field_type": "tags",
+          "required": false,
+          "settings": {
+            "sources": ["technologies"]
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Project URL",
+          "handle": "projectUrl",
+          "field_type": "link",
+          "required": false
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Completion Date",
+          "handle": "projectCompletionDate",
+          "field_type": "date",
+          "required": false
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "entryType",
+      "create": {
+        "entryType": {
+          "name": "Project",
+          "handle": "project",
+          "hasTitleField": true,
+          "fields": [
+            {"handle": "projectClient", "required": false},
+            {"handle": "projectDescription", "required": true},
+            {"handle": "projectImages", "required": false},
+            {"handle": "projectTechnologies", "required": false},
+            {"handle": "projectUrl", "required": false},
+            {"handle": "projectCompletionDate", "required": false}
+          ]
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "section",
+      "create": {
+        "section": {
+          "name": "Portfolio",
+          "handle": "portfolio",
+          "type": "channel",
+          "entryTypes": [
+            {"handle": "project"}
+          ]
+        }
+      }
+    }
+  ]
+}

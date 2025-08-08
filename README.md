@@ -56,13 +56,10 @@ The plugin analyzes your existing Craft setup and creates or modifies fields/ent
 
 # Modify existing structures  
 ./craft field-agent/generator/prompt "Add author and featured image to blog posts"
-
-# Always apply changes after generation
-./craft up
 ```
 
 The system will automatically:
-- Analyze existing project structure
+- Analyse existing project structure
 - Avoid naming conflicts with reserved Craft handles
 - Reuse existing fields when appropriate
 - Create fields, then entry types, then sections in proper order
@@ -100,13 +97,13 @@ The system will automatically:
 
 The plugin supports 22 Craft CMS field types:
 
-**Text & Content:** ckeditor, email, plain_text, table
-**Assets:** image, asset
-**Numbers:** number, money, range
-**Selection:** dropdown, radio_buttons, checkboxes, multi_select, country, button_group
-**Relations:** entries, categories, matrix, tags, users
-**Date/Time:** date, time
-**Interface:** color, lightswitch, icon
+**Text & Content:** ckeditor, email, plain_text, table  
+**Assets:** image, asset  
+**Numbers:** number, money, range  
+**Selection:** dropdown, radio_buttons, checkboxes, multi_select, country, button_group  
+**Relations:** entries, categories, matrix, tags, users  
+**Date/Time:** date, time  
+**Interface:** color, lightswitch, icon 
 
 **Reserved Field Protection:** The system automatically avoids Craft's reserved field handles (`title`, `content`, `author`, etc.) and suggests alternatives like `pageTitle`, `bodyContent`, `writer`.
 

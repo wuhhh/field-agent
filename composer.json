@@ -2,7 +2,6 @@
     "name": "wuhhh/field-agent",
     "description": "An intelligent Craft CMS plugin for AI-powered field generation, modification, and context-aware operations",
     "type": "craft-plugin",
-    "version": "1.0.0-alpha.1",
     "keywords": [
         "craft",
         "cms",

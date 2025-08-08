@@ -420,7 +420,7 @@ PATTERN 2: "Add existing field to existing entry type"
 }
 
 INTELLIGENT BEHAVIOR:
-- Reuse existing fields when appropriate (e.g., if "title" field exists, use it instead of creating "blogTitle")
+- Reuse existing fields when appropriate (e.g., if "genericTitle" field exists, use it instead of creating "blogTitle")
 - Check field handles to avoid conflicts (existing handles are shown above)
 - When asked to "add X to Y", use modify operations to add fields to existing entry types
 - When creating similar structures, reuse common fields (e.g., use same "featuredImage" field across different entry types)
@@ -718,6 +718,46 @@ PROMPT;
             'valid' => empty($errors),
             'errors' => $errors
         ];
+    }
+
+    /**
+     * Export prompt and schema for manual testing
+     */
+    public function exportPromptAndSchema(): array
+    {
+        try {
+            // Get project context
+            $plugin = Plugin::getInstance();
+            $context = $plugin->discoveryService->getProjectContext();
+
+            // Load schema
+            $schemaPath = $plugin->getBasePath() . '/schemas/llm-operations-schema.json';
+            if (!file_exists($schemaPath)) {
+                throw new Exception("Operations schema file not found at: $schemaPath");
+            }
+
+            $schema = json_decode(file_get_contents($schemaPath), true);
+            if (!$schema) {
+                throw new Exception("Invalid schema JSON in: $schemaPath");
+            }
+
+            // Generate system prompt
+            $systemPrompt = $this->buildOperationsSystemPrompt($schema, $context);
+
+            return [
+                'success' => true,
+                'systemPrompt' => $systemPrompt,
+                'schema' => $schema,
+                'context' => $context,
+                'exampleUserPrompt' => "Create a blog section with title, content, author, and featured image fields"
+            ];
+
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
     }
 
 }

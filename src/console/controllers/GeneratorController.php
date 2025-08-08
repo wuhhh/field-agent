@@ -71,16 +71,15 @@ class GeneratorController extends Controller
             $this->stdout("Config stored for future use.\n", Console::FG_CYAN);
         }
 
-        // Check if this is operations-based format (new) or legacy format
-        if (isset($configData['operations'])) {
-            // New operations format - use the operations executor
-            return $this->executeOperations($config, $configData);
-        } else {
-            // Legacy format - show deprecation warning
-            $this->stdout("\n⚠️  WARNING: This configuration uses the legacy schema format.\n", Console::FG_YELLOW);
-            $this->stdout("Please regenerate this config using the 'prompt' command for better compatibility.\n\n");
-            return $this->executeFieldGeneration('generate', $config, $configData);
+        // Validate this is operations-based format
+        if (!isset($configData['operations'])) {
+            $this->stderr("Invalid configuration format. This config must use the operations schema.\n", Console::FG_RED);
+            $this->stderr("Use the 'prompt' command to generate valid configurations.\n");
+            return ExitCode::UNSPECIFIED_ERROR;
         }
+        
+        // Use the operations executor
+        return $this->executeOperations($config, $configData);
     }
 
     /**
@@ -146,92 +145,6 @@ class GeneratorController extends Controller
             $this->stderr("\nError executing operations: " . $e->getMessage() . "\n", Console::FG_RED);
             return ExitCode::UNSPECIFIED_ERROR;
         }
-    }
-
-    /**
-     * Execute field generation from config data (LEGACY - for backwards compatibility)
-     */
-    private function executeFieldGeneration(string $type, string $source, array $configData): int
-    {
-        $plugin = Plugin::getInstance();
-        $rollbackService = $plugin->rollbackService;
-        $fieldGeneratorService = $plugin->fieldGeneratorService;
-
-        // Validate the configuration first
-        $validation = $plugin->schemaValidationService->validateLLMOutput($configData);
-        if (!$validation['valid']) {
-            $this->stderr("Invalid configuration:\n", Console::FG_RED);
-            foreach ($validation['errors'] as $error) {
-                $this->stderr("  - $error\n");
-            }
-            return ExitCode::UNSPECIFIED_ERROR;
-        }
-
-        $this->stdout("\n=== Field Generation Starting ===\n", Console::FG_CYAN);
-        $this->stdout("Type: $type\n");
-        $this->stdout("Source: $source\n");
-        $this->stdout("Fields to create: " . $this->count($configData['fields'] ?? []) . "\n");
-        $this->stdout("Sections to create: " . $this->count($configData['sections'] ?? []) . "\n");
-        $this->stdout("Entry types to create: " . $this->count($configData['entryTypes'] ?? []) . "\n\n");
-
-        // Create fields
-        $createdFields = [];
-        if (isset($configData['fields'])) {
-            $this->stdout("Creating fields...\n", Console::FG_YELLOW);
-            foreach ($configData['fields'] as $fieldConfig) {
-                $field = $fieldGeneratorService->createFieldFromConfig($fieldConfig);
-                if ($field) {
-                    $this->stdout("  ✓ Created field: {$field->name} ({$field->handle})\n", Console::FG_GREEN);
-                    $createdFields[] = [
-                        'id' => $field->id,
-                        'name' => $field->name,
-                        'handle' => $field->handle,
-                        'type' => get_class($field)
-                    ];
-                } else {
-                    $this->stderr("  ✗ Failed to create field: {$fieldConfig['name']}\n", Console::FG_RED);
-                }
-            }
-        }
-
-        // Create sections and entry types
-        $createdSections = [];
-        $createdEntryTypes = [];
-        if (isset($configData['sections'])) {
-            $this->stdout("\nCreating sections...\n", Console::FG_YELLOW);
-            $sectionService = $plugin->sectionGeneratorService;
-
-            foreach ($configData['sections'] as $sectionConfig) {
-                $section = $sectionService->createSectionFromConfig($sectionConfig, $createdEntryTypes);
-                if ($section) {
-                    $this->stdout("  ✓ Created section: {$section->name} ({$section->handle})\n", Console::FG_GREEN);
-                    $createdSections[] = [
-                        'id' => $section->id,
-                        'name' => $section->name,
-                        'handle' => $section->handle,
-                        'type' => $section->type
-                    ];
-                } else {
-                    $this->stderr("  ✗ Failed to create section: {$sectionConfig['name']}\n", Console::FG_RED);
-                }
-            }
-        }
-
-        // Record the operation for rollback
-        $operationId = $rollbackService->recordOperation($type, $source, [
-            'fields' => $createdFields,
-            'sections' => $createdSections,
-            'entryTypes' => $createdEntryTypes,
-        ]);
-
-        $this->stdout("\n=== Generation Complete ===\n", Console::FG_GREEN);
-        $this->stdout("Created {$this->count($createdFields)} fields\n");
-        $this->stdout("Created {$this->count($createdSections)} sections\n");
-        $this->stdout("Created {$this->count($createdEntryTypes)} entry types\n");
-        $this->stdout("\nOperation ID: $operationId\n", Console::FG_CYAN);
-        $this->stdout("Use 'field-agent/generator/rollback $operationId' to undo this operation.\n");
-
-        return ExitCode::OK;
     }
 
     /**

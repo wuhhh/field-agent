@@ -13,16 +13,6 @@ use yii\base\Exception;
 class SchemaValidationService extends Component
 {
     /**
-     * Validate a configuration array against the LLM output schema (LEGACY)
-     * @deprecated Use validateOperations() instead
-     */
-    public function validateLLMOutput(array $config): array
-    {
-        $schemaPath = Plugin::getInstance()->getBasePath() . '/schemas/llm-output-schema-v2.json';
-        return $this->validateAgainstSchema($config, $schemaPath);
-    }
-    
-    /**
      * Validate a configuration array against the operations schema
      */
     public function validateOperations(array $config): array

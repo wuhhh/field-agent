@@ -145,9 +145,14 @@ class GeneratorController extends Controller
     /**
      * Generate fields from a natural language prompt using AI
      */
-    public function actionPrompt(string $prompt, string $provider = 'anthropic'): int
+    public function actionPrompt(string $prompt, string $provider = ''): int
     {
         $plugin = Plugin::getInstance();
+
+        // Use configured default provider if none specified
+        if (empty($provider)) {
+            $provider = $plugin->getSettings()->defaultProvider;
+        }
 
         // Use the LLM Operations Service for context-aware generation
         $llmOperationsService = $plugin->llmOperationsService;
@@ -251,9 +256,15 @@ class GeneratorController extends Controller
      * Test LLM API connection
 	 * TODO: This is broken
      */
-    public function actionTestLlm(string $provider = 'anthropic'): int
+    public function actionTestLlm(string $provider = ''): int
     {
         $plugin = Plugin::getInstance();
+        
+        // Use configured default provider if none specified
+        if (empty($provider)) {
+            $provider = $plugin->getSettings()->defaultProvider;
+        }
+        
         $llmService = $plugin->llmIntegrationService;
 
         $this->stdout("\nTesting $provider API connection...\n", Console::FG_YELLOW);

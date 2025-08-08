@@ -29,12 +29,18 @@ class Settings extends Model
      */
     public bool $enableDebugLogging = false;
 
+    /**
+     * @var string Default AI provider to use when none specified
+     */
+    public string $defaultProvider = 'anthropic';
+
     public function rules(): array
     {
         return [
             [['persistConfigs', 'enableDebugLogging'], 'boolean'],
-            [['configDir'], 'string'],
+            [['configDir', 'defaultProvider'], 'string'],
             [['maxStoredConfigs'], 'integer', 'min' => 1, 'max' => 1000],
+            [['defaultProvider'], 'in', 'range' => ['anthropic', 'openai']],
         ];
     }
 }

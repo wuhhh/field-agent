@@ -14,12 +14,25 @@ composer require wuhhh/field-agent:@alpha
 ./craft plugin/install field-agent
 ```
 
-### API Setup
+### Configuration Setup
 
-Add your AI provider API key to `.env`:
+1. **Create config file** - Copy the plugin's config file to your project:
 ```bash
+cp vendor/wuhhh/field-agent/config/field-agent.php config/field-agent.php
+```
+
+2. **Add API key** to `.env` (you only need one):
+```bash
+# For Anthropic Claude (default)
 ANTHROPIC_API_KEY=sk-ant-your-key-here
-OPENAI_API_KEY=sk-your-key-here  # optional
+
+# OR for OpenAI (optional)
+OPENAI_API_KEY=sk-your-key-here
+```
+
+3. **Set default provider** in `config/field-agent.php` if desired:
+```php
+'defaultProvider' => 'anthropic', // or 'openai'
 ```
 
 Test your setup:
@@ -58,10 +71,10 @@ The system will automatically:
 
 ### Generation
 ```bash
-# Main prompt command (uses Anthropic Claude by default)
-./craft field-agent/generator/prompt "description" [provider] [--debug]
+# Main prompt command (uses your configured default provider)
+./craft field-agent/generator/prompt "description" [--debug]
 
-# Use OpenAI instead
+# Override provider for single command
 ./craft field-agent/generator/prompt "description" openai
 
 # Debug mode (shows full AI request/response)  

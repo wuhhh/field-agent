@@ -47,6 +47,7 @@ class GeneratorController extends Controller
 
     /**
      * Generate fields from a JSON configuration file or stored config
+     * Now uses the operations-based schema for consistency
      *
      * @param string $config The path to the JSON config file or stored config name
      * @return int
@@ -70,11 +71,85 @@ class GeneratorController extends Controller
             $this->stdout("Config stored for future use.\n", Console::FG_CYAN);
         }
 
-        return $this->executeFieldGeneration('generate', $config, $configData);
+        // Check if this is operations-based format (new) or legacy format
+        if (isset($configData['operations'])) {
+            // New operations format - use the operations executor
+            return $this->executeOperations($config, $configData);
+        } else {
+            // Legacy format - show deprecation warning
+            $this->stdout("\n⚠️  WARNING: This configuration uses the legacy schema format.\n", Console::FG_YELLOW);
+            $this->stdout("Please regenerate this config using the 'prompt' command for better compatibility.\n\n");
+            return $this->executeFieldGeneration('generate', $config, $configData);
+        }
     }
 
     /**
-     * Execute field generation from config data
+     * Execute operations from operations-based config data
+     */
+    private function executeOperations(string $source, array $configData): int
+    {
+        $plugin = Plugin::getInstance();
+        $operationsExecutor = $plugin->operationsExecutorService;
+        $rollbackService = $plugin->rollbackService;
+        
+        // Validate the operations configuration
+        $validation = $plugin->schemaValidationService->validateOperations($configData);
+        if (!$validation['valid']) {
+            $this->stderr("Invalid operations configuration:\n", Console::FG_RED);
+            foreach ($validation['errors'] as $error) {
+                $this->stderr("  - $error\n");
+            }
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+        
+        $this->stdout("\n=== Executing Operations from Config ===\n", Console::FG_CYAN);
+        $this->stdout("Source: $source\n");
+        $this->stdout("Operations to execute: " . count($configData['operations']) . "\n\n");
+        
+        // Execute operations using the same executor as the prompt command
+        try {
+            $results = $operationsExecutor->executeOperations($configData);
+            
+            // Record the operation for rollback using the same method as prompt command
+            $operationId = $rollbackService->recordOperationFromResults('generate', $source, $results);
+            
+            // Display results
+            $successCount = 0;
+            $failureCount = 0;
+            
+            foreach ($results as $result) {
+                if ($result['success']) {
+                    $successCount++;
+                    $this->stdout("  ✓ {$result['operation']['type']}: {$result['operation']['target']}\n", Console::FG_GREEN);
+                } else {
+                    $failureCount++;
+                    $errorMsg = $result['error'] ?? $result['message'] ?? 'Unknown error';
+                    $this->stderr("  ✗ {$result['operation']['type']}: {$result['operation']['target']} - {$errorMsg}\n", Console::FG_RED);
+                }
+            }
+            
+            $this->stdout("\n=== Operations Complete ===\n", Console::FG_GREEN);
+            $this->stdout("Successful: $successCount\n");
+            if ($failureCount > 0) {
+                $this->stderr("Failed: $failureCount\n", Console::FG_RED);
+            }
+            $this->stdout("Operation ID: $operationId (use for rollback if needed)\n");
+            
+            // Remind user to apply project config changes
+            $this->stdout("\nRemember to run ", Console::FG_YELLOW);
+            $this->stdout("ddev craft up", Console::FG_CYAN);
+            $this->stdout(" to apply project config changes.\n", Console::FG_YELLOW);
+            
+            return $failureCount > 0 ? ExitCode::UNSPECIFIED_ERROR : ExitCode::OK;
+            
+        } catch (\Exception $e) {
+            $this->stderr("\nError executing operations: " . $e->getMessage() . "\n", Console::FG_RED);
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+    }
+
+    /**
+     * Execute field generation from config data (LEGACY - for backwards compatibility)
      */
     private function executeFieldGeneration(string $type, string $source, array $configData): int
     {

@@ -1,0 +1,138 @@
+{
+  "name": "Complete Blog System",
+  "description": "Creates a complete blog with fields, tag group, entry type, and section",
+  "operations": [
+    {
+      "type": "create",
+      "target": "tagGroup",
+      "create": {
+        "tagGroup": {
+          "name": "Blog Tags",
+          "handle": "blogTags"
+        }
+      }
+    },
+    {
+      "type": "create", 
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Blog Title",
+          "handle": "blogTitle",
+          "field_type": "plain_text",
+          "required": true,
+          "settings": {
+            "charLimit": 200
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field", 
+      "create": {
+        "field": {
+          "name": "Blog Summary",
+          "handle": "blogSummary",
+          "field_type": "plain_text",
+          "required": true,
+          "settings": {
+            "charLimit": 500,
+            "multiline": true
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Featured Image",
+          "handle": "blogFeaturedImage",
+          "field_type": "image",
+          "required": false,
+          "settings": {
+            "maxRelations": 1
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Blog Content",
+          "handle": "blogContent",
+          "field_type": "rich_text",
+          "required": true
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Blog Author",
+          "handle": "blogAuthor",
+          "field_type": "users",
+          "required": true,
+          "settings": {
+            "maxRelations": 1,
+            "sources": ["*"]
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Blog Tags",
+          "handle": "blogTags",
+          "field_type": "tags",
+          "required": false,
+          "settings": {
+            "sources": ["blogTags"]
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "entryType",
+      "create": {
+        "entryType": {
+          "name": "Blog Post",
+          "handle": "blogPost",
+          "hasTitleField": false,
+          "fields": [
+            {"handle": "blogTitle", "required": true},
+            {"handle": "blogSummary", "required": true},
+            {"handle": "blogFeaturedImage", "required": false},
+            {"handle": "blogContent", "required": true},
+            {"handle": "blogAuthor", "required": true},
+            {"handle": "blogTags", "required": false}
+          ]
+        }
+      }
+    },
+    {
+      "type": "create",
+      "target": "section",
+      "create": {
+        "section": {
+          "name": "Blog",
+          "handle": "blog",
+          "type": "channel",
+          "entryTypes": [
+            {"handle": "blogPost"}
+          ]
+        }
+      }
+    }
+  ]
+}

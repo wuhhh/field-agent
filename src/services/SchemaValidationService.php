@@ -13,12 +13,41 @@ use yii\base\Exception;
 class SchemaValidationService extends Component
 {
     /**
-     * Validate a configuration array against the LLM output schema
+     * Validate a configuration array against the LLM output schema (LEGACY)
+     * @deprecated Use validateOperations() instead
      */
     public function validateLLMOutput(array $config): array
     {
         $schemaPath = Plugin::getInstance()->getBasePath() . '/schemas/llm-output-schema-v2.json';
         return $this->validateAgainstSchema($config, $schemaPath);
+    }
+    
+    /**
+     * Validate a configuration array against the operations schema
+     */
+    public function validateOperations(array $config): array
+    {
+        $schemaPath = Plugin::getInstance()->getBasePath() . '/schemas/llm-operations-schema.json';
+        
+        // Quick validation that operations array exists
+        if (!isset($config['operations']) || !is_array($config['operations'])) {
+            return [
+                'valid' => false,
+                'errors' => ['Missing required "operations" array']
+            ];
+        }
+        
+        // Validate each operation
+        $errors = [];
+        foreach ($config['operations'] as $index => $operation) {
+            $opErrors = $this->validateOperation($operation, $index);
+            $errors = array_merge($errors, $opErrors);
+        }
+        
+        return [
+            'valid' => empty($errors),
+            'errors' => $errors
+        ];
     }
 
     /**
@@ -306,6 +335,56 @@ class SchemaValidationService extends Component
                 break;
         }
 
+        return $errors;
+    }
+    
+    /**
+     * Validate a single operation
+     */
+    private function validateOperation(array $operation, int $index): array
+    {
+        $errors = [];
+        $opPath = "operations[$index]";
+        
+        // Required fields
+        if (!isset($operation['type'])) {
+            $errors[] = "$opPath.type: Required field missing";
+        } elseif (!in_array($operation['type'], ['create', 'modify', 'delete'])) {
+            $errors[] = "$opPath.type: Must be 'create', 'modify', or 'delete'";
+        }
+        
+        if (!isset($operation['target'])) {
+            $errors[] = "$opPath.target: Required field missing";
+        } elseif (!in_array($operation['target'], ['field', 'entryType', 'section', 'categoryGroup', 'tagGroup'])) {
+            $errors[] = "$opPath.target: Must be 'field', 'entryType', 'section', 'categoryGroup', or 'tagGroup'";
+        }
+        
+        // Type-specific validation
+        if (isset($operation['type']) && isset($operation['target'])) {
+            switch ($operation['type']) {
+                case 'create':
+                    if (!isset($operation['create'])) {
+                        $errors[] = "$opPath.create: Required for create operations";
+                    }
+                    break;
+                    
+                case 'modify':
+                    if (!isset($operation['handle'])) {
+                        $errors[] = "$opPath.handle: Required for modify operations";
+                    }
+                    if (!isset($operation['changes'])) {
+                        $errors[] = "$opPath.changes: Required for modify operations";
+                    }
+                    break;
+                    
+                case 'delete':
+                    if (!isset($operation['handle'])) {
+                        $errors[] = "$opPath.handle: Required for delete operations";
+                    }
+                    break;
+            }
+        }
+        
         return $errors;
     }
 

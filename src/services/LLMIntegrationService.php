@@ -329,4 +329,39 @@ class LLMIntegrationService extends Component
             ];
         }
     }
+
+    /**
+     * Check API key configuration for all providers
+     */
+    public function checkApiKeys(): array
+    {
+        $providers = [
+            'anthropic' => 'ANTHROPIC_API_KEY',
+            'openai' => 'OPENAI_API_KEY'
+        ];
+
+        $results = [];
+        
+        foreach ($providers as $provider => $envVar) {
+            $key = $this->getApiKey($envVar);
+            $results[$provider] = [
+                'configured' => !empty($key),
+                'masked' => $key ? $this->maskApiKey($key) : null
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
+     * Mask API key for display
+     */
+    private function maskApiKey(string $key): string
+    {
+        if (strlen($key) < 8) {
+            return str_repeat('*', strlen($key));
+        }
+        
+        return substr($key, 0, 4) . str_repeat('*', strlen($key) - 8) . substr($key, -4);
+    }
 }

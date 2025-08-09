@@ -259,12 +259,12 @@ class GeneratorController extends Controller
     public function actionTestLlm(string $provider = ''): int
     {
         $plugin = Plugin::getInstance();
-        
+
         // Use configured default provider if none specified
         if (empty($provider)) {
             $provider = $plugin->getSettings()->defaultProvider;
         }
-        
+
         $llmService = $plugin->llmIntegrationService;
 
         $this->stdout("\nTesting $provider API connection...\n", Console::FG_YELLOW);
@@ -969,81 +969,6 @@ class GeneratorController extends Controller
         $totalSpaceFreed = ($opsResults['space_freed'] ?? 0) + ($configResults['space_freed'] ?? 0);
         if ($totalSpaceFreed > 0) {
             $this->stdout("\nTotal space freed: " . $this->formatBytes($totalSpaceFreed) . "\n", Console::FG_CYAN);
-        }
-
-        return ExitCode::OK;
-    }
-
-    /**
-     * Test the discovery service
-     */
-    public function actionTestDiscovery(): int
-    {
-        $plugin = Plugin::getInstance();
-        $discoveryService = $plugin->discoveryService;
-
-        $this->stdout("\n🔍 Testing Discovery Service\n", Console::FG_CYAN);
-        $this->stdout("============================\n\n");
-
-        // Test field discovery
-        $this->stdout("📋 Discovering Fields...\n", Console::FG_YELLOW);
-        $fieldsResult = $discoveryService->executeTool('getFields');
-        $fields = $fieldsResult['fields'] ?? [];
-
-        if (empty($fields)) {
-            $this->stdout("  No fields found.\n", Console::FG_YELLOW);
-        } else {
-            $this->stdout("  Found " . $fieldsResult['count'] . " fields:\n", Console::FG_GREEN);
-            foreach (array_slice($fields, 0, 5) as $field) {
-                $typeName = basename(str_replace('\\', '/', $field['type']));
-                $this->stdout("    - {$field['name']} ({$field['handle']}) - Type: {$typeName}\n");
-            }
-            if (count($fields) > 5) {
-                $this->stdout("    ... and " . (count($fields) - 5) . " more\n", Console::FG_YELLOW);
-            }
-        }
-
-        // Test section discovery
-        $this->stdout("\n📁 Discovering Sections...\n", Console::FG_YELLOW);
-        $sectionsResult = $discoveryService->executeTool('getSections');
-        $sections = $sectionsResult['sections'] ?? [];
-
-        if (empty($sections)) {
-            $this->stdout("  No sections found.\n", Console::FG_YELLOW);
-        } else {
-            $this->stdout("  Found " . $sectionsResult['count'] . " sections:\n", Console::FG_GREEN);
-            foreach ($sections as $section) {
-                $this->stdout("    - {$section['name']} ({$section['handle']}) - Type: {$section['type']}\n");
-                foreach ($section['entryTypes'] as $entryType) {
-                    $fieldCount = isset($entryType['fields']) ? count($entryType['fields']) : 0;
-                    $this->stdout("      → {$entryType['name']} ({$entryType['handle']}) - {$fieldCount} fields\n");
-                }
-            }
-        }
-
-        // Test handle availability
-        $this->stdout("\n✅ Testing Handle Availability...\n", Console::FG_YELLOW);
-        $testHandles = ['title', 'blogPost', 'customField123'];
-
-        foreach ($testHandles as $handle) {
-            $result = $discoveryService->executeTool('checkHandleAvailability', [
-                'handle' => $handle,
-                'type' => 'field',
-                'suggest' => true
-            ]);
-
-            if ($result['available']) {
-                $this->stdout("  '$handle' - Available ✓\n", Console::FG_GREEN);
-            } else {
-                $this->stdout("  '$handle' - Not available", Console::FG_RED);
-                if (!empty($result['conflicts'])) {
-                    $this->stdout(" (conflicts: " . implode(', ', $result['conflicts']) . ")", Console::FG_YELLOW);
-                }
-                if (!empty($result['suggestions'])) {
-                    $this->stdout(" → Try: " . implode(', ', array_slice($result['suggestions'], 0, 2)), Console::FG_CYAN);
-                }
-                $this->stdout("\n");
-            }
         }
 
         return ExitCode::OK;

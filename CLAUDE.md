@@ -36,7 +36,6 @@ plugins/field-agent/
 │       ├── ConfigurationService.php         # Plugin configuration
 │       ├── DiscoveryService.php             # Project context analysis
 │       ├── EntryTypeService.php             # Entry type creation and management
-│       ├── FieldCreationService.php         # Core field creation (currently unused)
 │       ├── FieldGeneratorService.php        # Core field creation
 │       ├── LLMIntegrationService.php        # LLM service requests / integration
 │       ├── LLMOperationsService.php         # AI operations generation

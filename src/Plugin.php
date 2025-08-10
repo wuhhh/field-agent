@@ -16,7 +16,6 @@ use craftcms\fieldagent\services\PruneService;
 use craftcms\fieldagent\services\TestingService;
 use craftcms\fieldagent\services\ConfigurationService;
 use craftcms\fieldagent\services\StatisticsService;
-use craftcms\fieldagent\services\FieldCreationService;
 use craftcms\fieldagent\services\EntryTypeService;
 use craftcms\fieldagent\models\Settings;
 use craftcms\fieldagent\services\DiscoveryService;
@@ -38,7 +37,6 @@ use craftcms\fieldagent\services\DiscoveryService;
  * @property-read TestingService $testingService
  * @property-read ConfigurationService $configurationService
  * @property-read StatisticsService $statisticsService
- * @property-read FieldCreationService $fieldCreationService
  * @property-read EntryTypeService $entryTypeService
  * @author Craft CMS
  * @since 1.0.0
@@ -64,7 +62,6 @@ class Plugin extends BasePlugin
                 'testingService' => TestingService::class,
                 'configurationService' => ConfigurationService::class,
                 'statisticsService' => StatisticsService::class,
-                'fieldCreationService' => FieldCreationService::class,
                 'entryTypeService' => EntryTypeService::class,
             ],
         ];

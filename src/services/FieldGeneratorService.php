@@ -478,6 +478,15 @@ class FieldGeneratorService extends Component
                 }
                 break;
 
+            case 'table':
+                $field = new \craft\fields\Table();
+                $field->columns = $this->prepareTableColumns($normalizedConfig['columns'] ?? []);
+                $field->defaults = $normalizedConfig['defaults'] ?? [];
+                $field->addRowLabel = $normalizedConfig['addRowLabel'] ?? 'Add a row';
+                $field->maxRows = $normalizedConfig['maxRows'] ?? null;
+                $field->minRows = $normalizedConfig['minRows'] ?? null;
+                break;
+
             case 'content_block':
             case 'contentblock':
                 $field = new \craft\fields\ContentBlock();
@@ -729,6 +738,47 @@ class FieldGeneratorService extends Component
         }
 
         return $entryTypes;
+    }
+
+    /**
+     * Prepare columns array for table fields
+     */
+    private function prepareTableColumns(array $columns): array
+    {
+        $preparedColumns = [];
+
+        foreach ($columns as $column) {
+            if (is_string($column)) {
+                // Simple string column: "Column Name"
+                $preparedColumns[] = [
+                    'heading' => $column,
+                    'handle' => $this->createHandle($column),
+                    'type' => 'singleline',
+                    'width' => '',
+                ];
+            } elseif (is_array($column)) {
+                // Array column: {"heading": "Name", "handle": "name", "type": "singleline", "width": "50%"}
+                $preparedColumns[] = [
+                    'heading' => $column['heading'] ?? $column['handle'] ?? '',
+                    'handle' => $column['handle'] ?? $this->createHandle($column['heading'] ?? ''),
+                    'type' => $column['type'] ?? 'singleline', // singleline, multiline, number, checkbox, color, url, email, date, time
+                    'width' => $column['width'] ?? '',
+                ];
+            }
+        }
+
+        return $preparedColumns;
+    }
+
+    /**
+     * Create a handle from a string
+     */
+    private function createHandle(string $name): string
+    {
+        // Convert to camelCase handle
+        $handle = trim(preg_replace('/[^a-zA-Z0-9]/', ' ', $name));
+        $handle = str_replace(' ', '', ucwords(strtolower($handle)));
+        return lcfirst($handle);
     }
 
     /**
@@ -1083,7 +1133,7 @@ class FieldGeneratorService extends Component
                         'handle' => $newField->handle,
                         'name' => $newField->name,
                         'id' => $newField->id,
-                        'blockType' => $blockTypeHandle
+                        'blockType' => $entryTypeHandle
                     ];
                 }
             }

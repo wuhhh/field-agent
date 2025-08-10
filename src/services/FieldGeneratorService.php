@@ -29,7 +29,7 @@ class FieldGeneratorService extends Component
     {
         $plugin = Plugin::getInstance();
         $plugin->ensureStorageDirectory();
-        
+
         $configPath = $plugin->getStoragePath() . DIRECTORY_SEPARATOR . 'configs';
         if (!is_dir($configPath)) {
             mkdir($configPath, 0755, true);
@@ -191,14 +191,14 @@ class FieldGeneratorService extends Component
 
             case 'link':
                 $field = new \craft\fields\Link();
-                
+
                 // Set enabled link types (default to url only for backward compatibility)
                 $field->types = $normalizedConfig['types'] ?? ['url'];
-                
+
                 // Configure display options
                 $field->showLabelField = $normalizedConfig['showLabelField'] ?? true;
                 $field->maxLength = 255;
-                
+
                 // Configure sources for entry links
                 $entrySources = '*'; // Default to all sources
                 if (isset($normalizedConfig['sources']) && is_array($normalizedConfig['sources'])) {
@@ -215,10 +215,10 @@ class FieldGeneratorService extends Component
                         $entrySources = $sources;
                     }
                 }
-                
+
                 // Configure type-specific settings
                 $typeSettings = [];
-                
+
                 // URL type settings
                 if (in_array('url', $field->types)) {
                     $typeSettings['url'] = [
@@ -227,14 +227,14 @@ class FieldGeneratorService extends Component
                         'allowCustomSchemes' => $normalizedConfig['allowCustomSchemes'] ?? false,
                     ];
                 }
-                
+
                 // Entry type settings
                 if (in_array('entry', $field->types)) {
                     $typeSettings['entry'] = [
                         'sources' => $entrySources,
                     ];
                 }
-                
+
                 if (!empty($typeSettings)) {
                     $field->typeSettings = $typeSettings;
                 }
@@ -353,12 +353,12 @@ class FieldGeneratorService extends Component
                 $field->minEntries = $normalizedConfig['minEntries'] ?? 1;
                 $field->maxEntries = $normalizedConfig['maxEntries'] ?? null;
                 $field->viewMode = match($normalizedConfig['viewMode'] ?? 'cards') {
-                    'blocks' => \craft\fields\Matrix::VIEW_MODE_BLOCKS,  
+                    'blocks' => \craft\fields\Matrix::VIEW_MODE_BLOCKS,
                     'index' => \craft\fields\Matrix::VIEW_MODE_INDEX,
                     default => \craft\fields\Matrix::VIEW_MODE_CARDS,
                 };
                 $field->propagationMethod = \craft\enums\PropagationMethod::All;
-                
+
                 // Create and associate entry types
                 if (isset($normalizedConfig['entryTypes']) && is_array($normalizedConfig['entryTypes'])) {
                     $entryTypes = $this->createMatrixBlockTypes($normalizedConfig['entryTypes']);
@@ -370,7 +370,7 @@ class FieldGeneratorService extends Component
                 $field = new \craft\fields\Users();
                 $field->maxRelations = $normalizedConfig['maxRelations'] ?? 1;
                 $field->viewMode = 'list';
-                
+
                 // Configure sources (user groups)
                 if (isset($normalizedConfig['sources']) && is_array($normalizedConfig['sources'])) {
                     $userService = \Craft::$app->getUsers();
@@ -397,7 +397,7 @@ class FieldGeneratorService extends Component
                 $field = new \craft\fields\Entries();
                 $field->maxRelations = $normalizedConfig['maxRelations'] ?? 1;
                 $field->viewMode = 'list';
-                
+
                 // Configure sources (sections)
                 if (isset($normalizedConfig['sources']) && is_array($normalizedConfig['sources'])) {
                     $entriesService = \Craft::$app->getEntries();
@@ -424,7 +424,7 @@ class FieldGeneratorService extends Component
                 $field = new \craft\fields\Categories();
                 $field->maxRelations = $normalizedConfig['maxRelations'] ?? null;
                 $field->viewMode = 'list';
-                
+
                 // Configure sources (category groups)
                 if (isset($normalizedConfig['sources']) && is_array($normalizedConfig['sources'])) {
                     $categoriesService = \Craft::$app->getCategories();
@@ -446,7 +446,7 @@ class FieldGeneratorService extends Component
                     // Default to all category groups
                     $field->source = null;
                 }
-                
+
                 // Configure branch limit (how deep in the category tree to show)
                 $field->branchLimit = $normalizedConfig['branchLimit'] ?? null;
                 break;
@@ -454,7 +454,7 @@ class FieldGeneratorService extends Component
             case 'tags':
                 $field = new \craft\fields\Tags();
                 $field->maxRelations = $normalizedConfig['maxRelations'] ?? null;
-                
+
                 // Configure sources (tag groups)
                 if (isset($normalizedConfig['sources']) && is_array($normalizedConfig['sources'])) {
                     $tagsService = \Craft::$app->getTags();
@@ -491,7 +491,7 @@ class FieldGeneratorService extends Component
             case 'contentblock':
                 $field = new \craft\fields\ContentBlock();
                 $field->viewMode = $normalizedConfig['viewMode'] ?? 'grouped'; // grouped, pane, or inline
-                
+
                 // Create field layout with nested fields (similar to entry types)
                 if (isset($normalizedConfig['fields']) && is_array($normalizedConfig['fields'])) {
                     $fieldLayout = $this->createContentBlockFieldLayout($normalizedConfig['fields']);
@@ -509,8 +509,8 @@ class FieldGeneratorService extends Component
             $field->instructions = $normalizedConfig['instructions'] ?? '';
             $field->searchable = $normalizedConfig['searchable'] ?? false;
             $field->translationMethod = 'none';
-            
-            
+
+
             // Set default field group
             try {
                 $field->groupId = 1; // Default field group
@@ -520,9 +520,9 @@ class FieldGeneratorService extends Component
             }
 
             // Set required property if specified and field supports it
-            if (isset($normalizedConfig['required']) && property_exists($field, 'required')) {
-                $field->required = $normalizedConfig['required'];
-            }
+            // if (isset($normalizedConfig['required']) && property_exists($field, 'required')) {
+            //     $field->required = $normalizedConfig['required'];
+            // }
         }
 
         return $field;
@@ -534,12 +534,12 @@ class FieldGeneratorService extends Component
     private function normalizeFieldConfig(array $config): array
     {
         $normalized = $config;
-        
+
         // If settings exist, merge them into the root level
         if (isset($config['settings']) && is_array($config['settings'])) {
             $normalized = array_merge($normalized, $config['settings']);
         }
-        
+
         return $normalized;
     }
 
@@ -622,7 +622,7 @@ class FieldGeneratorService extends Component
                     throw new Exception("Referenced entry type '{$blockTypeConfig['entryTypeHandle']}' not found");
                 }
             }
-            
+
             // Create new entry type for this block type
             $entryType = new \craft\models\EntryType();
             $entryType->name = $blockTypeConfig['name'];
@@ -630,11 +630,11 @@ class FieldGeneratorService extends Component
             $entryType->hasTitleField = $blockTypeConfig['hasTitleField'] ?? false;
             $entryType->titleTranslationMethod = 'site';
             $entryType->titleTranslationKeyFormat = null;
-            
+
             // Create fields for this block type (only if fields are provided)
             $blockFields = [];
             $fieldLayoutElements = [];
-            
+
             if (isset($blockTypeConfig['fields']) && is_array($blockTypeConfig['fields'])) {
                 foreach ($blockTypeConfig['fields'] as $fieldConfig) {
                     // Handle case where field is just a reference (handle + required) vs full field definition
@@ -653,16 +653,16 @@ class FieldGeneratorService extends Component
                             $fieldConfig['name'] = ucwords(str_replace(['-', '_'], ' ', $fieldConfig['handle']));
                         }
                     }
-                    
+
                     // For new field creation, make handle unique and adjust name
                     if (isset($fieldConfig['field_type'])) {
                         // This is a full field definition for inline creation
                         $fieldConfig['handle'] = $blockTypeConfig['handle'] . ucfirst($fieldConfig['handle']);
                         $fieldConfig['name'] = $blockTypeConfig['name'] . ' ' . $fieldConfig['name'];
-                    
+
                         // Create the field for this block type
                         $blockField = $this->createFieldFromConfig($fieldConfig);
-                        
+
                         if ($blockField) {
                             // Save the field
                             if (!$fieldsService->saveField($blockField)) {
@@ -675,9 +675,9 @@ class FieldGeneratorService extends Component
                                 }
                                 throw new Exception($errorMessage);
                             }
-                            
+
                             $blockFields[] = $blockField;
-                            
+
                             // Track created block field
                             $this->createdBlockFields[] = [
                                 'type' => 'block-field',
@@ -686,7 +686,7 @@ class FieldGeneratorService extends Component
                                 'id' => $blockField->id,
                                 'blockType' => $blockTypeConfig['handle']
                             ];
-                            
+
                             // Create field layout element
                             $fieldLayoutElement = new \craft\fieldlayoutelements\CustomField();
                             $fieldLayoutElement->fieldUid = $blockField->uid;
@@ -696,12 +696,12 @@ class FieldGeneratorService extends Component
                     }
                 }
             }
-            
+
             // Create field layout for the entry type (only needed for new entry types)
             $fieldLayout = new \craft\models\FieldLayout();
             $fieldLayout->type = \craft\models\EntryType::class;
-            
-            // Create field layout using setTabs method  
+
+            // Create field layout using setTabs method
             $fieldLayout->setTabs([
                 [
                     'name' => 'Content',
@@ -709,7 +709,7 @@ class FieldGeneratorService extends Component
                 ]
             ]);
             $entryType->setFieldLayout($fieldLayout);
-            
+
             // Save the entry type
             if (!$entriesService->saveEntryType($entryType)) {
                 $errors = $entryType->getErrors();
@@ -725,7 +725,7 @@ class FieldGeneratorService extends Component
                 }
                 throw new Exception($errorMessage);
             }
-            
+
             // Track created block entry type
             $this->createdBlockEntryTypes[] = [
                 'type' => 'block-entry-type',
@@ -733,7 +733,7 @@ class FieldGeneratorService extends Component
                 'name' => $entryType->name,
                 'id' => $entryType->id
             ];
-            
+
             $entryTypes[] = $entryType;
         }
 
@@ -788,10 +788,10 @@ class FieldGeneratorService extends Component
     {
         $fieldLayout = new \craft\models\FieldLayout();
         $fieldLayout->type = \craft\fields\ContentBlock::class;
-        
+
         $fieldLayoutElements = [];
         $fieldsService = \Craft::$app->getFields();
-        
+
         foreach ($fieldsConfig as $fieldConfig) {
             // Check if this is a field reference (existing field)
             if (!isset($fieldConfig['field_type']) && isset($fieldConfig['handle'])) {
@@ -810,12 +810,12 @@ class FieldGeneratorService extends Component
                     continue;
                 }
             }
-            
+
             // This is a full field definition for inline creation
             if (isset($fieldConfig['field_type'])) {
                 // Create the field
                 $blockField = $this->createFieldFromConfig($fieldConfig);
-                
+
                 if ($blockField) {
                     // Save the field
                     if (!$fieldsService->saveField($blockField)) {
@@ -828,7 +828,7 @@ class FieldGeneratorService extends Component
                         }
                         throw new Exception($errorMessage);
                     }
-                    
+
                     // Create field layout element
                     $fieldLayoutElement = new \craft\fieldlayoutelements\CustomField();
                     $fieldLayoutElement->fieldUid = $blockField->uid;
@@ -837,7 +837,7 @@ class FieldGeneratorService extends Component
                 }
             }
         }
-        
+
         // Set up the field layout tabs
         $fieldLayout->setTabs([
             [
@@ -845,7 +845,7 @@ class FieldGeneratorService extends Component
                 'elements' => $fieldLayoutElements,
             ]
         ]);
-        
+
         return $fieldLayout;
     }
 
@@ -881,7 +881,7 @@ class FieldGeneratorService extends Component
     {
         Craft::info("Creating entry type: " . json_encode($config), __METHOD__);
         Craft::info("Created fields available: " . json_encode(array_keys($createdFields)), __METHOD__);
-        
+
         // Create the entry type without section association
         $entryType = new \craft\models\EntryType();
         $entryType->name = $config['name'];
@@ -997,10 +997,10 @@ class FieldGeneratorService extends Component
     {
         $fieldsService = \Craft::$app->getFields();
         $entriesService = \Craft::$app->getEntries();
-        
+
         // Get existing entry types
         $existingEntryTypes = $matrixField->getEntryTypes();
-        
+
         // Check if we should reference an existing entry type or create a new one
         if (isset($entryTypeConfig['entryTypeHandle'])) {
             // Reference existing entry type
@@ -1008,14 +1008,14 @@ class FieldGeneratorService extends Component
             if (!$entryType) {
                 throw new \Exception("Entry type '{$entryTypeConfig['entryTypeHandle']}' not found");
             }
-            
+
             // Check if this entry type is already associated with the matrix field
             foreach ($existingEntryTypes as $existingType) {
                 if ($existingType->handle === $entryType->handle) {
                     throw new \Exception("Entry type '{$entryType->handle}' is already associated with matrix field '{$matrixField->handle}'");
                 }
             }
-            
+
             $newEntryTypes = [$entryType];
         } else {
             // Create new entry type using traditional method
@@ -1024,11 +1024,11 @@ class FieldGeneratorService extends Component
                 throw new \Exception("Failed to create entry type '{$entryTypeConfig['name']}'");
             }
         }
-        
+
         // Combine existing and new entry types
         $allEntryTypes = array_merge($existingEntryTypes, $newEntryTypes);
         $matrixField->setEntryTypes($allEntryTypes);
-        
+
         // Save the matrix field with updated block types
         return $fieldsService->saveField($matrixField);
     }
@@ -1040,27 +1040,27 @@ class FieldGeneratorService extends Component
     {
         $fieldsService = \Craft::$app->getFields();
         $entriesService = \Craft::$app->getEntries();
-        
+
         // Get existing entry types
         $existingEntryTypes = $matrixField->getEntryTypes();
-        
+
         // Filter out the entry type to remove
         $remainingEntryTypes = array_filter($existingEntryTypes, function($entryType) use ($entryTypeHandle) {
             return $entryType->handle !== $entryTypeHandle;
         });
-        
+
         if (count($remainingEntryTypes) === count($existingEntryTypes)) {
             throw new \Exception("Entry type '{$entryTypeHandle}' not found in matrix field");
         }
-        
+
         // Update matrix field with remaining entry types
         $matrixField->setEntryTypes(array_values($remainingEntryTypes));
-        
+
         // Save the matrix field
         if (!$fieldsService->saveField($matrixField)) {
             return false;
         }
-        
+
         // Find and delete the entry type that was removed
         $removedEntryType = null;
         foreach ($existingEntryTypes as $entryType) {
@@ -1069,12 +1069,12 @@ class FieldGeneratorService extends Component
                 break;
             }
         }
-        
+
         if ($removedEntryType) {
             // Delete the entry type (this will also clean up its fields)
             $entriesService->deleteEntryType($removedEntryType);
         }
-        
+
         return true;
     }
 
@@ -1086,7 +1086,7 @@ class FieldGeneratorService extends Component
     {
         $fieldsService = \Craft::$app->getFields();
         $entriesService = \Craft::$app->getEntries();
-        
+
         // Find the entry type for this entry type handle
         $targetEntryType = null;
         foreach ($matrixField->getEntryTypes() as $entryType) {
@@ -1095,29 +1095,29 @@ class FieldGeneratorService extends Component
                 break;
             }
         }
-        
+
         if (!$targetEntryType) {
             throw new \Exception("Entry type '{$entryTypeHandle}' not found in matrix field");
         }
-        
+
         $fieldLayout = $targetEntryType->getFieldLayout();
         $currentFields = $fieldLayout->getCustomFields();
         $layoutElements = [];
-        
+
         // Add existing fields to layout
         foreach ($currentFields as $field) {
             $element = new \craft\fieldlayoutelements\CustomField();
             $element->fieldUid = $field->uid;
             $layoutElements[] = $element;
         }
-        
+
         // Add new fields if specified
         if (isset($modifications['addFields'])) {
             foreach ($modifications['addFields'] as $fieldConfig) {
                 // Prefix field handle with entry type handle to ensure uniqueness
                 $fieldConfig['handle'] = $entryTypeHandle . ucfirst($fieldConfig['handle']);
                 $fieldConfig['name'] = $targetEntryType->name . ' ' . $fieldConfig['name'];
-                
+
                 // Create the field
                 $newField = $this->createFieldFromConfig($fieldConfig);
                 if ($newField && $fieldsService->saveField($newField)) {
@@ -1126,7 +1126,7 @@ class FieldGeneratorService extends Component
                     $element->fieldUid = $newField->uid;
                     $element->required = $fieldConfig['required'] ?? false;
                     $layoutElements[] = $element;
-                    
+
                     // Track created field
                     $this->createdBlockFields[] = [
                         'type' => 'block-field',
@@ -1138,7 +1138,7 @@ class FieldGeneratorService extends Component
                 }
             }
         }
-        
+
         // Remove fields if specified
         if (isset($modifications['removeFields'])) {
             foreach ($modifications['removeFields'] as $fieldHandle) {
@@ -1152,7 +1152,7 @@ class FieldGeneratorService extends Component
                 });
             }
         }
-        
+
         // Update the field layout
         $newFieldLayout = new \craft\models\FieldLayout();
         $newFieldLayout->type = \craft\models\EntryType::class;
@@ -1162,14 +1162,14 @@ class FieldGeneratorService extends Component
                 'elements' => array_values($layoutElements),
             ]
         ]);
-        
+
         $targetEntryType->setFieldLayout($newFieldLayout);
-        
+
         // Update name if specified
         if (isset($modifications['name'])) {
             $targetEntryType->name = $modifications['name'];
         }
-        
+
         // Save the entry type
         return $entriesService->saveEntryType($targetEntryType);
     }

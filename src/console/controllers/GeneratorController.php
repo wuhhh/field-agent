@@ -904,7 +904,7 @@ class GeneratorController extends Controller
         }
 
         if (isset($results['space_freed'])) {
-            $this->stdout("\nSpace freed: " . $this->statisticsService->formatBytes($results['space_freed']) . "\n", Console::FG_CYAN);
+            $this->stdout("\nSpace freed: " . $statisticsService->formatBytes($results['space_freed']) . "\n", Console::FG_CYAN);
         }
 
         return ExitCode::OK;
@@ -939,7 +939,7 @@ class GeneratorController extends Controller
         }
 
         if (isset($results['space_freed'])) {
-            $this->stdout("\nSpace freed: " . $this->statisticsService->formatBytes($results['space_freed']) . "\n", Console::FG_CYAN);
+            $this->stdout("\nSpace freed: " . $statisticsService->formatBytes($results['space_freed']) . "\n", Console::FG_CYAN);
         }
 
         return ExitCode::OK;
@@ -971,7 +971,7 @@ class GeneratorController extends Controller
 
         $totalSpaceFreed = ($opsResults['space_freed'] ?? 0) + ($configResults['space_freed'] ?? 0);
         if ($totalSpaceFreed > 0) {
-            $this->stdout("\nTotal space freed: " . $this->statisticsService->formatBytes($totalSpaceFreed) . "\n", Console::FG_CYAN);
+            $this->stdout("\nTotal space freed: " . $statisticsService->formatBytes($totalSpaceFreed) . "\n", Console::FG_CYAN);
         }
 
         return ExitCode::OK;

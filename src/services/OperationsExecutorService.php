@@ -22,7 +22,6 @@ class OperationsExecutorService extends Component
     public function executeOperations(array $operationsData): array
     {
         $results = [];
-        $plugin = Plugin::getInstance();
         $createdFields = []; // Track fields created in this session
         $createdEntryTypes = []; // Track entry types created in this session
 
@@ -170,7 +169,7 @@ class OperationsExecutorService extends Component
                 }
 
                 $sectionData = $operation['create']['section'];
-                $section = $plugin->sectionGeneratorService->createSectionFromConfig($sectionData, $createdEntryTypes);
+                $section = $plugin->sectionService->createSectionFromConfig($sectionData, $createdEntryTypes);
 
                 if ($section) {
                     $result['success'] = true;

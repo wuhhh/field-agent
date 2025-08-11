@@ -36,14 +36,14 @@ plugins/field-agent/
 │       ├── ConfigurationService.php         # Plugin configuration
 │       ├── DiscoveryService.php             # Project context analysis
 │       ├── EntryTypeService.php             # Entry type creation and management
-│       ├── FieldService.php        # Core field creation
+│       ├── FieldService.php                 # Core field creation
 │       ├── LLMIntegrationService.php        # LLM service requests / integration
 │       ├── LLMOperationsService.php         # AI operations generation
 │       ├── OperationsExecutorService.php    # Operation execution
 │       ├── PruneService.php                 # Storage clean up
 │       ├── RollbackService.php              # Operation rollback
 │       ├── SchemaValidationService.php      # JSON config validation
-│       ├── SectionGeneratorService.php      # Section creation
+│       ├── SectionService.php               # Section creation
 │       ├── StatisticsService.php            # Stats and reports
 │       ├── TestingService.php               # Test related functionality
 │       └── tools/                           # Discovery tools

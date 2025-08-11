@@ -8,6 +8,7 @@ use craft\models\EntryType;
 use craft\models\FieldLayout;
 use craft\fieldlayoutelements\CustomField;
 use craft\fieldlayoutelements\entries\EntryTitleField;
+use yii\base\Exception;
 
 /**
  * Entry Type Service

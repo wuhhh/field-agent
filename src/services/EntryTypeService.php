@@ -8,6 +8,7 @@ use craft\models\EntryType;
 use craft\models\FieldLayout;
 use craft\fieldlayoutelements\CustomField;
 use craft\fieldlayoutelements\entries\EntryTitleField;
+use craftcms\fieldagent\Plugin;
 use yii\base\Exception;
 
 /**
@@ -28,6 +29,8 @@ class EntryTypeService extends Component
     {
         Craft::info("Creating entry type: " . json_encode($config), __METHOD__);
         Craft::info("Created fields available: " . json_encode(array_keys($createdFields)), __METHOD__);
+
+		$plugin = Plugin::getInstance();
 
         // Create the entry type without section association
         $entryType = new \craft\models\EntryType();
@@ -57,7 +60,7 @@ class EntryTypeService extends Component
                 $handle = $fieldRef['handle'];
 
                 // Check for reserved words and skip them
-                if ($this->isReservedFieldHandle($handle)) {
+                if ($plugin->fieldService->isReservedFieldHandle($handle)) {
                     Craft::warning("Skipping reserved field handle: $handle", __METHOD__);
                     continue;
                 }

@@ -153,7 +153,7 @@ class OperationsExecutorService extends Component
                 }
 
                 $entryTypeData = $operation['create']['entryType'];
-                $entryType = $plugin->fieldService->createEntryTypeFromConfig($entryTypeData, $createdFields);
+                $entryType = $plugin->entryTypeService->createEntryTypeFromConfig($entryTypeData, $createdFields);
 
                 if ($entryType) {
                     $result['success'] = true;

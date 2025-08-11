@@ -4,13 +4,12 @@ namespace craftcms\fieldagent\services;
 
 use Craft;
 use craft\base\Component;
-use craftcms\fieldagent\Plugin;
 use yii\base\Exception;
 
 /**
  * Field Generator service
  */
-class FieldGeneratorService extends Component
+class FieldService extends Component
 {
     /**
      * @var array Tracks block fields created during matrix field creation

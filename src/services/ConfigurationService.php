@@ -5,6 +5,7 @@ namespace craftcms\fieldagent\services;
 use Craft;
 use craft\base\Component;
 use craftcms\fieldagent\Plugin;
+use yii\base\Exception;
 
 /**
  * Configuration Service
@@ -38,8 +39,7 @@ class ConfigurationService extends Component
         }
 
         // Check if it's a stored config
-        $plugin = Plugin::getInstance();
-        $configData = $plugin->fieldGeneratorService->getStoredConfig($config);
+        $configData = $this->getStoredConfig($config);
         if ($configData) {
             return $configData;
         }
@@ -131,10 +131,49 @@ class ConfigurationService extends Component
      * @param array $configData Configuration data
      * @return bool
      */
-    public function storeConfig(string $name, array $configData): bool
+    public function storeConfig(string $name, array $configData): string
     {
         $plugin = Plugin::getInstance();
-        return $plugin->fieldGeneratorService->storeConfig($name, $configData);
+        $plugin->ensureStorageDirectory();
+
+        $configPath = $plugin->getStoragePath() . DIRECTORY_SEPARATOR . 'configs';
+        if (!is_dir($configPath)) {
+            mkdir($configPath, 0755, true);
+        }
+
+        $filename = $this->sanitizeFilename($name) . '_' . time() . '.json';
+        $filepath = $configPath . DIRECTORY_SEPARATOR . $filename;
+
+        if (file_put_contents($filepath, json_encode($configData, JSON_PRETTY_PRINT)) === false) {
+            throw new Exception("Failed to write config file: $filepath");
+        }
+
+        $this->cleanupOldConfigs($configPath);
+
+        return $filepath;
+    }
+
+	/**
+     * Clean up old configuration files
+     */
+    private function cleanupOldConfigs(string $configPath): void
+    {
+        $settings = Plugin::getInstance()->getSettings();
+        $maxConfigs = $settings->maxStoredConfigs;
+
+        $files = glob($configPath . DIRECTORY_SEPARATOR . '*.json');
+        if (count($files) <= $maxConfigs) {
+            return;
+        }
+
+        // Sort by modification time
+        usort($files, fn($a, $b) => filemtime($a) <=> filemtime($b));
+
+        // Delete oldest files
+        $filesToDelete = array_slice($files, 0, count($files) - $maxConfigs);
+        foreach ($filesToDelete as $file) {
+            unlink($file);
+        }
     }
 
     /**
@@ -145,71 +184,58 @@ class ConfigurationService extends Component
     public function listStoredConfigs(): array
     {
         $plugin = Plugin::getInstance();
-        return $plugin->fieldGeneratorService->listStoredConfigs();
+        $configPath = $plugin->getStoragePath() . DIRECTORY_SEPARATOR . 'configs';
+
+        if (!is_dir($configPath)) {
+            return [];
+        }
+
+        $configs = [];
+        $files = glob($configPath . DIRECTORY_SEPARATOR . '*.json');
+
+        foreach ($files as $file) {
+            $configs[] = [
+                'filename' => basename($file),
+                'path' => $file,
+                'created' => filemtime($file),
+                'size' => filesize($file),
+            ];
+        }
+
+        // Sort by creation time, newest first
+        usort($configs, fn($a, $b) => $b['created'] <=> $a['created']);
+
+        return $configs;
     }
 
     /**
      * Get a stored configuration
      *
-     * @param string $name
+     * @param string $filename
      * @return array|null
      */
-    public function getStoredConfig(string $name): ?array
+    public function getStoredConfig(string $filename): ?array
     {
         $plugin = Plugin::getInstance();
-        return $plugin->fieldGeneratorService->getStoredConfig($name);
-    }
+        $configPath = $plugin->getStoragePath() . DIRECTORY_SEPARATOR . 'configs' . DIRECTORY_SEPARATOR . $filename;
 
-    /**
-     * Generate configuration from natural language prompt
-     * This is a placeholder method that will be enhanced by PromptService
-     *
-     * @param string $prompt
-     * @return array
-     */
-    public function generateConfigFromPrompt(string $prompt): array
-    {
-        // This is a placeholder - in a real implementation, you'd use AI/LLM here
-        // For now, return a basic blog config as an example
-
-        if (stripos($prompt, 'blog') !== false) {
-            return [
-                'fields' => [
-                    [
-                        'name' => 'Blog Title',
-                        'handle' => 'blogTitle',
-                        'field_type' => 'plain_text',
-                        'instructions' => 'The main title of the blog post',
-                        'searchable' => true
-                    ],
-                    [
-                        'name' => 'Blog Content',
-                        'handle' => 'blogContent',
-                        'field_type' => 'rich_text',
-                        'instructions' => 'The main content of the blog post',
-                        'searchable' => true
-                    ],
-                    [
-                        'name' => 'Featured Image',
-                        'handle' => 'featuredImage2',
-                        'field_type' => 'image',
-                        'instructions' => 'Main image for the blog post'
-                    ]
-                ]
-            ];
+        if (!file_exists($configPath)) {
+            return null;
         }
 
-        // Default fallback
-        return [
-            'fields' => [
-                [
-                    'name' => 'Title',
-                    'handle' => 'promptTitle',
-                    'field_type' => 'plain_text',
-                    'instructions' => 'Generated from prompt: ' . $prompt
-                ]
-            ]
-        ];
+        $data = json_decode(file_get_contents($configPath), true);
+        return $data ?: null;
+    }
+
+	/**
+     * Sanitize filename
+     */
+    private function sanitizeFilename(string $name): string
+    {
+        // Remove or replace problematic characters
+        $name = preg_replace('/[^a-zA-Z0-9_-]/', '_', $name);
+        $name = trim($name, '_');
+        return $name ?: 'config';
     }
 
     /**

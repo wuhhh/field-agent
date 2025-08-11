@@ -771,7 +771,7 @@ class FieldService extends Component
     /**
      * Check if a field handle is reserved
      */
-    private function isReservedFieldHandle(string $handle): bool
+    public function isReservedFieldHandle(string $handle): bool
     {
         $reservedWords = [
             'author', 'authorId', 'dateCreated', 'dateUpdated', 'id', 'slug', 'title', 'uid', 'uri', 'url',

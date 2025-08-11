@@ -5,9 +5,9 @@ namespace craftcms\fieldagent;
 use Craft;
 use craft\base\Plugin as BasePlugin;
 use craft\base\Model;
-use craftcms\fieldagent\services\FieldGeneratorService;
+use craftcms\fieldagent\services\FieldService;
 use craftcms\fieldagent\services\RollbackService;
-use craftcms\fieldagent\services\SectionGeneratorService;
+use craftcms\fieldagent\services\SectionService;
 use craftcms\fieldagent\services\SchemaValidationService;
 use craftcms\fieldagent\services\LLMIntegrationService;
 use craftcms\fieldagent\services\LLMOperationsService;
@@ -25,9 +25,9 @@ use craftcms\fieldagent\services\DiscoveryService;
  *
  * @method static Plugin getInstance()
  * @method Settings getSettings()
- * @property-read FieldGeneratorService $fieldGeneratorService
+ * @property-read FieldService $fieldService
  * @property-read RollbackService $rollbackService
- * @property-read SectionGeneratorService $sectionGeneratorService
+ * @property-read SectionService $sectionService
  * @property-read SchemaValidationService $schemaValidationService
  * @property-read LLMIntegrationService $llmIntegrationService
  * @property-read LLMOperationsService $llmOperationsService
@@ -50,9 +50,9 @@ class Plugin extends BasePlugin
     {
         return [
             'components' => [
-                'fieldGeneratorService' => FieldGeneratorService::class,
+                'fieldService' => FieldService::class,
                 'rollbackService' => RollbackService::class,
-                'sectionGeneratorService' => SectionGeneratorService::class,
+                'sectionService' => SectionService::class,
                 'schemaValidationService' => SchemaValidationService::class,
                 'llmIntegrationService' => LLMIntegrationService::class,
                 'llmOperationsService' => LLMOperationsService::class,

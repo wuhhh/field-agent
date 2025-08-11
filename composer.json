@@ -39,7 +39,7 @@
         "documentationUrl": "https://github.com/wuhhh/field-agent/blob/main/README.md",
         "changelogUrl": "https://raw.githubusercontent.com/wuhhh/field-agent/main/CHANGELOG.md",
         "components": {
-            "fieldGeneratorService": "craftcms\\fieldagent\\services\\FieldGeneratorService"
+            "fieldService": "craftcms\\fieldagent\\services\\FieldService"
         },
         "class": "craftcms\\fieldagent\\Plugin"
     }

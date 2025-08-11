@@ -4,13 +4,13 @@ namespace craftcms\fieldagent\services;
 
 use Craft;
 use craft\base\Component;
-use craftcms\fieldagent\Plugin;
+use craft\base\Field;
 use yii\base\Exception;
 
 /**
  * Field Generator service
  */
-class FieldGeneratorService extends Component
+class FieldService extends Component
 {
     /**
      * @var array Tracks block fields created during matrix field creation
@@ -21,111 +21,6 @@ class FieldGeneratorService extends Component
      * @var array Tracks block entry types created during matrix field creation
      */
     private array $createdBlockEntryTypes = [];
-
-    /**
-     * Store configuration data to plugin storage
-     */
-    public function storeConfig(string $name, array $data): string
-    {
-        $plugin = Plugin::getInstance();
-        $plugin->ensureStorageDirectory();
-
-        $configPath = $plugin->getStoragePath() . DIRECTORY_SEPARATOR . 'configs';
-        if (!is_dir($configPath)) {
-            mkdir($configPath, 0755, true);
-        }
-
-        $filename = $this->sanitizeFilename($name) . '_' . time() . '.json';
-        $filepath = $configPath . DIRECTORY_SEPARATOR . $filename;
-
-        if (file_put_contents($filepath, json_encode($data, JSON_PRETTY_PRINT)) === false) {
-            throw new Exception("Failed to write config file: $filepath");
-        }
-
-        $this->cleanupOldConfigs($configPath);
-
-        return $filepath;
-    }
-
-    /**
-     * Get stored configuration
-     */
-    public function getStoredConfig(string $filename): ?array
-    {
-        $plugin = Plugin::getInstance();
-        $configPath = $plugin->getStoragePath() . DIRECTORY_SEPARATOR . 'configs' . DIRECTORY_SEPARATOR . $filename;
-
-        if (!file_exists($configPath)) {
-            return null;
-        }
-
-        $data = json_decode(file_get_contents($configPath), true);
-        return $data ?: null;
-    }
-
-    /**
-     * List all stored configurations
-     */
-    public function listStoredConfigs(): array
-    {
-        $plugin = Plugin::getInstance();
-        $configPath = $plugin->getStoragePath() . DIRECTORY_SEPARATOR . 'configs';
-
-        if (!is_dir($configPath)) {
-            return [];
-        }
-
-        $configs = [];
-        $files = glob($configPath . DIRECTORY_SEPARATOR . '*.json');
-
-        foreach ($files as $file) {
-            $configs[] = [
-                'filename' => basename($file),
-                'path' => $file,
-                'created' => filemtime($file),
-                'size' => filesize($file),
-            ];
-        }
-
-        // Sort by creation time, newest first
-        usort($configs, fn($a, $b) => $b['created'] <=> $a['created']);
-
-        return $configs;
-    }
-
-    /**
-     * Clean up old configuration files
-     */
-    private function cleanupOldConfigs(string $configPath): void
-    {
-        $settings = Plugin::getInstance()->getSettings();
-        $maxConfigs = $settings->maxStoredConfigs;
-
-        $files = glob($configPath . DIRECTORY_SEPARATOR . '*.json');
-        if (count($files) <= $maxConfigs) {
-            return;
-        }
-
-        // Sort by modification time
-        usort($files, fn($a, $b) => filemtime($a) <=> filemtime($b));
-
-        // Delete oldest files
-        $filesToDelete = array_slice($files, 0, count($files) - $maxConfigs);
-        foreach ($filesToDelete as $file) {
-            unlink($file);
-        }
-    }
-
-    /**
-     * Sanitize filename
-     */
-    private function sanitizeFilename(string $name): string
-    {
-        // Remove or replace problematic characters
-        $name = preg_replace('/[^a-zA-Z0-9_-]/', '_', $name);
-        $name = trim($name, '_');
-        return $name ?: 'config';
-    }
 
     /**
      * Create a field from config array
@@ -875,117 +770,11 @@ class FieldGeneratorService extends Component
     }
 
     /**
-     * Create entry type from configuration
-     */
-    public function createEntryTypeFromConfig(array $config, array $createdFields = []): ?\craft\models\EntryType
-    {
-        Craft::info("Creating entry type: " . json_encode($config), __METHOD__);
-        Craft::info("Created fields available: " . json_encode(array_keys($createdFields)), __METHOD__);
-
-        // Create the entry type without section association
-        $entryType = new \craft\models\EntryType();
-        $entryType->name = $config['name'];
-        $entryType->handle = $config['handle'];
-        $entryType->hasTitleField = $config['hasTitleField'] ?? true;
-        $entryType->titleFormat = $config['titleFormat'] ?? null;
-
-        // Create field layout
-        $fieldLayout = new \craft\models\FieldLayout();
-        $fieldLayout->type = \craft\models\EntryType::class;
-
-        $elements = [];
-
-        // Add title field if enabled
-        if ($entryType->hasTitleField) {
-            $titleField = new \craft\fieldlayoutelements\entries\EntryTitleField();
-            $titleField->required = true;
-            $elements[] = $titleField;
-        }
-
-        // Add custom fields
-        if (isset($config['fields'])) {
-            $fieldsService = Craft::$app->getFields();
-
-            foreach ($config['fields'] as $fieldRef) {
-                $handle = $fieldRef['handle'];
-
-                // Check for reserved words and skip them
-                if ($this->isReservedFieldHandle($handle)) {
-                    Craft::warning("Skipping reserved field handle: $handle", __METHOD__);
-                    continue;
-                }
-
-                // Try to find field in recently created fields first
-                $field = null;
-                foreach ($createdFields as $createdField) {
-                    if ($createdField['handle'] === $handle) {
-                        if (isset($createdField['id']) && $createdField['id']) {
-                            $field = $fieldsService->getFieldById($createdField['id']);
-                            break;
-                        } else {
-                            Craft::warning("Field handle '$handle' found in created fields but has no valid ID", __METHOD__);
-                        }
-                    }
-                }
-
-                // If not found in created fields, try to find existing field
-                if (!$field) {
-                    $field = $fieldsService->getFieldByHandle($handle);
-                }
-
-                if ($field) {
-                    $element = new \craft\fieldlayoutelements\CustomField();
-                    $element->fieldUid = $field->uid;
-                    $element->required = $fieldRef['required'] ?? false;
-                    $elements[] = $element;
-                } else {
-                    Craft::warning("Field '$handle' not found for entry type", __METHOD__);
-                }
-            }
-        }
-
-        // Set up the field layout
-        $fieldLayout->setTabs([
-            [
-                'name' => 'Content',
-                'elements' => $elements,
-            ]
-        ]);
-
-        $entryType->setFieldLayout($fieldLayout);
-
-        // Save the entry type
-        try {
-            if (!Craft::$app->getEntries()->saveEntryType($entryType)) {
-                $errors = $entryType->getErrors();
-                $errorMessages = [];
-                foreach ($errors as $attribute => $messages) {
-                    foreach ($messages as $message) {
-                        $errorMessages[] = "$attribute: $message";
-                        Craft::error("Entry type error on $attribute: $message", __METHOD__);
-                    }
-                }
-                throw new Exception("Entry type validation failed: " . implode(', ', $errorMessages));
-            }
-
-            return $entryType;
-        } catch (\Exception $e) {
-            Craft::error("Exception creating entry type: {$e->getMessage()}", __METHOD__);
-            throw $e; // Re-throw to get the actual error message
-        }
-    }
-
-    /**
      * Check if a field handle is reserved
      */
-    private function isReservedFieldHandle(string $handle): bool
+    public function isReservedFieldHandle(string $handle): bool
     {
-        $reservedWords = [
-            'author', 'authorId', 'dateCreated', 'dateUpdated', 'id', 'slug', 'title', 'uid', 'uri', 'url',
-            'level', 'lft', 'rgt', 'root', 'parent', 'parentId', 'children', 'descendants', 'ancestors',
-            'next', 'prev', 'siblings', 'status', 'enabled', 'archived', 'trashed', 'postDate', 'expiryDate',
-            'revisionCreator', 'revisionNotes', 'section', 'sectionId', 'type', 'typeId', 'field', 'fieldId'
-        ];
+        $reservedWords = Field::RESERVED_HANDLES;
 
         return in_array($handle, $reservedWords, true);
     }

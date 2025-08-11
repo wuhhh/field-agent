@@ -4,6 +4,7 @@ namespace craftcms\fieldagent\services;
 
 use Craft;
 use craft\base\Component;
+use craft\base\Field;
 use yii\base\Exception;
 
 /**
@@ -773,12 +774,7 @@ class FieldService extends Component
      */
     public function isReservedFieldHandle(string $handle): bool
     {
-        $reservedWords = [
-            'author', 'authorId', 'dateCreated', 'dateUpdated', 'id', 'slug', 'title', 'uid', 'uri', 'url',
-            'level', 'lft', 'rgt', 'root', 'parent', 'parentId', 'children', 'descendants', 'ancestors',
-            'next', 'prev', 'siblings', 'status', 'enabled', 'archived', 'trashed', 'postDate', 'expiryDate',
-            'revisionCreator', 'revisionNotes', 'section', 'sectionId', 'type', 'typeId', 'field', 'fieldId'
-        ];
+        $reservedWords = Field::RESERVED_HANDLES;
 
         return in_array($handle, $reservedWords, true);
     }

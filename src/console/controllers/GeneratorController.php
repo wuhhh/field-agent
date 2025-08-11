@@ -887,6 +887,7 @@ class GeneratorController extends Controller
     {
         $plugin = Plugin::getInstance();
         $pruneService = $plugin->pruneService;
+		$statisticsService = $plugin->statisticsService;
 
         $results = $pruneService->pruneRolledBackOperations();
 
@@ -903,7 +904,7 @@ class GeneratorController extends Controller
         }
 
         if (isset($results['space_freed'])) {
-            $this->stdout("\nSpace freed: " . $this->formatBytes($results['space_freed']) . "\n", Console::FG_CYAN);
+            $this->stdout("\nSpace freed: " . $this->statisticsService->formatBytes($results['space_freed']) . "\n", Console::FG_CYAN);
         }
 
         return ExitCode::OK;
@@ -916,6 +917,7 @@ class GeneratorController extends Controller
     {
         $plugin = Plugin::getInstance();
         $pruneService = $plugin->pruneService;
+		$statisticsService = $plugin->statisticsService;
 
         if (!$this->confirm("Delete config files older than $days days?")) {
             $this->stdout("Pruning cancelled.\n");
@@ -937,7 +939,7 @@ class GeneratorController extends Controller
         }
 
         if (isset($results['space_freed'])) {
-            $this->stdout("\nSpace freed: " . $this->formatBytes($results['space_freed']) . "\n", Console::FG_CYAN);
+            $this->stdout("\nSpace freed: " . $this->statisticsService->formatBytes($results['space_freed']) . "\n", Console::FG_CYAN);
         }
 
         return ExitCode::OK;
@@ -955,6 +957,7 @@ class GeneratorController extends Controller
 
         $plugin = Plugin::getInstance();
         $pruneService = $plugin->pruneService;
+		$statisticsService = $plugin->statisticsService;
 
         $this->stdout("\nPruning all old data...\n", Console::FG_YELLOW);
 
@@ -968,7 +971,7 @@ class GeneratorController extends Controller
 
         $totalSpaceFreed = ($opsResults['space_freed'] ?? 0) + ($configResults['space_freed'] ?? 0);
         if ($totalSpaceFreed > 0) {
-            $this->stdout("\nTotal space freed: " . $this->formatBytes($totalSpaceFreed) . "\n", Console::FG_CYAN);
+            $this->stdout("\nTotal space freed: " . $this->statisticsService->formatBytes($totalSpaceFreed) . "\n", Console::FG_CYAN);
         }
 
         return ExitCode::OK;
@@ -1229,15 +1232,6 @@ class GeneratorController extends Controller
         }
 
         $this->stdout("\nSummary: $successCount succeeded, $failCount failed\n", Console::FG_CYAN);
-    }
-
-    /**
-     * Format bytes to human readable format
-     */
-    private function formatBytes(int $bytes, int $precision = 2): string
-    {
-        $plugin = Plugin::getInstance();
-        return $plugin->statisticsService->formatBytes($bytes, $precision);
     }
 
     /**

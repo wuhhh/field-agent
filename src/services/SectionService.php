@@ -77,13 +77,14 @@ class SectionService extends Component
             $siteSetting->hasUrls = $siteConfig['hasUrls'] ?? true;
 
             if ($siteSetting->hasUrls) {
-                // Convert handle to kebab-case for URI (e.g., cakeRecipes -> cake-recipes)
-                $kebabHandle = StringHelper::toKebabCase($section->handle);
+                // Convert section name to kebab-case for URI (e.g., "Photo Gallery" -> "photo-gallery")
+                // This preserves the original intent better than using the handle
+                $kebabSlug = StringHelper::toKebabCase($section->name);
                 
                 // Provide a default URI format if none specified
                 $defaultUriFormat = $section->type === Section::TYPE_SINGLE ?
-                    $kebabHandle :
-                    $kebabHandle . '/{slug}';
+                    $kebabSlug :
+                    $kebabSlug . '/{slug}';
 
                 // Provide a default template path if none specified
                 $defaultTemplate = $section->handle . '/_entry';

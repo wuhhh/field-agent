@@ -502,15 +502,74 @@
                     }
                 }
             }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Table Test",
+                    "handle": "fieldTestTable",
+                    "field_type": "table",
+                    "instructions": "Test table field with various column types",
+                    "settings": {
+                        "columns": [
+                            {
+                                "heading": "Product Name",
+                                "handle": "productName",
+                                "type": "singleline",
+                                "width": "25%"
+                            },
+                            {
+                                "heading": "Description",
+                                "handle": "description",
+                                "type": "multiline",
+                                "width": "35%"
+                            },
+                            {
+                                "heading": "Price",
+                                "handle": "price",
+                                "type": "number",
+                                "width": "15%"
+                            },
+                            {
+                                "heading": "In Stock",
+                                "handle": "inStock",
+                                "type": "checkbox",
+                                "width": "10%"
+                            },
+                            {
+                                "heading": "Release Date",
+                                "handle": "releaseDate",
+                                "type": "date",
+                                "width": "15%"
+                            }
+                        ],
+                        "defaults": [
+                            {
+                                "productName": "Sample Product",
+                                "description": "Enter description here",
+                                "price": "0.00",
+                                "inStock": true,
+                                "releaseDate": ""
+                            }
+                        ],
+                        "addRowLabel": "Add product",
+                        "minRows": 1,
+                        "maxRows": 20
+                    }
+                }
+            }
         }
     ],
     "expectedOutcome": {
-        "fieldsCreated": 29,
-        "fieldTypes": ["plain_text (2 variants)", "rich_text", "email", "image", "asset", "number", "money", "range", "link", "dropdown", "radio_buttons", "checkboxes", "multi_select", "country", "button_group", "date", "time", "color", "lightswitch", "icon", "categories", "tags", "users", "entries", "matrix", "content_block"],
+        "fieldsCreated": 30,
+        "fieldTypes": ["plain_text (2 variants)", "rich_text", "email", "image", "asset", "number", "money", "range", "link", "dropdown", "radio_buttons", "checkboxes", "multi_select", "country", "button_group", "date", "time", "color", "lightswitch", "icon", "categories", "tags", "users", "entries", "matrix", "content_block", "table"],
         "matrixBlockTypes": 3,
         "matrixFields": 6,
         "contentBlockFields": 3,
-        "coverage": "All 26 field types with comprehensive settings variations"
+        "tableColumns": 5,
+        "coverage": "All 27 field types with comprehensive settings variations"
     },
     "rollbackInstructions": "Use field-agent/generator/rollback <operation-id> to remove all AI-generated test fields",
     "executionCommand": "ddev craft field-agent/generator/test-run ai-test-all-field-types"

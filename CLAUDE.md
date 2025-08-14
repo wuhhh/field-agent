@@ -116,3 +116,95 @@ plugins/field-agent/
 
 `field-agent/discovery/test`  
 `field-agent/discovery/tools`
+
+## Adding Support for a New Field Type
+
+There are numerous places in the codebase that need to be updated in order to support a new field type. Here are the steps you will need to take - it is VERY IMPORTANT that you are methodical in processing each of these tasks when adding support for a new field:
+
+### 1. **Implement Field Creation Logic**
+**File:** `plugins/field-agent/src/services/FieldService.php`
+
+In the `createFieldFromConfig()` method, add a new `case` statement for your field type:
+- Add the case statement matching your field type identifier
+- Instantiate the appropriate Craft field class (e.g., `\craft\fields\YourFieldType()`)
+- Map configuration settings from the normalized config to the field object properties
+- Handle any field-specific settings or transformations
+
+Example pattern:
+```php
+case 'your_field_type':
+    $field = new \craft\fields\YourFieldType();
+    $field->someProperty = $normalizedConfig['someProperty'] ?? 'default';
+    // Add more field-specific configurations
+    break;
+```
+
+### 2. **Update JSON Schema**
+**File:** `plugins/field-agent/src/schemas/llm-operations-schema.json`
+
+Add your field type to the `field_type` enum array in the schema. This ensures the LLM knows it can use this field type:
+- Find the `field_type` enum definition
+- Add your field type identifier to the array
+
+Current field types in schema:
+```json
+"enum": [
+    "plain_text", "rich_text", "image", "number", "link",
+    "dropdown", "lightswitch", "email", "date", "time",
+    "color", "money", "range", "radio_buttons", "checkboxes",
+    "multi_select", "country", "button_group", "icon",
+    "asset", "matrix", "users", "entries", "categories", "tags",
+    "content_block", "table"  // Add new field types here
+]
+```
+
+### 3. **Create Test Coverage**
+**File:** `plugins/field-agent/tests/basic-operations/test-all-field-types.json`
+
+Add a test case for your new field type:
+- Create an operation that creates a field with your new type
+- Include various settings configurations to test
+- Update the `expectedOutcome.fieldTypes` array to include your field type
+
+Example test operation:
+```json
+{
+    "type": "create",
+    "target": "field",
+    "create": {
+        "field": {
+            "name": "Your Field Type Test",
+            "handle": "fieldTestYourType",
+            "field_type": "your_field_type",
+            "settings": {
+                // Add field-specific settings to test
+            }
+        }
+    }
+}
+```
+
+### 4. **Update LLM Prompts and Documentation**
+**File:** `plugins/field-agent/src/services/LLMOperationsService.php`
+
+In the system prompt generation methods:
+- Update any documentation that lists available field types
+- Add examples showing how to use your new field type
+- Include information about field-specific settings
+
+### 5. **Optional: Add Preset Examples**
+**Files:** `plugins/field-agent/src/presets/*.json`
+
+Consider adding examples of your field type in preset configurations to demonstrate proper usage.
+
+### Field Type Implementation Checklist
+
+When adding a new field type, ensure you complete all these steps:
+
+- Add case statement in `FieldService.php` method `createFieldFromConfig()`
+- Add field type to schema enum in `llm-operations-schema.json`
+- Creat test case in `test-all-field-types.json`
+- Updat LLM prompt documentation if needed
+- Add preset examples (optional but recommended)
+- Test field creation via console command
+- Verify field appears correctly in Craft CP

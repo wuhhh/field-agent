@@ -11,7 +11,7 @@ This plugin is not yet available in the Craft Plugin Store. To install for testi
 
 ```bash
 composer require wuhhh/field-agent:v1.0.4-alpha
-./craft plugin/install field-agent
+./craft plugin/install field-agent && ./craft plugin/enable field-agent
 ```
 
 ### Configuration Setup

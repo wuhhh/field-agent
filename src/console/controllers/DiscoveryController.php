@@ -25,7 +25,7 @@ class DiscoveryController extends Controller
         
         // Try direct access to services that should work in console
         try {
-            $fieldsService = Craft::$app->getFields();
+            Craft::$app->getFields();
             $this->stdout("Fields service: OK\n", Console::FG_GREEN);
         } catch (\Exception $e) {
             $this->stderr("Fields service error: " . $e->getMessage() . "\n", Console::FG_RED);
@@ -62,6 +62,53 @@ class DiscoveryController extends Controller
                 }
             }
             
+            // Test getEntryTypeFields
+            $this->stdout("\n=== ENTRY TYPE FIELDS TEST ===\n", Console::FG_YELLOW);
+            if ($sectionsData['count'] > 0) {
+                // Test with the first entry type we find
+                foreach ($sectionsData['sections'] as $section) {
+                    if (!empty($section['entryTypes'])) {
+                        $firstEntryType = $section['entryTypes'][0];
+                        $this->stdout("Testing getEntryTypeFields with entry type: {$firstEntryType['name']} ({$firstEntryType['handle']})\n", Console::FG_CYAN);
+                        
+                        $entryTypeFields = $discovery->executeTool('getEntryTypeFields', [
+                            'handle' => $firstEntryType['handle'],
+                            'includeNative' => true
+                        ]);
+                        
+                        if (isset($entryTypeFields['error'])) {
+                            $this->stdout("  Error: {$entryTypeFields['error']}\n", Console::FG_RED);
+                        } else {
+                            $this->stdout("  Entry Type: {$entryTypeFields['entryType']['name']} (handle: {$entryTypeFields['entryType']['handle']})\n");
+                            if (isset($entryTypeFields['section'])) {
+                                $this->stdout("  Section: {$entryTypeFields['section']['name']} ({$entryTypeFields['section']['type']})\n");
+                            }
+                            $this->stdout("  Field Count: {$entryTypeFields['fieldCount']}\n", Console::FG_GREEN);
+                            
+                            if (!empty($entryTypeFields['tabs'])) {
+                                foreach ($entryTypeFields['tabs'] as $tab) {
+                                    $this->stdout("    Tab: {$tab['name']}\n", Console::FG_YELLOW);
+                                    foreach ($tab['fields'] as $field) {
+                                        $native = isset($field['native']) ? ' [native]' : '';
+                                        $required = isset($field['required']) && $field['required'] ? ' [required]' : '';
+                                        $this->stdout("      - {$field['handle']} ({$field['type']}){$native}{$required}\n");
+                                    }
+                                }
+                            } elseif (!empty($entryTypeFields['fields'])) {
+                                $this->stdout("    Fields:\n");
+                                foreach ($entryTypeFields['fields'] as $field) {
+                                    $required = isset($field['required']) && $field['required'] ? ' [required]' : '';
+                                    $this->stdout("      - {$field['handle']} ({$field['type']}){$required}\n");
+                                }
+                            }
+                        }
+                        break; // Only test the first entry type
+                    }
+                }
+            } else {
+                $this->stdout("  No sections/entry types available to test\n", Console::FG_GREY);
+            }
+            
             // Test checkHandleAvailability
             $this->stdout("\n=== HANDLE AVAILABILITY TEST ===\n", Console::FG_YELLOW);
             $testHandles = ['title', 'content', 'newField', 'blog'];
@@ -86,6 +133,21 @@ class DiscoveryController extends Controller
             $this->stdout("\n=== PROJECT CONTEXT ===\n", Console::FG_YELLOW);
             $context = $discovery->getProjectContext();
             $this->stdout($context['summary'] . "\n", Console::FG_GREEN);
+            
+            // Show entry type field mappings
+            if (!empty($context['entryTypeFieldMappings'])) {
+                $this->stdout("\n=== ENTRY TYPE -> FIELD MAPPINGS ===\n", Console::FG_YELLOW);
+                foreach ($context['entryTypeFieldMappings'] as $mapping) {
+                    $this->stdout("  {$mapping['section']['name']} > {$mapping['entryType']['name']} ({$mapping['entryType']['handle']})\n", Console::FG_CYAN);
+                    $this->stdout("    Fields ({$mapping['fieldCount']}):\n");
+                    foreach ($mapping['fields'] as $field) {
+                        $required = $field['required'] ? ' [required]' : '';
+                        $this->stdout("      - {$field['handle']} ({$field['type']}){$required}\n");
+                    }
+                }
+            } else {
+                $this->stdout("\nNo entry type field mappings found.\n", Console::FG_GREY);
+            }
             
             $this->stdout("\nDiscovery Service test completed successfully!\n", Console::FG_GREEN);
             

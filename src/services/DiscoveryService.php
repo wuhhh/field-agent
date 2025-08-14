@@ -86,9 +86,46 @@ class DiscoveryService extends Component
      */
     public function getProjectContext(): array
     {
+        $sectionsData = $this->executeTool('getSections', ['includeFields' => false]);
+        $entryTypeFieldMappings = [];
+        
+        // Build entry type -> field mappings
+        foreach ($sectionsData['sections'] as $section) {
+            foreach ($section['entryTypes'] as $entryType) {
+                $entryTypeFields = $this->executeTool('getEntryTypeFields', [
+                    'handle' => $entryType['handle'],
+                    'includeNative' => false
+                ]);
+                
+                if (!isset($entryTypeFields['error'])) {
+                    $entryTypeFieldMappings[] = [
+                        'entryType' => [
+                            'handle' => $entryType['handle'],
+                            'name' => $entryType['name'],
+                        ],
+                        'section' => [
+                            'handle' => $section['handle'],
+                            'name' => $section['name'],
+                            'type' => $section['type'],
+                        ],
+                        'fields' => array_map(function($field) {
+                            return [
+                                'handle' => $field['handle'],
+                                'name' => $field['name'],
+                                'type' => $field['type'],
+                                'required' => $field['required'] ?? false,
+                            ];
+                        }, $entryTypeFields['fields']),
+                        'fieldCount' => $entryTypeFields['fieldCount'],
+                    ];
+                }
+            }
+        }
+        
         $context = [
             'fields' => $this->executeTool('getFields'),
-            'sections' => $this->executeTool('getSections'),
+            'sections' => $sectionsData,
+            'entryTypeFieldMappings' => $entryTypeFieldMappings,
             'summary' => $this->generateContextSummary(),
         ];
 

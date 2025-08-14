@@ -510,6 +510,20 @@ MODIFY OPERATIONS:
 - updateField: Update field settings
 - updateSettings: Update section or entry type settings
 
+AVAILABLE SETTINGS FOR updateSettings:
+For sections:
+- name: Section display name
+- uri: URI format (e.g., "blog/{slug}")
+- template: Template path (e.g., "blog/_entry")
+- type: Section type (single, channel, structure)
+
+For entry types:
+- name: Entry type display name
+- icon: Icon identifier (e.g., "newspaper", "article", "note")
+- color: Color name (red, orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, gray)
+- description: Description text
+- hasTitleField: Whether to show title field (true/false)
+
 Example for "Change the URI format of a section":
 {
   "name": "Update Section URI",
@@ -525,6 +539,31 @@ Example for "Change the URI format of a section":
             "action": "updateSettings",
             "updates": {
               "uri": "new-uri-format/{slug}"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+
+Example for "Change the name and icon of the blogPost entry type":
+{
+  "name": "Update Entry Type Settings",
+  "description": "Updates the name and icon for the blog post entry type",
+  "operations": [
+    {
+      "type": "modify",
+      "target": "entryType",
+      "targetId": "blogPost",
+      "modify": {
+        "actions": [
+          {
+            "action": "updateSettings",
+            "updates": {
+              "name": "Article",
+              "icon": "newspaper",
+              "color": "blue"
             }
           }
         ]

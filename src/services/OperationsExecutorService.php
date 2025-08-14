@@ -519,6 +519,22 @@ class OperationsExecutorService extends Component
                     }
                     break;
 
+                case 'updateSettings':
+                    $updates = $action['updates'] ?? [];
+                    
+                    if (empty($updates)) {
+                        $modifications[] = "No updates provided for updateSettings action";
+                        break;
+                    }
+                    
+                    $updateResult = $this->updateEntryTypeSettings($entryType, $updates);
+                    if ($updateResult['success']) {
+                        $modifications[] = $updateResult['message'];
+                    } else {
+                        throw new Exception($updateResult['message']);
+                    }
+                    break;
+
                 default:
                     throw new Exception("Unknown modify action: {$action['action']}");
             }
@@ -994,6 +1010,80 @@ class OperationsExecutorService extends Component
         return [
             'success' => true,
             'message' => "Section '{$section->handle}' settings updated: " . implode(', ', $updatedFields)
+        ];
+    }
+
+    /**
+     * Update entry type settings
+     */
+    private function updateEntryTypeSettings($entryType, array $updates): array
+    {
+        $updatedFields = [];
+        
+        // Update name
+        if (isset($updates['name'])) {
+            $entryType->name = $updates['name'];
+            $updatedFields[] = 'name';
+        }
+        
+        // Update icon
+        if (isset($updates['icon'])) {
+            $entryType->icon = $updates['icon'];
+            $updatedFields[] = 'icon';
+        }
+        
+        // Update color
+        if (isset($updates['color'])) {
+            // Handle color as string or Color enum
+            if (is_string($updates['color'])) {
+                // Convert string to Color enum if it's a valid color
+                $colorValue = strtolower($updates['color']);
+                $validColors = ['red', 'orange', 'amber', 'yellow', 'lime', 'green', 'emerald', 
+                               'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet', 'purple', 
+                               'fuchsia', 'pink', 'rose', 'gray'];
+                if (in_array($colorValue, $validColors)) {
+                    $entryType->color = \craft\enums\Color::from($colorValue);
+                    $updatedFields[] = 'color';
+                } else {
+                    return [
+                        'success' => false,
+                        'message' => "Invalid color value: {$updates['color']}"
+                    ];
+                }
+            }
+        }
+        
+        // Update description
+        if (isset($updates['description'])) {
+            $entryType->description = $updates['description'];
+            $updatedFields[] = 'description';
+        }
+        
+        // Update hasTitleField
+        if (isset($updates['hasTitleField'])) {
+            $entryType->hasTitleField = (bool)$updates['hasTitleField'];
+            $updatedFields[] = 'hasTitleField';
+        }
+        
+        if (empty($updatedFields)) {
+            return [
+                'success' => true,
+                'message' => "No valid updates to apply to entry type"
+            ];
+        }
+        
+        // Save the entry type
+        if (!Craft::$app->getEntries()->saveEntryType($entryType)) {
+            $errors = $entryType->getFirstErrors();
+            return [
+                'success' => false,
+                'message' => "Failed to update entry type settings: " . implode(', ', $errors)
+            ];
+        }
+        
+        return [
+            'success' => true,
+            'message' => "Updated entry type settings: " . implode(', ', $updatedFields)
         ];
     }
 

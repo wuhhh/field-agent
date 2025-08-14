@@ -81,8 +81,11 @@ class SectionService extends Component
                     $section->handle :
                     $section->handle . '/{slug}';
 
+                // Provide a default template path if none specified
+                $defaultTemplate = $section->handle . '/_entry';
+
                 $siteSetting->uriFormat = $siteConfig['uri'] ?? $siteConfig['uriFormat'] ?? $defaultUriFormat;
-                $siteSetting->template = $siteConfig['template'] ?? null;
+                $siteSetting->template = $siteConfig['template'] ?? $defaultTemplate;
             }
 
             $siteSettings[$site->id] = $siteSetting;

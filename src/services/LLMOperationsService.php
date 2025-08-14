@@ -105,7 +105,11 @@ class LLMOperationsService extends Component
         // Format existing fields for the prompt
         $fieldsContext = $this->formatFieldsContext($context['fields']);
         $sectionsContext = $this->formatSectionsContext($context['sections']);
+        $entryTypeFieldMappings = $this->formatEntryTypeFieldMappingsContext($context['entryTypeFieldMappings']);
 
+        // Convert schema to JSON string for inclusion in prompt
+        $schemaJson = json_encode($schema, JSON_PRETTY_PRINT);
+        
         return <<<PROMPT
 You are an expert Craft CMS field configuration generator with awareness of existing project structures. Your task is to create JSON operation configurations that intelligently modify or extend the current project.
 
@@ -118,7 +122,18 @@ EXISTING FIELDS:
 EXISTING SECTIONS AND ENTRY TYPES:
 {$sectionsContext}
 
-IMPORTANT: You MUST respond with valid JSON that exactly matches the operations schema. Do not include any explanation, markdown formatting, or additional text - only the JSON response.
+ENTRY TYPE FIELD MAPPINGS:
+{$entryTypeFieldMappings}
+
+OPERATIONS SCHEMA:
+You MUST follow this exact JSON schema structure for your response:
+```json
+{$schemaJson}
+```
+
+IMPORTANT: You MUST respond with valid JSON that exactly matches the operations schema above. Do not include any explanation, markdown formatting, or additional text - only the JSON response.
+
+
 
 OPERATION TYPES:
 1. "create" - Create new fields, entry types, or sections
@@ -203,7 +218,7 @@ Settings MUST be inside "settings" object. Do NOT use settings from one field ty
 - users: ONLY maxRelations (integer), sources (array of user group handles or ["*"] for all)
 - entries: ONLY maxRelations (integer), sources (array of section handles or ["*"] for all)
 - country/icon: No settings needed
-- json: No settings needed  
+- json: No settings needed
 - addresses: No settings needed
 - matrix: ONLY minEntries (integer), maxEntries (integer), viewMode (string), entryTypes (array) - entryTypes REQUIRED
 
@@ -686,6 +701,38 @@ PROMPT;
             $lines[] = "Section: {$section['name']} ({$section['handle']})";
             foreach ($section['entryTypes'] as $entryType) {
                 $lines[] = "  - Entry Type: {$entryType['name']} ({$entryType['handle']})";
+            }
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Format entry type field mappings context for the prompt
+     */
+    private function formatEntryTypeFieldMappingsContext(array $entryTypeFieldMappings): string
+    {
+        if (empty($entryTypeFieldMappings)) {
+            return "No entry type field mappings exist yet.";
+        }
+
+        $lines = [];
+        foreach ($entryTypeFieldMappings as $mapping) {
+            $entryType = $mapping['entryType'];
+            $section = $mapping['section'];
+            $fields = $mapping['fields'];
+            $fieldCount = $mapping['fieldCount'];
+
+            $lines[] = "Entry Type: {$entryType['name']} ({$entryType['handle']}) in Section: {$section['name']} ({$section['handle']})";
+            $lines[] = "  Fields ({$fieldCount}):";
+
+            if (empty($fields)) {
+                $lines[] = "    - No fields assigned";
+            } else {
+                foreach ($fields as $field) {
+                    $required = $field['required'] ? ' [required]' : '';
+                    $lines[] = "    - {$field['handle']} ({$field['type']}) - {$field['name']}{$required}";
+                }
             }
         }
 

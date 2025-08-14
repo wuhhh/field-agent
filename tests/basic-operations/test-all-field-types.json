@@ -560,16 +560,40 @@
                     }
                 }
             }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "JSON Test",
+                    "handle": "fieldTestJson",
+                    "field_type": "json",
+                    "instructions": "Test JSON field for storing structured data"
+                }
+            }
+        },
+        {
+            "type": "create",
+            "target": "field",
+            "create": {
+                "field": {
+                    "name": "Addresses Test",
+                    "handle": "fieldTestAddresses",
+                    "field_type": "addresses",
+                    "instructions": "Test addresses field for storing location data"
+                }
+            }
         }
     ],
     "expectedOutcome": {
-        "fieldsCreated": 30,
-        "fieldTypes": ["plain_text (2 variants)", "rich_text", "email", "image", "asset", "number", "money", "range", "link", "dropdown", "radio_buttons", "checkboxes", "multi_select", "country", "button_group", "date", "time", "color", "lightswitch", "icon", "categories", "tags", "users", "entries", "matrix", "content_block", "table"],
+        "fieldsCreated": 32,
+        "fieldTypes": ["plain_text (2 variants)", "rich_text", "email", "image", "asset", "number", "money", "range", "link", "dropdown", "radio_buttons", "checkboxes", "multi_select", "country", "button_group", "date", "time", "color", "lightswitch", "icon", "categories", "tags", "users", "entries", "matrix", "content_block", "table", "json", "addresses"],
         "matrixBlockTypes": 3,
         "matrixFields": 6,
         "contentBlockFields": 3,
         "tableColumns": 5,
-        "coverage": "All 27 field types with comprehensive settings variations"
+        "coverage": "All 29 field types with comprehensive settings variations"
     },
     "rollbackInstructions": "Use field-agent/generator/rollback <operation-id> to remove all AI-generated test fields",
     "executionCommand": "ddev craft field-agent/generator/test-run ai-test-all-field-types"

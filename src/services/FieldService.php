@@ -382,6 +382,14 @@ class FieldService extends Component
                 $field->minRows = $normalizedConfig['minRows'] ?? null;
                 break;
 
+            case 'json':
+                $field = new \craft\fields\Json();
+                break;
+
+            case 'addresses':
+                $field = new \craft\fields\Addresses();
+                break;
+
             case 'content_block':
             case 'contentblock':
                 $field = new \craft\fields\ContentBlock();

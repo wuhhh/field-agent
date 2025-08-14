@@ -150,6 +150,8 @@ CRITICAL: FIELD TYPES (use these EXACT values only):
 - table: ONLY columns (array of column objects), minRows (integer), maxRows (integer), addRowLabel (string), defaults (array)
   Table column types: singleline, multiline, number, checkbox, color, url, email, date, time
   Column structure: {"heading": "Name", "handle": "handle", "type": "singleline", "width": "25%"}
+- json - For structured JSON data storage
+- addresses - For address/location data with built-in geocoding
 - All other supported: time, color, range, radio_buttons, checkboxes, multi_select, country, button_group, icon, asset, matrix, users, entries
 
 WHEN TO USE CATEGORIES vs TAGS vs MULTI_SELECT:
@@ -201,6 +203,8 @@ Settings MUST be inside "settings" object. Do NOT use settings from one field ty
 - users: ONLY maxRelations (integer), sources (array of user group handles or ["*"] for all)
 - entries: ONLY maxRelations (integer), sources (array of section handles or ["*"] for all)
 - country/icon: No settings needed
+- json: No settings needed  
+- addresses: No settings needed
 - matrix: ONLY minEntries (integer), maxEntries (integer), viewMode (string), entryTypes (array) - entryTypes REQUIRED
 
 CRITICAL: MATRIX FIELDS AND ENTRY TYPE ASSOCIATIONS

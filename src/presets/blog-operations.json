@@ -103,6 +103,50 @@
     },
     {
       "type": "create",
+      "target": "field",
+      "create": {
+        "field": {
+          "name": "Related Articles",
+          "handle": "relatedArticles",
+          "field_type": "table",
+          "instructions": "Add links to related articles or resources",
+          "required": false,
+          "settings": {
+            "columns": [
+              {
+                "heading": "Article Title",
+                "handle": "articleTitle",
+                "type": "singleline",
+                "width": "30%"
+              },
+              {
+                "heading": "URL",
+                "handle": "articleUrl",
+                "type": "url",
+                "width": "35%"
+              },
+              {
+                "heading": "Description",
+                "handle": "description",
+                "type": "multiline",
+                "width": "25%"
+              },
+              {
+                "heading": "External",
+                "handle": "isExternal",
+                "type": "checkbox",
+                "width": "10%"
+              }
+            ],
+            "addRowLabel": "Add related article",
+            "minRows": 0,
+            "maxRows": 10
+          }
+        }
+      }
+    },
+    {
+      "type": "create",
       "target": "entryType",
       "create": {
         "entryType": {
@@ -115,7 +159,8 @@
             {"handle": "blogFeaturedImage", "required": false},
             {"handle": "blogContent", "required": true},
             {"handle": "blogAuthor", "required": true},
-            {"handle": "blogTags", "required": false}
+            {"handle": "blogTags", "required": false},
+            {"handle": "relatedArticles", "required": false}
           ]
         }
       }

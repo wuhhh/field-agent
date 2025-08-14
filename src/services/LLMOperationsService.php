@@ -519,7 +519,14 @@ For sections:
 
 For entry types:
 - name: Entry type display name
-- icon: Icon identifier (e.g., "newspaper", "article", "note")
+- icon: Icon identifier - common ones include:
+  * Document/Writing: newspaper, book, book-open, clipboard, note-sticky, file-lines, file-pen, pen, pen-to-square
+  * Media: image, camera, video, microphone, music, film
+  * UI Elements: folder, folder-open, box, cube, layer-group, shapes, grid
+  * Communication: envelope, comment, message, bullhorn, bell
+  * E-commerce: cart-shopping, bag-shopping, store, tag, tags, receipt
+  * User: user, users, user-group, id-card
+  * General: star, heart, flag, bookmark, circle, square, gear, info, question
 - color: Color name (red, orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, gray)
 - description: Description text
 - hasTitleField: Whether to show title field (true/false)

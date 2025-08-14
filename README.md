@@ -1,7 +1,7 @@
 # Field Agent Plugin for Craft CMS
 ⚠️ **ALPHA SOFTWARE - USE WITH CAUTION** ⚠️
 
-This plugin uses AI to generate Craft CMS fields, entry types, and sections from natural language prompts. 
+This plugin uses AI to generate Craft CMS fields, entry types, and sections from natural language prompts. The plugin supports all native Craft CMS field types (as of Craft 5.8 and including the new Content Block) as well as CKEditor fields.
 
 **WARNING: This is an experimental plugin and you should not use it on production sites. Always backup your database before testing it.**
 
@@ -10,7 +10,7 @@ This plugin uses AI to generate Craft CMS fields, entry types, and sections from
 This plugin is not yet available in the Craft Plugin Store. To install for testing:
 
 ```bash
-composer require wuhhh/field-agent:v1.0.1-alpha
+composer require wuhhh/field-agent:v1.0.4-alpha
 ./craft plugin/install field-agent
 ```
 
@@ -93,20 +93,6 @@ The system will automatically:
 ./craft field-agent/generator/prune-all --confirm=1
 ```
 
-## Supported Field Types
-
-The plugin supports 22 Craft CMS field types:
-
-**Text & Content:** ckeditor, email, plain_text, table  
-**Assets:** image, asset  
-**Numbers:** number, money, range  
-**Selection:** dropdown, radio_buttons, checkboxes, multi_select, country, button_group  
-**Relations:** entries, categories, matrix, tags, users  
-**Date/Time:** date, time  
-**Interface:** color, lightswitch, icon 
-
-**Reserved Field Protection:** The system automatically avoids Craft's reserved field handles (`title`, `content`, `author`, etc.) and suggests alternatives like `pageTitle`, `bodyContent`, `writer`.
-
 ## Troubleshooting
 
 ### API Issues
@@ -134,7 +120,7 @@ Add `--debug` to see full AI request/response and operation details:
 This plugin generates Craft CMS fields, entry types, and sections using AI from natural language descriptions. It analyzes your existing Craft setup to avoid conflicts and reuse appropriate fields.
 
 **Key capabilities:**
-- Understands 22 Craft field types including matrix and relations
+- Understands all native Craft fields plus CKEditor
 - Modifies existing entry types without breaking content
 - Avoids reserved Craft handles and suggests alternatives  
 - Creates related structures (category groups, tag groups) automatically

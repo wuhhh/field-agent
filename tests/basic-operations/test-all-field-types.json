@@ -1,6 +1,6 @@
 {
     "name": "Field Type Test Suite",
-    "description": "AI-generated comprehensive test for all 21 field types with diverse settings",
+    "description": "AI-generated comprehensive test for all supported field types with diverse settings",
     "operations": [
         {
             "type": "create",

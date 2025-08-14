@@ -42,7 +42,6 @@ plugins/field-agent/
 │       ├── OperationsExecutorService.php    # Operation execution
 │       ├── PruneService.php                 # Storage clean up
 │       ├── RollbackService.php              # Operation rollback
-│       ├── SchemaValidationService.php      # JSON config validation
 │       ├── SectionService.php               # Section creation
 │       ├── StatisticsService.php            # Stats and reports
 │       ├── TestingService.php               # Test related functionality

@@ -92,7 +92,7 @@ class GeneratorController extends Controller
         $rollbackService = $plugin->rollbackService;
 
         // Validate the operations configuration
-        $validation = $plugin->schemaValidationService->validateOperations($configData);
+        $validation = $plugin->llmOperationsService->validateOperations($configData);
         if (!$validation['valid']) {
             $this->stderr("Invalid operations configuration:\n", Console::FG_RED);
             foreach ($validation['errors'] as $error) {

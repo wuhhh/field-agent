@@ -686,38 +686,81 @@ PROMPT;
     }
 
     /**
-     * Validate operations response
+     * Validate a configuration array against the operations schema
      */
-    private function validateOperations(array $response): array
+    public function validateOperations(array $config): array
     {
-        $errors = [];
+        $schemaPath = Plugin::getInstance()->getBasePath() . '/schemas/llm-operations-schema.json';
 
-        if (!isset($response['operations']) || !is_array($response['operations'])) {
-            $errors[] = 'Operations array is required';
-            return ['valid' => false, 'errors' => $errors];
+        // Quick validation that operations array exists
+        if (!isset($config['operations']) || !is_array($config['operations'])) {
+            return [
+                'valid' => false,
+                'errors' => ['Missing required "operations" array']
+            ];
         }
 
-        foreach ($response['operations'] as $i => $operation) {
-            if (!isset($operation['type']) || !in_array($operation['type'], ['create', 'modify', 'delete'])) {
-                $errors[] = "Operation $i: Invalid type";
-            }
-
-            if (!isset($operation['target']) || !in_array($operation['target'], ['field', 'entryType', 'section', 'categoryGroup', 'tagGroup'])) {
-                $errors[] = "Operation $i: Invalid target";
-            }
-
-            // Validate based on operation type
-            if ($operation['type'] === 'modify' || $operation['type'] === 'delete') {
-                if (!isset($operation['targetId'])) {
-                    $errors[] = "Operation $i: targetId required for {$operation['type']} operations";
-                }
-            }
+        // Validate each operation
+        $errors = [];
+        foreach ($config['operations'] as $index => $operation) {
+            $opErrors = $this->validateOperation($operation, $index);
+            $errors = array_merge($errors, $opErrors);
         }
 
         return [
             'valid' => empty($errors),
             'errors' => $errors
         ];
+    }
+
+	/**
+     * Validate a single operation
+     */
+    private function validateOperation(array $operation, int $index): array
+    {
+        $errors = [];
+        $opPath = "operations[$index]";
+
+        // Required fields
+        if (!isset($operation['type'])) {
+            $errors[] = "$opPath.type: Required field missing";
+        } elseif (!in_array($operation['type'], ['create', 'modify', 'delete'])) {
+            $errors[] = "$opPath.type: Must be 'create', 'modify', or 'delete'";
+        }
+
+        if (!isset($operation['target'])) {
+            $errors[] = "$opPath.target: Required field missing";
+        } elseif (!in_array($operation['target'], ['field', 'entryType', 'section', 'categoryGroup', 'tagGroup'])) {
+            $errors[] = "$opPath.target: Must be 'field', 'entryType', 'section', 'categoryGroup', or 'tagGroup'";
+        }
+
+        // Type-specific validation
+        if (isset($operation['type']) && isset($operation['target'])) {
+            switch ($operation['type']) {
+                case 'create':
+                    if (!isset($operation['create'])) {
+                        $errors[] = "$opPath.create: Required for create operations";
+                    }
+                    break;
+
+                case 'modify':
+                    if (!isset($operation['handle'])) {
+                        $errors[] = "$opPath.handle: Required for modify operations";
+                    }
+                    if (!isset($operation['changes'])) {
+                        $errors[] = "$opPath.changes: Required for modify operations";
+                    }
+                    break;
+
+                case 'delete':
+                    if (!isset($operation['handle'])) {
+                        $errors[] = "$opPath.handle: Required for delete operations";
+                    }
+                    break;
+            }
+        }
+
+        return $errors;
     }
 
     /**

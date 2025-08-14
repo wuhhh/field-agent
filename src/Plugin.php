@@ -8,7 +8,6 @@ use craft\base\Model;
 use craftcms\fieldagent\services\FieldService;
 use craftcms\fieldagent\services\RollbackService;
 use craftcms\fieldagent\services\SectionService;
-use craftcms\fieldagent\services\SchemaValidationService;
 use craftcms\fieldagent\services\LLMIntegrationService;
 use craftcms\fieldagent\services\LLMOperationsService;
 use craftcms\fieldagent\services\OperationsExecutorService;
@@ -28,7 +27,6 @@ use craftcms\fieldagent\services\DiscoveryService;
  * @property-read FieldService $fieldService
  * @property-read RollbackService $rollbackService
  * @property-read SectionService $sectionService
- * @property-read SchemaValidationService $schemaValidationService
  * @property-read LLMIntegrationService $llmIntegrationService
  * @property-read LLMOperationsService $llmOperationsService
  * @property-read OperationsExecutorService $operationsExecutorService
@@ -53,7 +51,6 @@ class Plugin extends BasePlugin
                 'fieldService' => FieldService::class,
                 'rollbackService' => RollbackService::class,
                 'sectionService' => SectionService::class,
-                'schemaValidationService' => SchemaValidationService::class,
                 'llmIntegrationService' => LLMIntegrationService::class,
                 'llmOperationsService' => LLMOperationsService::class,
                 'operationsExecutorService' => OperationsExecutorService::class,

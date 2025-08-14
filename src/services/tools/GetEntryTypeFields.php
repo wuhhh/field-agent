@@ -8,7 +8,6 @@
 namespace craftcms\fieldagent\services\tools;
 
 use Craft;
-use craft\models\EntryType;
 
 /**
  * GetEntryTypeFields Tool
@@ -78,27 +77,65 @@ class GetEntryTypeFields extends BaseTool
         }
         
         $includeNative = $params['includeNative'] ?? false;
+        
+        // Get section info using the Sections service
+        $section = null;
+        $sectionId = null;
+        
+        // Find the section that contains this entry type
+        if (Craft::$app instanceof \craft\console\Application) {
+            // In console mode, search through project config
+            $sectionsConfig = Craft::$app->getProjectConfig()->get('sections') ?? [];
+            foreach ($sectionsConfig as $sectionData) {
+                if (isset($sectionData['entryTypes'])) {
+                    foreach ($sectionData['entryTypes'] as $etData) {
+                        if (isset($etData['handle']) && $etData['handle'] === $entryType->handle) {
+                            $sectionId = $sectionData['id'] ?? null;
+                            $section = [
+                                'id' => $sectionId,
+                                'name' => $sectionData['name'] ?? '',
+                                'handle' => $sectionData['handle'] ?? '',
+                                'type' => $sectionData['type'] ?? '',
+                            ];
+                            break 2;
+                        }
+                    }
+                }
+            }
+        } else {
+            // In web mode, we can search through sections
+            $sections = Craft::$app->getSections()->getAllSections();
+            foreach ($sections as $s) {
+                $entryTypes = $s->getEntryTypes();
+                foreach ($entryTypes as $et) {
+                    if ($et->id === $entryType->id) {
+                        $section = [
+                            'id' => $s->id,
+                            'name' => $s->name,
+                            'handle' => $s->handle,
+                            'type' => $s->type,
+                        ];
+                        $sectionId = $s->id;
+                        break 2;
+                    }
+                }
+            }
+        }
+        
         $result = [
             'entryType' => [
                 'id' => $entryType->id,
                 'name' => $entryType->name,
                 'handle' => $entryType->handle,
-                'sectionId' => $entryType->sectionId,
+                'sectionId' => $sectionId,
                 'hasTitleField' => $entryType->hasTitleField,
                 'titleFormat' => $entryType->titleFormat,
             ],
             'fields' => [],
         ];
         
-        // Get section info
-        $section = $entryType->getSection();
         if ($section) {
-            $result['section'] = [
-                'id' => $section->id,
-                'name' => $section->name,
-                'handle' => $section->handle,
-                'type' => $section->type,
-            ];
+            $result['section'] = $section;
         }
         
         // Get field layout

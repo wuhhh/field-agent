@@ -147,6 +147,9 @@ CRITICAL: FIELD TYPES (use these EXACT values only):
 - categories - For Craft CMS native category groups (NOT multi_select for categories!)
 - tags - For Craft CMS native tag groups (NOT multi_select for tags!)
 - content_block - For reusable content structures with nested fields (viewMode, fields settings)
+- table: ONLY columns (array of column objects), minRows (integer), maxRows (integer), addRowLabel (string), defaults (array)
+  Table column types: singleline, multiline, number, checkbox, color, url, email, date, time
+  Column structure: {"heading": "Name", "handle": "handle", "type": "singleline", "width": "25%"}
 - All other supported: time, color, range, radio_buttons, checkboxes, multi_select, country, button_group, icon, asset, matrix, users, entries
 
 WHEN TO USE CATEGORIES vs TAGS vs MULTI_SELECT:

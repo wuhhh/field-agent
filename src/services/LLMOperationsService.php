@@ -510,6 +510,29 @@ MODIFY OPERATIONS:
 - updateField: Update field settings
 - updateSettings: Update section or entry type settings
 
+Example for "Change the URI format of a section":
+{
+  "name": "Update Section URI",
+  "description": "Updates the URI format for the test section",
+  "operations": [
+    {
+      "type": "modify",
+      "target": "section",
+      "targetId": "testSection",
+      "modify": {
+        "actions": [
+          {
+            "action": "updateSettings",
+            "updates": {
+              "uri": "new-uri-format/{slug}"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+
 Example for "Add a featured image to the blog post entry type":
 {
   "name": "Add Featured Image to Blog",
@@ -798,17 +821,17 @@ PROMPT;
                     break;
 
                 case 'modify':
-                    if (!isset($operation['handle'])) {
-                        $errors[] = "$opPath.handle: Required for modify operations";
+                    if (!isset($operation['targetId'])) {
+                        $errors[] = "$opPath.targetId: Required for modify operations";
                     }
-                    if (!isset($operation['changes'])) {
-                        $errors[] = "$opPath.changes: Required for modify operations";
+                    if (!isset($operation['modify'])) {
+                        $errors[] = "$opPath.modify: Required for modify operations";
                     }
                     break;
 
                 case 'delete':
-                    if (!isset($operation['handle'])) {
-                        $errors[] = "$opPath.handle: Required for delete operations";
+                    if (!isset($operation['targetId'])) {
+                        $errors[] = "$opPath.targetId: Required for delete operations";
                     }
                     break;
             }

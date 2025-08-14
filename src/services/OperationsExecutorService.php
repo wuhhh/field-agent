@@ -933,6 +933,28 @@ class OperationsExecutorService extends Component
             $updatedFields[] = 'propagationMethod';
         }
 
+        // Simple URI update (applies to default site)
+        if (isset($updates['uri'])) {
+            $siteSettings = $section->getSiteSettings();
+            $defaultSite = Craft::$app->getSites()->getPrimarySite();
+            if (isset($siteSettings[$defaultSite->id])) {
+                $siteSettings[$defaultSite->id]->uriFormat = $updates['uri'];
+                $section->setSiteSettings($siteSettings);
+                $updatedFields[] = 'uri';
+            }
+        }
+
+        // Simple template update (applies to default site)
+        if (isset($updates['template'])) {
+            $siteSettings = $section->getSiteSettings();
+            $defaultSite = Craft::$app->getSites()->getPrimarySite();
+            if (isset($siteSettings[$defaultSite->id])) {
+                $siteSettings[$defaultSite->id]->template = $updates['template'];
+                $section->setSiteSettings($siteSettings);
+                $updatedFields[] = 'template';
+            }
+        }
+
         // Site-specific settings
         if (isset($updates['siteSettings'])) {
             $siteSettings = $section->getSiteSettings();

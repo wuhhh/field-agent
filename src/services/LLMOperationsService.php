@@ -509,6 +509,14 @@ MODIFY OPERATIONS:
 - removeField: Remove field from an entry type
 - updateField: Update field settings
 - updateSettings: Update section or entry type settings
+- addEntryType: Add existing entry type to a section
+- removeEntryType: Remove entry type from a section
+
+ENTRY TYPE MANAGEMENT EXAMPLES:
+- Add existing entry type: "Add the existing blogPost entry type to the news section"
+- Remove entry type: "Remove the article entry type from the blog section"
+- Be explicit with handles when needed: "Add newsArticle to Journal (handle: blog) section"
+- Always reference existing entry types by their actual handle
 
 AVAILABLE SETTINGS FOR updateSettings:
 For sections:
@@ -572,6 +580,27 @@ Example for "Change the name and icon of the blogPost entry type":
               "icon": "newspaper",
               "color": "blue"
             }
+          }
+        ]
+      }
+    }
+  ]
+}
+
+Example for "Add the existing newsArticle entry type to the blog section":
+{
+  "name": "Add Entry Type to Section",
+  "description": "Adds an existing entry type to a section",
+  "operations": [
+    {
+      "type": "modify",
+      "target": "section",
+      "targetId": "blog",
+      "modify": {
+        "actions": [
+          {
+            "action": "addEntryType",
+            "entryTypeHandle": "newsArticle"
           }
         ]
       }

@@ -116,7 +116,3 @@ plugins/field-agent/
 
 `field-agent/discovery/test`  
 `field-agent/discovery/tools`
-
-### Reserved Field Protection
-The system automatically prevents use of Craft CMS reserved field handles:
-`author`, `authorId`, `content`, `dateCreated`, `dateUpdated`, `id`, `slug`, `title`, `uid`, `uri`, `url`, `level`, `lft`, `rgt`, `root`, `parent`, `parentId`, `children`, `descendants`, `ancestors`, `next`, `prev`, `siblings`, `status`, `enabled`, `archived`, `trashed`, `postDate`, `expiryDate`, `revisionCreator`, `revisionNotes`, `section`, `sectionId`, `type`, `typeId`, `field`, `fieldId`

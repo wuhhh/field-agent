@@ -4,6 +4,7 @@ namespace craftcms\fieldagent\services;
 
 use Craft;
 use craft\base\Component;
+use craft\helpers\StringHelper;
 use craft\models\Section;
 use craft\models\Section_SiteSettings;
 use craft\models\EntryType;
@@ -76,10 +77,13 @@ class SectionService extends Component
             $siteSetting->hasUrls = $siteConfig['hasUrls'] ?? true;
 
             if ($siteSetting->hasUrls) {
+                // Convert handle to kebab-case for URI (e.g., cakeRecipes -> cake-recipes)
+                $kebabHandle = StringHelper::toKebabCase($section->handle);
+                
                 // Provide a default URI format if none specified
                 $defaultUriFormat = $section->type === Section::TYPE_SINGLE ?
-                    $section->handle :
-                    $section->handle . '/{slug}';
+                    $kebabHandle :
+                    $kebabHandle . '/{slug}';
 
                 // Provide a default template path if none specified
                 $defaultTemplate = $section->handle . '/_entry';

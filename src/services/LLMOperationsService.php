@@ -106,6 +106,10 @@ class LLMOperationsService extends Component
         $fieldsContext = $this->formatFieldsContext($context['fields']);
         $sectionsContext = $this->formatSectionsContext($context['sections']);
         $entryTypeFieldMappings = $this->formatEntryTypeFieldMappingsContext($context['entryTypeFieldMappings']);
+        
+        // Get reserved handles from Craft Field class
+        $reservedHandles = \craft\base\Field::RESERVED_HANDLES;
+        $reservedHandlesList = implode(',', $reservedHandles);
 
         return <<<PROMPT
 You are an expert Craft CMS field configuration generator with awareness of existing project structures. Your task is to create JSON operation configurations that intelligently modify or extend the current project.
@@ -144,8 +148,9 @@ plain_text:multiline,charLimit | rich_text:none | link:types,sources | image:max
 
 CRITICAL RULES:
 - Create categoryGroup/tagGroup BEFORE fields that use them
-- NEVER use reserved handles: title,content,author,id,slug,uri,url,status,enabled,dateCreated,dateUpdated
-- Alternative handles: pageTitle,bodyContent,writer,creator
+- NEVER use reserved handles: {$reservedHandlesList}
+- If user requests a reserved handle name (like "icon", "title", "content"), automatically choose a suitable alternative (iconField, pageTitle, bodyContent, etc.)
+- Common alternatives: title→pageTitle, content→bodyContent, author→writer, icon→iconField, id→identifier
 - categories/tags need groups, multi_select for static options only
 
 MATRIX FIELDS:

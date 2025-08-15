@@ -89,12 +89,13 @@ class LLMOperationsService extends Component
         // Format existing fields for the prompt
         $fieldsContext = $this->formatFieldsContext($context['fields']);
         $sectionsContext = $this->formatSectionsContext($context['sections']);
+        $entryTypesContext = $this->formatEntryTypesContext($context['entryTypes']);
         $entryTypeFieldMappings = $this->formatEntryTypeFieldMappingsContext($context['entryTypeFieldMappings']);
-        
+
         // Get reserved handles from Craft Field class
         $reservedHandles = \craft\base\Field::RESERVED_HANDLES;
         $reservedHandlesList = implode(',', $reservedHandles);
-        
+
         // Get available field types from our mapping
         $fieldTypesString = \craftcms\fieldagent\services\FieldService::getFieldTypesString();
 
@@ -107,10 +108,13 @@ CURRENT PROJECT STATE:
 EXISTING FIELDS:
 {$fieldsContext}
 
-EXISTING SECTIONS AND ENTRY TYPES:
+ALL ENTRY TYPES:
+{$entryTypesContext}
+
+SECTION -> ENTRY TYPE RELATIONS:
 {$sectionsContext}
 
-ENTRY TYPE FIELD MAPPINGS:
+ENTRY TYPE -> FIELD RELATIONS:
 {$entryTypeFieldMappings}
 
 IMPORTANT: You MUST respond with valid JSON that exactly matches the operations schema. Do not include any explanation, markdown formatting, or additional text - only the JSON response.
@@ -150,6 +154,11 @@ Examples for RANGE fields:
 - User says "step by 5" → use {"step": 5}
 
 IMPORTANT: The min/max values are the actual minimum and maximum values allowed in the field, not percentages, fractions, or converted decimal representations.
+
+ENTRY TYPE COLORS:
+Entry types can only use these predefined colors (use the lowercase name, not hex values):
+red, orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose
+Example: {"color": "emerald"} NOT {"color": "#10B981"} or {"color": "Emerald"}
 
 CRITICAL RULES:
 - Create categoryGroup/tagGroup BEFORE fields that use them
@@ -216,10 +225,30 @@ PROMPT;
 
         $fields = [];
         foreach ($fieldsData['fields'] as $field) {
-            $fields[] = "{$field['handle']}({$field['typeDisplay']})";
+            // Get the schema enum value from FieldService mapping
+            $schemaType = $this->getSchemaFieldType($field['type']);
+            $fields[] = "{$field['handle']}({$schemaType})";
         }
 
         return "F:" . implode(",", $fields);
+    }
+    
+    /**
+     * Convert Craft field class to schema enum value using FieldService mapping
+     */
+    private function getSchemaFieldType(string $fieldClass): string
+    {
+        // Use the FieldService mapping to find the schema type
+        $fieldTypeMap = \craftcms\fieldagent\services\FieldService::FIELD_TYPE_MAP;
+        
+        // Search through the mapping to find the schema enum value
+        foreach ($fieldTypeMap as $schemaType => $className) {
+            if ($className === $fieldClass) {
+                return $schemaType;
+            }
+        }
+        
+        return 'unknown';
     }
 
     /**
@@ -238,6 +267,30 @@ PROMPT;
         }
 
         return implode(" | ", $sections);
+    }
+
+    /**
+     * Format entry types context for the prompt
+     */
+    private function formatEntryTypesContext(array $entryTypesData): string
+    {
+        if (empty($entryTypesData['entryTypes'])) {
+            return "No entry types exist yet.";
+        }
+
+        $entryTypes = [];
+        foreach ($entryTypesData['entryTypes'] as $entryType) {
+            $entryTypeStr = $entryType['handle'] . '(' . $entryType['name'] . ')';
+            if (!empty($entryType['icon'])) {
+                $entryTypeStr .= ' [icon:' . $entryType['icon'] . ']';
+            }
+            if (!empty($entryType['color'])) {
+                $entryTypeStr .= ' [color:' . $entryType['color'] . ']';
+            }
+            $entryTypes[] = $entryTypeStr;
+        }
+
+        return 'ET:' . implode(',', $entryTypes);
     }
 
     /**
@@ -276,8 +329,6 @@ PROMPT;
      */
     public function validateOperations(array $config): array
     {
-        $schemaPath = Plugin::getInstance()->getBasePath() . '/schemas/llm-operations-schema.json';
-
         // Quick validation that operations array exists
         if (!isset($config['operations']) || !is_array($config['operations'])) {
             return [
@@ -385,7 +436,7 @@ PROMPT;
             ];
         }
     }
-    
+
     /**
      * Generate the operations schema dynamically with current field types
      */
@@ -401,11 +452,11 @@ PROMPT;
         if (!$schema) {
             throw new Exception("Invalid JSON operations schema file");
         }
-        
+
         // Inject dynamic field types from our mapping
         $fieldTypes = \craftcms\fieldagent\services\FieldService::getAvailableFieldTypes();
         $schema['properties']['operations']['items']['properties']['create']['properties']['field']['properties']['field_type']['enum'] = $fieldTypes;
-        
+
         return $schema;
     }
 

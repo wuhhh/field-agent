@@ -136,6 +136,10 @@ class FieldService extends Component
                     $field->max = $updates['max'];
                     $modifications[] = "Updated max to {$updates['max']}";
                 }
+                if (isset($updates['prefix'])) {
+                    $field->prefix = $updates['prefix'];
+                    $modifications[] = "Updated prefix to '{$updates['prefix']}'";
+                }
                 if (isset($updates['suffix'])) {
                     $field->suffix = $updates['suffix'];
                     $modifications[] = "Updated suffix to '{$updates['suffix']}'";
@@ -165,6 +169,10 @@ class FieldService extends Component
                 if (isset($updates['maxRelations'])) {
                     $field->maxRelations = $updates['maxRelations'];
                     $modifications[] = "Updated maxRelations to {$updates['maxRelations']}";
+                }
+                if (isset($updates['minRelations'])) {
+                    $field->minRelations = $updates['minRelations'];
+                    $modifications[] = "Updated minRelations to {$updates['minRelations']}";
                 }
                 if (isset($updates['viewMode'])) {
                     $field->viewMode = $updates['viewMode'];
@@ -316,12 +324,18 @@ class FieldService extends Component
                 $field->allowedKinds = ['image'];
                 $field->restrictFiles = true; // Must enable this for allowedKinds to work
                 $field->maxRelations = $normalizedConfig['maxRelations'] ?? 1;
+                if (isset($normalizedConfig['minRelations'])) {
+                    $field->minRelations = $normalizedConfig['minRelations'];
+                }
                 $field->viewMode = 'list';
                 break;
 
             case 'asset':
                 $field = new \craft\fields\Assets();
                 $field->maxRelations = $normalizedConfig['maxRelations'] ?? 1;
+                if (isset($normalizedConfig['minRelations'])) {
+                    $field->minRelations = $normalizedConfig['minRelations'];
+                }
                 $field->viewMode = 'list';
                 // If allowedKinds is specified, enable restrictFiles
                 if (isset($normalizedConfig['allowedKinds'])) {
@@ -340,6 +354,9 @@ class FieldService extends Component
                 }
                 if (isset($normalizedConfig['max'])) {
                     $field->max = $normalizedConfig['max'];
+                }
+                if (isset($normalizedConfig['prefix'])) {
+                    $field->prefix = $normalizedConfig['prefix'];
                 }
                 if (isset($normalizedConfig['suffix'])) {
                     $field->suffix = $normalizedConfig['suffix'];
@@ -610,7 +627,6 @@ class FieldService extends Component
 
             case 'tags':
                 $field = new \craft\fields\Tags();
-                $field->maxRelations = $normalizedConfig['maxRelations'] ?? null;
 
                 // Configure sources (tag groups)
                 if (isset($normalizedConfig['sources']) && is_array($normalizedConfig['sources'])) {

@@ -135,7 +135,7 @@ Wrong order will cause failures!
 FIELD TYPES: {$fieldTypesString}
 
 FIELD SETTINGS:
-plain_text:multiline,charLimit | rich_text:none | link:types,sources | image:maxRelations | dropdown:options | number:decimals,min,max | money:currency | categories:maxRelations,sources | tags:maxRelations,sources | matrix:entryTypes | lightswitch:default | date:showDate,showTime
+plain_text:multiline,charLimit | rich_text:none | link:types,sources | image:maxRelations,minRelations | asset:maxRelations,minRelations | dropdown:options | number:decimals,min,max,prefix,suffix | money:currency | categories:maxRelations,sources | tags:sources | matrix:entryTypes | lightswitch:default | date:showDate,showTime
 
 NUMERIC FIELD SETTINGS - CRITICAL:
 For number, money, and range fields, min/max values must be provided as actual numeric values, NOT percentages or decimals of the requested value.
@@ -232,7 +232,7 @@ PROMPT;
 
         return "F:" . implode(",", $fields);
     }
-    
+
     /**
      * Convert Craft field class to schema enum value using FieldService mapping
      */
@@ -240,14 +240,14 @@ PROMPT;
     {
         // Use the FieldService mapping to find the schema type
         $fieldTypeMap = \craftcms\fieldagent\services\FieldService::FIELD_TYPE_MAP;
-        
+
         // Search through the mapping to find the schema enum value
         foreach ($fieldTypeMap as $schemaType => $className) {
             if ($className === $fieldClass) {
                 return $schemaType;
             }
         }
-        
+
         return 'unknown';
     }
 

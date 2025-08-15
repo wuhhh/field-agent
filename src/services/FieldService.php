@@ -33,7 +33,7 @@ class FieldService extends Component
      */
     public const FIELD_TYPE_MAP = [
         'addresses' => \craft\fields\Addresses::class,
-        'asset' => \craft\fields\Assets::class,
+        'assets' => \craft\fields\Assets::class,
         'button_group' => \craft\fields\ButtonGroup::class,
         'categories' => \craft\fields\Categories::class,
         'checkboxes' => \craft\fields\Checkboxes::class,
@@ -74,10 +74,14 @@ class FieldService extends Component
         foreach (self::FIELD_TYPE_MAP as $type => $class) {
             if ($className === $class) {
                 // Special case for Assets fields configured as image
-                if ($type === 'asset' && $field instanceof \craft\fields\Assets) {
+                if ($type === 'assets' && $field instanceof \craft\fields\Assets) {
                     // Check if it's configured as an image field
                     if ($field->restrictFiles && $field->allowedKinds === ['image']) {
                         return 'image';
+                    }
+                    // Check if it's configured as single asset
+                    if ($field->maxRelations === 1) {
+                        return 'asset';
                     }
                 }
                 return $type;
@@ -374,9 +378,16 @@ class FieldService extends Component
                 $field->viewMode = 'list';
                 break;
 
+            case 'assets':
             case 'asset':
                 $field = new \craft\fields\Assets();
-                $field->maxRelations = $normalizedConfig['maxRelations'] ?? 1;
+                if ($fieldType === 'asset') {
+                    // Single asset field - default to maxRelations=1
+                    $field->maxRelations = $normalizedConfig['maxRelations'] ?? 1;
+                } else {
+                    // Multiple assets field - no default limit
+                    $field->maxRelations = $normalizedConfig['maxRelations'] ?? null;
+                }
                 if (isset($normalizedConfig['minRelations'])) {
                     $field->minRelations = $normalizedConfig['minRelations'];
                 }

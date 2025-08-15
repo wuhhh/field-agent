@@ -29,11 +29,11 @@ class AssetField implements FieldTypeInterface
         $autoData = $this->introspector->analyzeFieldType(\craft\fields\Assets::class);
         
         return new FieldDefinition([
-            'type' => 'asset',
+            'type' => 'assets',
             'craftClass' => \craft\fields\Assets::class,
             'autoDiscoveredData' => $autoData,  // 80% automated
-            'aliases' => ['asset'], // Manual
-            'llmDocumentation' => 'asset: maxRelations (integer), minRelations (integer), viewMode (string), allowedKinds (array)', // Manual
+            'aliases' => ['asset'], // Manual - single asset with maxRelations=1
+            'llmDocumentation' => 'assets: maxRelations (integer), minRelations (integer), viewMode (string), allowedKinds (array)', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
@@ -47,8 +47,18 @@ class AssetField implements FieldTypeInterface
     {
         $field = new \craft\fields\Assets();
         
+        // Check if this was requested as "asset" (singular) vs "assets" (plural)
+        $fieldType = $config['field_type'] ?? 'assets';
+        
         // Apply Asset-specific settings exactly as in original implementation
-        $field->maxRelations = $config['maxRelations'] ?? 1;
+        if ($fieldType === 'asset') {
+            // Single asset field - default to maxRelations=1
+            $field->maxRelations = $config['maxRelations'] ?? 1;
+        } else {
+            // Multiple assets field - no default limit
+            $field->maxRelations = $config['maxRelations'] ?? null;
+        }
+        
         if (isset($config['minRelations'])) {
             $field->minRelations = $config['minRelations'];
         }

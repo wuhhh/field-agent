@@ -25,7 +25,7 @@ class FieldService extends Component
     /**
      * @var array Map of our field type identifiers to Craft field classes
      */
-    private const FIELD_TYPE_MAP = [
+    public const FIELD_TYPE_MAP = [
         'addresses' => \craft\fields\Addresses::class,
         'asset' => \craft\fields\Assets::class,
         'button_group' => \craft\fields\ButtonGroup::class,

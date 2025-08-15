@@ -18,6 +18,7 @@ use craftcms\fieldagent\services\StatisticsService;
 use craftcms\fieldagent\services\EntryTypeService;
 use craftcms\fieldagent\models\Settings;
 use craftcms\fieldagent\services\DiscoveryService;
+use craftcms\fieldagent\registry\FieldRegistryService;
 
 /**
  * Field Generator plugin
@@ -36,6 +37,7 @@ use craftcms\fieldagent\services\DiscoveryService;
  * @property-read ConfigurationService $configurationService
  * @property-read StatisticsService $statisticsService
  * @property-read EntryTypeService $entryTypeService
+ * @property-read FieldRegistryService $fieldRegistryService
  * @author Craft CMS
  * @since 1.0.0
  */
@@ -60,6 +62,7 @@ class Plugin extends BasePlugin
                 'configurationService' => ConfigurationService::class,
                 'statisticsService' => StatisticsService::class,
                 'entryTypeService' => EntryTypeService::class,
+                'fieldRegistryService' => FieldRegistryService::class,
             ],
         ];
     }
@@ -73,10 +76,85 @@ class Plugin extends BasePlugin
             $this->controllerNamespace = 'craftcms\\fieldagent\\console\\controllers';
         }
 
+        // Initialize field registry
+        $this->initializeFieldRegistry();
+
         Craft::info(
             Craft::t('field-agent', '{name} plugin loaded', ['name' => $this->name]),
             __METHOD__
         );
+    }
+
+    /**
+     * Initialize the field registry with all field types
+     */
+    private function initializeFieldRegistry(): void
+    {
+        try {
+            $registry = $this->fieldRegistryService;
+            
+            // Auto-register native Craft field types
+            $autoCount = $registry->autoRegisterNativeFields();
+            
+            // Register manually enhanced field types
+            $this->registerEnhancedFieldTypes($registry);
+            
+            $totalFields = count($registry->getAllFields());
+            Craft::info("Field registry initialized with {$totalFields} field types ({$autoCount} auto-discovered)", __METHOD__);
+            
+        } catch (\Exception $e) {
+            Craft::error("Failed to initialize field registry: {$e->getMessage()}", __METHOD__);
+        }
+    }
+
+    /**
+     * Register manually enhanced field types
+     */
+    private function registerEnhancedFieldTypes(FieldRegistryService $registry): void
+    {
+        // List all manually enhanced field type classes
+        $fieldTypeClasses = [
+            \craftcms\fieldagent\fieldTypes\TableField::class,
+            \craftcms\fieldagent\fieldTypes\PlainTextField::class,
+            \craftcms\fieldagent\fieldTypes\EmailField::class,
+            \craftcms\fieldagent\fieldTypes\NumberField::class,
+            \craftcms\fieldagent\fieldTypes\LightswitchField::class,
+            \craftcms\fieldagent\fieldTypes\CountryField::class,
+            \craftcms\fieldagent\fieldTypes\DropdownField::class,
+            \craftcms\fieldagent\fieldTypes\RichTextField::class,
+            \craftcms\fieldagent\fieldTypes\AssetField::class,
+            \craftcms\fieldagent\fieldTypes\MoneyField::class,
+            \craftcms\fieldagent\fieldTypes\AddressesField::class,
+            \craftcms\fieldagent\fieldTypes\ColorField::class,
+            \craftcms\fieldagent\fieldTypes\DateField::class,
+            \craftcms\fieldagent\fieldTypes\TimeField::class,
+            \craftcms\fieldagent\fieldTypes\RangeField::class,
+            \craftcms\fieldagent\fieldTypes\IconField::class,
+            \craftcms\fieldagent\fieldTypes\JsonField::class,
+            \craftcms\fieldagent\fieldTypes\RadioButtonsField::class,
+            \craftcms\fieldagent\fieldTypes\CheckboxesField::class,
+            \craftcms\fieldagent\fieldTypes\MultiSelectField::class,
+            \craftcms\fieldagent\fieldTypes\ButtonGroupField::class,
+            \craftcms\fieldagent\fieldTypes\UsersField::class,
+            \craftcms\fieldagent\fieldTypes\EntriesField::class,
+            \craftcms\fieldagent\fieldTypes\CategoriesField::class,
+            \craftcms\fieldagent\fieldTypes\TagsField::class,
+            \craftcms\fieldagent\fieldTypes\MatrixField::class,
+            \craftcms\fieldagent\fieldTypes\ContentBlockField::class,
+            \craftcms\fieldagent\fieldTypes\LinkField::class,
+            \craftcms\fieldagent\fieldTypes\ImageField::class,
+        ];
+
+        foreach ($fieldTypeClasses as $className) {
+            try {
+                if (class_exists($className)) {
+                    $fieldType = new $className();
+                    $registry->registerFieldType($fieldType);
+                }
+            } catch (\Exception $e) {
+                Craft::error("Failed to register field type {$className}: {$e->getMessage()}", __METHOD__);
+            }
+        }
     }
 
     public function getControllerNamespace(): string

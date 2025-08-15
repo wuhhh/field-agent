@@ -96,8 +96,8 @@ class LLMOperationsService extends Component
         $reservedHandles = \craft\base\Field::RESERVED_HANDLES;
         $reservedHandlesList = implode(',', $reservedHandles);
 
-        // Get available field types from our mapping
-        $fieldTypesString = \craftcms\fieldagent\services\FieldService::getFieldTypesString();
+        // Get available field types from the registry
+        $fieldTypesString = $this->getFieldTypesFromRegistry();
 
         return <<<PROMPT
 You are an expert Craft CMS field configuration generator with awareness of existing project structures. Your task is to create JSON operation configurations that intelligently modify or extend the current project.
@@ -135,7 +135,7 @@ Wrong order will cause failures!
 FIELD TYPES: {$fieldTypesString}
 
 FIELD SETTINGS:
-plain_text:multiline,charLimit | rich_text:none | link:types,sources | image:maxRelations,minRelations | asset:maxRelations,minRelations | dropdown:options | number:decimals,min,max,prefix,suffix | money:currency | categories:maxRelations,sources | tags:sources | matrix:entryTypes | lightswitch:default | date:showDate,showTime
+{$this->getFieldSettingsFromRegistry()}
 
 NUMERIC FIELD SETTINGS - CRITICAL:
 For number, money, and range fields, min/max values must be provided as actual numeric values, NOT percentages or decimals of the requested value.
@@ -453,11 +453,57 @@ PROMPT;
             throw new Exception("Invalid JSON operations schema file");
         }
 
-        // Inject dynamic field types from our mapping
-        $fieldTypes = \craftcms\fieldagent\services\FieldService::getAvailableFieldTypes();
+        // Inject dynamic field types from the registry
+        $fieldTypes = $this->getFieldTypesArrayFromRegistry();
         $schema['properties']['operations']['items']['properties']['create']['properties']['field']['properties']['field_type']['enum'] = $fieldTypes;
 
         return $schema;
+    }
+
+    /**
+     * Get field types as a comma-separated string from the registry
+     */
+    private function getFieldTypesFromRegistry(): string
+    {
+        try {
+            $registry = Plugin::getInstance()->fieldRegistryService;
+            $fieldTypes = $registry->getFieldTypes();
+            sort($fieldTypes);
+            return implode(',', $fieldTypes);
+        } catch (\Exception $e) {
+            // Fallback to old method if registry not available
+            return \craftcms\fieldagent\services\FieldService::getFieldTypesString();
+        }
+    }
+
+    /**
+     * Get field types as an array from the registry
+     */
+    private function getFieldTypesArrayFromRegistry(): array
+    {
+        try {
+            $registry = Plugin::getInstance()->fieldRegistryService;
+            $fieldTypes = $registry->getFieldTypes();
+            sort($fieldTypes);
+            return $fieldTypes;
+        } catch (\Exception $e) {
+            // Fallback to old method if registry not available
+            return \craftcms\fieldagent\services\FieldService::getAvailableFieldTypes();
+        }
+    }
+
+    /**
+     * Get field settings documentation from the registry
+     */
+    private function getFieldSettingsFromRegistry(): string
+    {
+        try {
+            $registry = Plugin::getInstance()->fieldRegistryService;
+            return $registry->generateLLMDocumentation();
+        } catch (\Exception $e) {
+            // Fallback to old hardcoded documentation
+            return "plain_text:multiline,charLimit | rich_text:none | link:types,sources | image:maxRelations,minRelations | asset:maxRelations,minRelations | dropdown:options | number:decimals,min,max,prefix,suffix | money:currency | categories:maxRelations,sources | tags:sources | matrix:entryTypes | lightswitch:default | date:showDate,showTime";
+        }
     }
 
 }

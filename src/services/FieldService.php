@@ -6,6 +6,7 @@ use Craft;
 use craft\base\Component;
 use craft\base\Field;
 use yii\base\Exception;
+use craftcms\fieldagent\Plugin;
 
 /**
  * Field Generator service
@@ -21,6 +22,11 @@ class FieldService extends Component
      * @var array Tracks block entry types created during matrix field creation
      */
     private array $createdBlockEntryTypes = [];
+
+    /**
+     * @var bool Feature flag to use registry system for field creation
+     */
+    private bool $useRegistry = true;
 
     /**
      * @var array Map of our field type identifiers to Craft field classes
@@ -96,6 +102,22 @@ class FieldService extends Component
     public static function getFieldTypesString(): string
     {
         return implode(',', self::getAvailableFieldTypes());
+    }
+
+    /**
+     * Set whether to use the registry system for field creation
+     */
+    public function setUseRegistry(bool $useRegistry): void
+    {
+        $this->useRegistry = $useRegistry;
+    }
+
+    /**
+     * Check if registry system is enabled
+     */
+    public function isUsingRegistry(): bool
+    {
+        return $this->useRegistry;
     }
 
     /**
@@ -298,7 +320,29 @@ class FieldService extends Component
         $fieldType = $normalizedConfig['field_type'] ?? '';
         $field = null;
 
-        switch ($fieldType) {
+        // Try registry system first if enabled
+        if ($this->useRegistry) {
+            try {
+                $registry = Plugin::getInstance()->fieldRegistryService;
+                $fieldDefinition = $registry->getField($fieldType);
+                
+                if ($fieldDefinition) {
+                    // Create field using registry
+                    $field = $fieldDefinition->createField($normalizedConfig);
+                    
+                    if ($field) {
+                        Craft::info("Created field '{$fieldType}' using registry system", __METHOD__);
+                    }
+                }
+            } catch (\Exception $e) {
+                Craft::warning("Registry field creation failed for '{$fieldType}': {$e->getMessage()}", __METHOD__);
+                // Fall through to legacy system
+            }
+        }
+
+        // Fall back to legacy switch statement if registry didn't work
+        if (!$field) {
+            switch ($fieldType) {
             case 'plain_text':
             case 'text':
                 $field = new \craft\fields\PlainText();
@@ -682,6 +726,7 @@ class FieldService extends Component
 
             default:
                 throw new Exception("Unsupported field type: $fieldType");
+            }
         }
 
         if ($field) {

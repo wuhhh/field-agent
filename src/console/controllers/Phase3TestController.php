@@ -14,6 +14,26 @@ use craftcms\fieldagent\fieldTypes\CountryField;
 use craftcms\fieldagent\fieldTypes\DropdownField;
 use craftcms\fieldagent\fieldTypes\RichTextField;
 use craftcms\fieldagent\fieldTypes\AssetField;
+use craftcms\fieldagent\fieldTypes\MoneyField;
+use craftcms\fieldagent\fieldTypes\AddressesField;
+use craftcms\fieldagent\fieldTypes\ColorField;
+use craftcms\fieldagent\fieldTypes\DateField;
+use craftcms\fieldagent\fieldTypes\TimeField;
+use craftcms\fieldagent\fieldTypes\RangeField;
+use craftcms\fieldagent\fieldTypes\IconField;
+use craftcms\fieldagent\fieldTypes\JsonField;
+use craftcms\fieldagent\fieldTypes\RadioButtonsField;
+use craftcms\fieldagent\fieldTypes\CheckboxesField;
+use craftcms\fieldagent\fieldTypes\MultiSelectField;
+use craftcms\fieldagent\fieldTypes\ButtonGroupField;
+use craftcms\fieldagent\fieldTypes\UsersField;
+use craftcms\fieldagent\fieldTypes\EntriesField;
+use craftcms\fieldagent\fieldTypes\CategoriesField;
+use craftcms\fieldagent\fieldTypes\TagsField;
+use craftcms\fieldagent\fieldTypes\MatrixField;
+use craftcms\fieldagent\fieldTypes\ContentBlockField;
+use craftcms\fieldagent\fieldTypes\LinkField;
+use craftcms\fieldagent\fieldTypes\ImageField;
 
 /**
  * Comprehensive test for Phase 2 and Phase 3 field migrations
@@ -46,6 +66,26 @@ class Phase3TestController extends Controller
                 'dropdown' => new DropdownField(),
                 'rich_text' => new RichTextField(),
                 'asset' => new AssetField(),
+                'money' => new MoneyField(),
+                'addresses' => new AddressesField(),
+                'color' => new ColorField(),
+                'date' => new DateField(),
+                'time' => new TimeField(),
+                'range' => new RangeField(),
+                'icon' => new IconField(),
+                'json' => new JsonField(),
+                'radio_buttons' => new RadioButtonsField(),
+                'checkboxes' => new CheckboxesField(),
+                'multi_select' => new MultiSelectField(),
+                'button_group' => new ButtonGroupField(),
+                'users' => new UsersField(),
+                'entries' => new EntriesField(),
+                'categories' => new CategoriesField(),
+                'tags' => new TagsField(),
+                'matrix' => new MatrixField(),
+                'content_block' => new ContentBlockField(),
+                'link' => new LinkField(),
+                'image' => new ImageField(),
             ];
 
             $this->stdout("Test 1: Register all migrated field types... ");

@@ -143,4 +143,19 @@ class FieldDefinition
     {
         return $this->type === $type || in_array($type, $this->aliases);
     }
+
+    /**
+     * Create a field instance using the factory if available
+     *
+     * @param array $config Field configuration
+     * @return \craft\base\FieldInterface|null
+     */
+    public function createField(array $config): ?\craft\base\FieldInterface
+    {
+        if ($this->factory && is_callable($this->factory)) {
+            return call_user_func($this->factory, $config);
+        }
+        
+        return null;
+    }
 }

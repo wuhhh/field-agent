@@ -127,6 +127,15 @@ class SectionService extends Component
                     }
                 }
 
+                // If not found in created entry types, check existing entry types
+                if (!$found) {
+                    $existingEntryType = Craft::$app->getEntries()->getEntryTypeByHandle($entryTypeHandle);
+                    if ($existingEntryType) {
+                        $entryTypesToAssociate[] = $existingEntryType;
+                        $found = true;
+                    }
+                }
+
                 if (!$found) {
                     $missingEntryTypes[] = $entryTypeHandle;
                 }

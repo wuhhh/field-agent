@@ -24,27 +24,11 @@ class LLMOperationsService extends Component
             $plugin = Plugin::getInstance();
             $context = $plugin->discoveryService->getProjectContext();
 
-            // Load the operations schema
-            $schemaPath = Plugin::getInstance()->getBasePath() . '/schemas/llm-operations-schema.json';
-            if (!file_exists($schemaPath)) {
-                return [
-                    'success' => false,
-                    'error' => "Operations schema file not found: $schemaPath",
-                    'operations' => null
-                ];
-            }
+            // Generate the operations schema dynamically
+            $schema = $this->generateOperationsSchema();
 
-            $schema = json_decode(file_get_contents($schemaPath), true);
-            if (!$schema) {
-                return [
-                    'success' => false,
-                    'error' => "Invalid JSON operations schema file",
-                    'operations' => null
-                ];
-            }
-
-            // Generate the system prompt with context and schema
-            $systemPrompt = $this->buildOperationsSystemPrompt($schema, $context);
+            // Generate the system prompt with context
+            $systemPrompt = $this->buildOperationsSystemPrompt($context);
 
 			// Integration service
 			$llmService = $plugin->llmIntegrationService;
@@ -100,16 +84,21 @@ class LLMOperationsService extends Component
     /**
      * Build system prompt for operations with context
      */
-    private function buildOperationsSystemPrompt(array $schema, array $context): string
+    private function buildOperationsSystemPrompt(array $context): string
     {
         // Format existing fields for the prompt
         $fieldsContext = $this->formatFieldsContext($context['fields']);
         $sectionsContext = $this->formatSectionsContext($context['sections']);
+        $entryTypesContext = $this->formatEntryTypesContext($context['entryTypes']);
         $entryTypeFieldMappings = $this->formatEntryTypeFieldMappingsContext($context['entryTypeFieldMappings']);
 
-        // Convert schema to JSON string for inclusion in prompt
-        $schemaJson = json_encode($schema, JSON_PRETTY_PRINT);
-        
+        // Get reserved handles from Craft Field class
+        $reservedHandles = \craft\base\Field::RESERVED_HANDLES;
+        $reservedHandlesList = implode(',', $reservedHandles);
+
+        // Get available field types from our mapping
+        $fieldTypesString = \craftcms\fieldagent\services\FieldService::getFieldTypesString();
+
         return <<<PROMPT
 You are an expert Craft CMS field configuration generator with awareness of existing project structures. Your task is to create JSON operation configurations that intelligently modify or extend the current project.
 
@@ -119,21 +108,16 @@ CURRENT PROJECT STATE:
 EXISTING FIELDS:
 {$fieldsContext}
 
-EXISTING SECTIONS AND ENTRY TYPES:
+ALL ENTRY TYPES:
+{$entryTypesContext}
+
+SECTION -> ENTRY TYPE RELATIONS:
 {$sectionsContext}
 
-ENTRY TYPE FIELD MAPPINGS:
+ENTRY TYPE -> FIELD RELATIONS:
 {$entryTypeFieldMappings}
 
-OPERATIONS SCHEMA:
-You MUST follow this exact JSON schema structure for your response:
-```json
-{$schemaJson}
-```
-
-IMPORTANT: You MUST respond with valid JSON that exactly matches the operations schema above. Do not include any explanation, markdown formatting, or additional text - only the JSON response.
-
-
+IMPORTANT: You MUST respond with valid JSON that exactly matches the operations schema. Do not include any explanation, markdown formatting, or additional text - only the JSON response.
 
 OPERATION TYPES:
 1. "create" - Create new fields, entry types, or sections
@@ -148,621 +132,83 @@ Operations MUST be ordered correctly for dependencies:
 4. Create sections last (referencing the entry types)
 Wrong order will cause failures!
 
-CRITICAL: FIELD TYPES (use these EXACT values only):
-- plain_text (NOT "text") - For text inputs with optional multiline and charLimit settings
-- rich_text - For CKEditor WYSIWYG content
-- link (NOT "url") - For website links with types and sources settings
-- image - For image uploads with maxRelations setting
-- email - For email addresses with validation
-- date - For date/time selection with showDate, showTime settings
-- lightswitch - For boolean toggles
-- dropdown - For selection with options setting
-- number - For numeric inputs with decimals, min, max settings
-- money - For currency amounts with currency setting
-- categories - For Craft CMS native category groups (NOT multi_select for categories!)
-- tags - For Craft CMS native tag groups (NOT multi_select for tags!)
-- content_block - For reusable content structures with nested fields (viewMode, fields settings)
-- table: ONLY columns (array of column objects), minRows (integer), maxRows (integer), addRowLabel (string), defaults (array)
-  Table column types: singleline, multiline, number, checkbox, color, url, email, date, time
-  Column structure: {"heading": "Name", "handle": "handle", "type": "singleline", "width": "25%"}
-- json - For structured JSON data storage
-- addresses - For address/location data with built-in geocoding
-- All other supported: time, color, range, radio_buttons, checkboxes, multi_select, country, button_group, icon, asset, matrix, users, entries
+FIELD TYPES: {$fieldTypesString}
 
-WHEN TO USE CATEGORIES vs TAGS vs MULTI_SELECT:
-- Use "categories" when content should be organized into hierarchical category groups (e.g., blog categories, product categories)
-- Use "tags" when content needs flexible tagging for SEO, filtering, or loose categorization (e.g., keywords, skills, topics)
-- Use "multi_select" only for predefined static options that are NOT categories or tags (e.g., sizes, colors, features)
+FIELD SETTINGS:
+plain_text:multiline,charLimit | rich_text:none | link:types,sources | image:maxRelations,minRelations | asset:maxRelations,minRelations | dropdown:options | number:decimals,min,max,prefix,suffix | money:currency | categories:maxRelations,sources | tags:sources | matrix:entryTypes | lightswitch:default | date:showDate,showTime
 
-CRITICAL: CATEGORY AND TAG GROUP CREATION
-Before creating categories or tags fields, you MUST create the groups they reference:
+NUMERIC FIELD SETTINGS - CRITICAL:
+For number, money, and range fields, min/max values must be provided as actual numeric values, NOT percentages or decimals of the requested value.
+Examples for NUMBER fields:
+- User says "set min to 10" → use {"min": 10} NOT {"min": 0.10}
+- User says "set max to 999" → use {"max": 999} NOT {"max": 9.99}
+- User says "set min to 0 and max to 100" → use {"min": 0, "max": 100}
+- User says "allow 2 decimal places" → use {"decimals": 2}
 
-1. CREATE GROUPS FIRST: Always create categoryGroup and tagGroup targets before fields that use them
-2. FIELD REFERENCES: Category fields reference category groups, tag fields reference tag groups
-3. NAMING CONVENTION: Use descriptive group names like "Blog Categories", "Product Tags", etc.
+Examples for MONEY fields:
+- User says "set minimum price to 100" → use {"min": 100} NOT {"min": 1.00}
+- User says "set maximum to 5000" → use {"max": 5000} NOT {"max": 50.00}
 
-Example order for blog with categories:
-1. Create categoryGroup: "blogCategories"
-2. Create categories field: references "blogCategories" group via sources: ["blogCategories"]
-3. Create entry type with the categories field
-4. Create section with the entry type
+Examples for RANGE fields:
+- User says "range from 1 to 10" → use {"min": 1, "max": 10}
+- User says "step by 5" → use {"step": 5}
 
-CRITICAL: RESERVED FIELD HANDLES (NEVER USE THESE):
-author, authorId, dateCreated, dateUpdated, id, slug, title, uid, uri, url, content, level, lft, rgt, root, parent, parentId, children, descendants, ancestors, next, prev, siblings, status, enabled, archived, trashed, postDate, expiryDate, revisionCreator, revisionNotes, section, sectionId, type, typeId, field, fieldId
+IMPORTANT: The min/max values are the actual minimum and maximum values allowed in the field, not percentages, fractions, or converted decimal representations.
 
-FIELD HANDLE ALTERNATIVES:
-- Instead of "title" → use "pageTitle", "blogTitle", "articleTitle"
-- Instead of "content" → use "bodyContent", "mainContent", "description"
-- Instead of "author" → use "writer", "creator", "byline"
-- Always prefix handles with the content type when possible (e.g., "blogContent", "newsTitle")
+ENTRY TYPE COLORS:
+Entry types can only use these predefined colors (use the lowercase name, not hex values):
+red, orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose
+Example: {"color": "emerald"} NOT {"color": "#10B981"} or {"color": "Emerald"}
 
-FIELD-TYPE-SPECIFIC SETTINGS (each field type has ONLY its allowed settings):
-Settings MUST be inside "settings" object. Do NOT use settings from one field type on another!
+CRITICAL RULES:
+- Create categoryGroup/tagGroup BEFORE fields that use them
+- NEVER use reserved handles: {$reservedHandlesList}
+- If user requests a reserved handle name (like "icon", "title", "content"), automatically choose a suitable alternative (iconField, pageTitle, bodyContent, etc.)
+- Common alternatives: title→pageTitle, content→bodyContent, author→writer, icon→iconField, id→identifier
+- categories/tags need groups, multi_select for static options only
 
-- plain_text: ONLY multiline (boolean), charLimit (integer 1-10000)
-- rich_text: No settings needed
-- link: ONLY types (array: ["url"] or ["entry"] or both), sources (array of section handles), showLabelField (boolean)
-- image: ONLY maxRelations (integer 1-10)
-- asset: ONLY maxRelations (integer 1-10)
-- dropdown/radio_buttons/checkboxes/multi_select/button_group: ONLY options (array of strings) - REQUIRED
-- number: ONLY decimals (0-4), min (number), max (number), suffix (string)
-- date: ONLY showDate (boolean), showTime (boolean), showTimeZone (boolean)
-- time: No settings needed
-- email: ONLY placeholder (string)
-- lightswitch: ONLY default (boolean), onLabel (string), offLabel (string)
-- color: ONLY allowCustomColors (boolean)
-- money: ONLY currency (string like "USD"), showCurrency (boolean), min (number), max (number)
-- range: ONLY min (number), max (number), step (number), suffix (string)
-- categories: ONLY maxRelations (integer), sources (array of category group handles or ["*"] for all), branchLimit (integer)
-- tags: ONLY maxRelations (integer), sources (array of tag group handles or ["*"] for all)
-- users: ONLY maxRelations (integer), sources (array of user group handles or ["*"] for all)
-- entries: ONLY maxRelations (integer), sources (array of section handles or ["*"] for all)
-- country/icon: No settings needed
-- json: No settings needed
-- addresses: No settings needed
-- matrix: ONLY minEntries (integer), maxEntries (integer), viewMode (string), entryTypes (array) - entryTypes REQUIRED
+MATRIX FIELDS:
+Matrix fields contain entry types (not "blocks"). Two approaches:
+1. Inline definition: {name,handle,fields[{handle,field_type,name,required}]} in matrix settings.entryTypes
+2. Reference existing: Use modify action "addMatrixEntryType" with entryTypeHandle
 
-CRITICAL: MATRIX FIELDS AND ENTRY TYPE ASSOCIATIONS
+MATRIX ENTRY TYPE MODIFICATIONS:
+- To modify fields in matrix entry types, use "modifyMatrixEntryType" action
+- Target the matrix field, specify matrixEntryTypeHandle, then addFields/removeFields
+- Example: Change videoBlock entry type in pageBuilder matrix field
 
-Matrix fields in Craft CMS contain ENTRY TYPES, not "blocks" or "block types". The term "block" is just a UI abstraction - technically, matrix fields contain entry types.
+COMPONENT PATTERNS:
+"Component" requests = nested structures: individual entry type → matrix field → container entry type → add to page builder
+Keywords: "cards/items/blocks" = collection pattern, "testimonials/gallery" = nested card pattern
 
-UNDERSTANDING MATRIX FIELD ARCHITECTURE:
-- Matrix Field (e.g., "pageBuilder") contains multiple Entry Types
-- Entry Types can be created inline for the matrix field OR can reference existing Entry Types
-- Existing Entry Types can be added to matrix fields
-- This allows complex content structures and reusable components
+COMMON OPERATIONS:
+- Add field to entry type: modify→addField with {handle,required}
+- Add entry type to matrix: modify→addMatrixEntryType with {name,handle,entryTypeHandle}
 
-TWO APPROACHES FOR MATRIX ENTRY TYPES:
+ASSOCIATION RULES:
+- ALWAYS associate fields with entry types - never create isolated fields
+- Order: Create fields → Create entry types WITH fields → Create sections
+- "Create X section with Y field" = field + entry type with field + section
+- Reuse existing fields when appropriate, avoid handle conflicts
 
-1. INLINE ENTRY TYPE DEFINITION (ONLY for matrix field entryTypes - NOT for regular entry type creation):
-This format is ONLY used inside matrix field settings.entryTypes array:
-{
-  "name": "Text Content",
-  "handle": "textContent",
-  "fields": [
-    {
-      "name": "Text Content",
-      "handle": "textContent",
-      "field_type": "rich_text",  // ← Use "field_type", NOT "type"
-      "required": true
-    }
-  ]
-}
+OPERATION STRUCTURE: {name,description,operations[{type,target,targetId?,create?,modify?,delete?}]}
 
-2. REFERENCE EXISTING ENTRY TYPE (add existing entry type to matrix):
-When you want to add an existing entry type to a matrix field:
-{
-  "type": "modify",
-  "target": "field",
-  "targetId": "pageBuilder",  // ← Matrix field to modify
-  "modify": {
-    "actions": [
-      {
-        "action": "addMatrixEntryType",
-        "matrixEntryType": {
-          "name": "Feature Cards Block",
-          "handle": "featureCardsBlock",
-          "entryTypeHandle": "featureCardsBlock"  // ← References existing entry type
-        }
-      }
-    ]
-  }
-}
+CREATE OPERATIONS MUST have wrapper objects:
+- field: {"create":{"field":{name,handle,field_type,settings}}}
+- entryType: {"create":{"entryType":{name,handle,hasTitleField,fields[{handle,required}]}}}
+- section: {"create":{"section":{name,handle,type,entryTypes[handles]}}}
+- tagGroup: {"create":{"tagGroup":{name,handle}}}
+- categoryGroup: {"create":{"categoryGroup":{name,handle}}}
 
-COMMON MATRIX FIELD PATTERNS:
+FIELD SETTINGS FORMATS:
+- dropdown/radio_buttons/button_group: {"options":["value1","value2"]} NOT objects
+- table: {"columns":[{"heading":"Name","handle":"name","type":"singleline"}],"maxRows":10}
+- tags: {"sources":["groupHandle"],"maxRelations":5} NOT "source"
 
-IMPORTANT: Many component requests require NESTED MATRIX STRUCTURES with multiple levels:
+IMPORTANT: When modifying option-based fields (dropdown/button_group), if adding options, include ALL existing options plus new ones. Current options are not provided in context.
 
-PATTERN 0: "NESTED COMPONENT CREATION" (Most Complex)
-Example: "Create a Feature Cards component" actually means:
-1. Feature Card entry type (individual card: title, image, description)
-2. Feature Cards matrix field (allows multiple Feature Card entries)
-3. Feature Cards Block entry type (container: title, description, + Feature Cards matrix)
-4. Add Feature Cards Block to page builder matrix
-
-This creates: Page Builder > Feature Cards Block > Feature Cards > Feature Card
-(4 levels deep!)
-
-{
-  "name": "Feature Cards Component (Nested Structure)",
-  "description": "Creates complete nested Feature Cards: individual cards, cards matrix, block container, and page builder integration",
-  "operations": [
-    {
-      "type": "create",
-      "target": "entryType",
-      "create": {
-        "entryType": {
-          "name": "Feature Card",
-          "handle": "featureCard",
-          "hasTitleField": false,
-          "fields": [
-            {"handle": "cardTitle", "required": true},
-            {"handle": "cardImage", "required": false},
-            {"handle": "cardDescription", "required": false}
-          ]
-        }
-      }
-    },
-    {
-      "type": "create",
-      "target": "field",
-      "create": {
-        "field": {
-          "name": "Feature Cards",
-          "handle": "featureCards",
-          "field_type": "matrix",
-          "settings": {
-            "entryTypes": [
-              {
-                "name": "Feature Card",
-                "handle": "featureCard",
-                "entryTypeHandle": "featureCard"
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "type": "create",
-      "target": "entryType",
-      "create": {
-        "entryType": {
-          "name": "Feature Cards Block",
-          "handle": "featureCardsBlock",
-          "hasTitleField": false,
-          "fields": [
-            {"handle": "blockTitle", "required": true},
-            {"handle": "blockDescription", "required": false},
-            {"handle": "featureCards", "required": true}
-          ]
-        }
-      }
-    },
-    {
-      "type": "modify",
-      "target": "field",
-      "targetId": "pageBuilder",
-      "modify": {
-        "actions": [
-          {
-            "action": "addMatrixEntryType",
-            "matrixEntryType": {
-              "name": "Feature Cards Block",
-              "handle": "featureCardsBlock",
-              "entryTypeHandle": "featureCardsBlock"
-            }
-          }
-        ]
-      }
-    }
-  ]
-}
-
-PATTERN RECOGNITION KEYWORDS:
-- "component" = usually means nested structure
-- "cards", "items", "blocks" = individual entry type + matrix field + container
-- "repeatable X" = matrix field containing X entry types
-- "section with Y" = container entry type with Y fields/matrices
-- "testimonials", "team members", "portfolio items" = nested card pattern
-- "gallery", "slider", "carousel" = media collection pattern
-- "FAQ", "accordion" = question/answer pair pattern
-
-COMPONENT CREATION GUIDANCE:
-When users request components like testimonials, cards, galleries, etc., create the full nested structure:
-1. Individual item entry type (e.g., testimonial with quote/author/image)
-2. Collection matrix field (e.g., testimonials matrix using testimonial entry type)
-3. Container entry type (e.g., testimonials block with title + testimonials matrix)
-4. Add container to page builder matrix
-
-COMMON MATRIX FIELD PATTERNS:
-
-PATTERN 1: "Create entry type, add matrix field to it, then add entry type to another matrix field"
-This is a complex 3-step pattern:
-
-Example: "Create a new entry type called Feature Cards Block, add the existing feature card matrix field to it, then add the new entry type to the existing page builder field"
-
-{
-  "name": "Feature Cards Block with Matrix Integration",
-  "description": "Creates entry type, adds matrix field to it, then adds entry type to page builder matrix field",
-  "operations": [
-    {
-      "type": "create",
-      "target": "entryType",
-      "create": {
-        "entryType": {
-          "name": "Feature Cards Block",
-          "handle": "featureCardsBlock",
-          "hasTitleField": true,
-          "fields": [
-            {
-              "handle": "featureCard",  // ← Add existing matrix field
-              "required": false
-            }
-          ]
-        }
-      }
-    },
-    {
-      "type": "modify",
-      "target": "field",
-      "targetId": "pageBuilder",  // ← Existing page builder matrix field
-      "modify": {
-        "actions": [
-          {
-            "action": "addMatrixEntryType",
-            "matrixEntryType": {
-              "name": "Feature Cards Block",
-              "handle": "featureCardsBlock",
-              "entryTypeHandle": "featureCardsBlock"  // ← Reference the entry type we created
-            }
-          }
-        ]
-      }
-    }
-  ]
-}
-
-PATTERN 2: "Add existing field to existing entry type"
-{
-  "type": "modify",
-  "target": "entryType",
-  "targetId": "existingEntryType",
-  "modify": {
-    "actions": [
-      {
-        "action": "addField",
-        "field": {
-          "handle": "existingFieldHandle",  // ← Reference existing field
-          "required": false
-        }
-      }
-    ]
-  }
-}
-
-INTELLIGENT BEHAVIOR:
-- Reuse existing fields when appropriate (e.g., if "genericTitle" field exists, use it instead of creating "blogTitle")
-- Check field handles to avoid conflicts (existing handles are shown above)
-- When asked to "add X to Y", use modify operations to add fields to existing entry types
-- When creating similar structures, reuse common fields (e.g., use same "featuredImage" field across different entry types)
-- Suggest field handle alternatives if conflicts detected
-- CRITICAL: When asked to "add entry type to matrix field", use addMatrixEntryType action
-
-CRITICAL: FIELD-TO-ENTRY-TYPE ASSOCIATIONS
-When creating complete content structures (like "page builder section and matrix field"), you MUST:
-1. Create the fields first
-2. Create the entry types AND associate the fields with them
-3. Create the sections last
-
-NEVER create fields in isolation - they must be associated with entry types to be useful!
-
-Example: If creating "page builder with matrix field":
-- Create the matrix field (pageBuilder)
-- Create the entry type (page) AND add the matrix field to it in the same operation
-- Create the section (pages) with the entry type
-
-ASSOCIATION PATTERNS:
-- "Create X section with Y field" = Create field + Create entry type WITH field + Create section
-- "Create X with matrix field" = Create matrix field + Create entry type WITH matrix field + Create section
-- "Page builder" typically means: matrix field + entry type that uses the matrix field + section for pages
-
-OPERATION STRUCTURE:
-{
-  "name": "Human-readable name for this operation set",
-  "description": "What these operations accomplish",
-  "operations": [
-    {
-      "type": "create|modify|delete",
-      "target": "field|entryType|section",
-      "targetId": "existingHandle", // For modify/delete operations
-      "create": { /* Data for create operations */ },
-      "modify": { /* Modifications for modify operations */ },
-      "delete": { /* Options for delete operations */ }
-    }
-  ]
-}
-
-CREATE OPERATIONS:
-- For fields: Include full field definition (name, handle, field_type, settings)
-- For entryTypes: Include name, handle, hasTitleField, and field references (handle + required ONLY)
-- For sections: Include name, handle, type, and entry type references
-
-CRITICAL: Regular entry type creation MUST reference existing fields by handle only:
-When creating entry types, fields MUST already exist. You cannot create fields inline.
-Correct format for entry type fields:
-{
-  "fields": [
-    {"handle": "existingFieldHandle", "required": true},  // ✓ CORRECT
-    {"handle": "anotherField", "required": false}         // ✓ CORRECT
-  ]
-}
-NOT this:
-{
-  "fields": [
-    {"name": "Field Name", "handle": "...", "field_type": "..."}  // ✗ WRONG for regular entry types
-  ]
-}
-
-MODIFY OPERATIONS:
-- addField: Add existing or new field to an entry type
-- removeField: Remove field from an entry type
-- updateField: Update field settings
-- updateSettings: Update section or entry type settings
-- addEntryType: Add existing entry type to a section
-- removeEntryType: Remove entry type from a section
-
-ENTRY TYPE MANAGEMENT EXAMPLES:
-- Add existing entry type: "Add the existing blogPost entry type to the news section"
-- Remove entry type: "Remove the article entry type from the blog section"
-- Be explicit with handles when needed: "Add newsArticle to Journal (handle: blog) section"
-- Always reference existing entry types by their actual handle
-
-AVAILABLE SETTINGS FOR updateSettings:
-For sections:
-- name: Section display name
-- uri: URI format (e.g., "blog/{slug}")
-- template: Template path (e.g., "blog/_entry")
-- type: Section type (single, channel, structure)
-
-For entry types:
-- name: Entry type display name
-- icon: Icon identifier - common ones include:
-  * Document/Writing: newspaper, book, book-open, clipboard, note-sticky, file-lines, file-pen, pen, pen-to-square
-  * Media: image, camera, video, microphone, music, film
-  * UI Elements: folder, folder-open, box, cube, layer-group, shapes, grid
-  * Communication: envelope, comment, message, bullhorn, bell
-  * E-commerce: cart-shopping, bag-shopping, store, tag, tags, receipt
-  * User: user, users, user-group, id-card
-  * General: star, heart, flag, bookmark, circle, square, gear, info, question
-- color: Color name (red, orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, gray)
-- description: Description text
-- hasTitleField: Whether to show title field (true/false)
-
-Example for "Change the URI format of a section":
-{
-  "name": "Update Section URI",
-  "description": "Updates the URI format for the test section",
-  "operations": [
-    {
-      "type": "modify",
-      "target": "section",
-      "targetId": "testSection",
-      "modify": {
-        "actions": [
-          {
-            "action": "updateSettings",
-            "updates": {
-              "uri": "new-uri-format/{slug}"
-            }
-          }
-        ]
-      }
-    }
-  ]
-}
-
-Example for "Change the name and icon of the blogPost entry type":
-{
-  "name": "Update Entry Type Settings",
-  "description": "Updates the name and icon for the blog post entry type",
-  "operations": [
-    {
-      "type": "modify",
-      "target": "entryType",
-      "targetId": "blogPost",
-      "modify": {
-        "actions": [
-          {
-            "action": "updateSettings",
-            "updates": {
-              "name": "Article",
-              "icon": "newspaper",
-              "color": "blue"
-            }
-          }
-        ]
-      }
-    }
-  ]
-}
-
-Example for "Add the existing newsArticle entry type to the blog section":
-{
-  "name": "Add Entry Type to Section",
-  "description": "Adds an existing entry type to a section",
-  "operations": [
-    {
-      "type": "modify",
-      "target": "section",
-      "targetId": "blog",
-      "modify": {
-        "actions": [
-          {
-            "action": "addEntryType",
-            "entryTypeHandle": "newsArticle"
-          }
-        ]
-      }
-    }
-  ]
-}
-
-Example for "Add a featured image to the blog post entry type":
-{
-  "name": "Add Featured Image to Blog",
-  "description": "Adds a featured image field to the existing blog post entry type",
-  "operations": [
-    {
-      "type": "create",
-      "target": "field",
-      "create": {
-        "field": {
-          "name": "Featured Image",
-          "handle": "featuredImage",
-          "field_type": "image",
-          "instructions": "Main image for the blog post",
-          "required": false,
-          "settings": {
-            "maxRelations": 1
-          }
-        }
-      }
-    },
-    {
-      "type": "modify",
-      "target": "entryType",
-      "targetId": "blogPost",
-      "modify": {
-        "actions": [
-          {
-            "action": "addField",
-            "field": {
-              "handle": "featuredImage",
-              "required": false
-            }
-          }
-        ]
-      }
-    }
-  ]
-}
-
-CORRECT ENTRY TYPE CREATION PATTERN - Always create fields first:
-Example: "Create a testimonial entry type with quote, author, and image fields"
-{
-  "name": "Testimonial Entry Type",
-  "description": "Creates testimonial fields and entry type",
-  "operations": [
-    {
-      "type": "create",
-      "target": "field",
-      "create": {
-        "field": {
-          "name": "Quote",
-          "handle": "testimonialQuote",
-          "field_type": "rich_text"
-        }
-      }
-    },
-    {
-      "type": "create",
-      "target": "field",
-      "create": {
-        "field": {
-          "name": "Author Name",
-          "handle": "testimonialAuthor",
-          "field_type": "plain_text",
-          "settings": {"charLimit": 100}
-        }
-      }
-    },
-    {
-      "type": "create",
-      "target": "field",
-      "create": {
-        "field": {
-          "name": "Author Photo",
-          "handle": "testimonialPhoto",
-          "field_type": "image",
-          "settings": {"maxRelations": 1}
-        }
-      }
-    },
-    {
-      "type": "create",
-      "target": "entryType",
-      "create": {
-        "entryType": {
-          "name": "Testimonial",
-          "handle": "testimonial",
-          "hasTitleField": false,
-          "fields": [
-            {"handle": "testimonialQuote", "required": true},     // ← References field created above
-            {"handle": "testimonialAuthor", "required": true},    // ← References field created above
-            {"handle": "testimonialPhoto", "required": false}     // ← References field created above
-          ]
-        }
-      }
-    }
-  ]
-}
-
-FIELD REUSE EXAMPLE - If asked to "Create a news section similar to blog":
-- Check which fields from blog can be reused (title, content, featuredImage)
-- Only create new fields that are unique to news (e.g., publicationDate)
-- Use modify operations to assign reused fields to the new entry type
-
-COMPLETE PAGE BUILDER EXAMPLE - "Create a page builder section with matrix field":
-{
-  "name": "Page Builder System",
-  "description": "Creates a complete page builder with matrix field for flexible content",
-  "operations": [
-    {
-      "type": "create",
-      "target": "field",
-      "create": {
-        "field": {
-          "name": "Page Builder",
-          "handle": "pageBuilder",
-          "field_type": "matrix",
-          "settings": {
-            "entryTypes": [/* entry type definitions */]
-          }
-        }
-      }
-    },
-    {
-      "type": "create",
-      "target": "entryType",
-      "create": {
-        "entryType": {
-          "name": "Page",
-          "handle": "page",
-          "hasTitleField": true,
-          "fields": [
-            {
-              "handle": "pageBuilder",  // ← CRITICAL: Associate the field!
-              "required": true
-            }
-          ]
-        }
-      }
-    },
-    {
-      "type": "create",
-      "target": "section",
-      "create": {
-        "section": {
-          "name": "Pages",
-          "handle": "pages",
-          "type": "channel",
-          "entryTypes": [{"handle": "page"}]
-        }
-      }
-    }
-  ]
-}
+MODIFY ACTIONS: addField,removeField,updateField,updateSettings,addEntryType,removeEntryType,addMatrixEntryType
+updateSettings: sections(name,uri,template,type), entryTypes(name,icon,color,description,hasTitleField)
 
 Remember: Be smart about field reuse, avoid duplication, maintain consistency across the project structure, and ALWAYS associate fields with entry types!
 PROMPT;
@@ -777,12 +223,32 @@ PROMPT;
             return "No fields exist yet.";
         }
 
-        $lines = [];
+        $fields = [];
         foreach ($fieldsData['fields'] as $field) {
-            $lines[] = "- {$field['handle']} ({$field['typeDisplay']}) - {$field['name']}";
+            // Get the schema enum value from FieldService mapping
+            $schemaType = $this->getSchemaFieldType($field['type']);
+            $fields[] = "{$field['handle']}({$schemaType})";
         }
 
-        return implode("\n", $lines);
+        return "F:" . implode(",", $fields);
+    }
+
+    /**
+     * Convert Craft field class to schema enum value using FieldService mapping
+     */
+    private function getSchemaFieldType(string $fieldClass): string
+    {
+        // Use the FieldService mapping to find the schema type
+        $fieldTypeMap = \craftcms\fieldagent\services\FieldService::FIELD_TYPE_MAP;
+
+        // Search through the mapping to find the schema enum value
+        foreach ($fieldTypeMap as $schemaType => $className) {
+            if ($className === $fieldClass) {
+                return $schemaType;
+            }
+        }
+
+        return 'unknown';
     }
 
     /**
@@ -794,15 +260,37 @@ PROMPT;
             return "No sections exist yet.";
         }
 
-        $lines = [];
+        $sections = [];
         foreach ($sectionsData['sections'] as $section) {
-            $lines[] = "Section: {$section['name']} ({$section['handle']})";
-            foreach ($section['entryTypes'] as $entryType) {
-                $lines[] = "  - Entry Type: {$entryType['name']} ({$entryType['handle']})";
-            }
+            $entryTypes = array_column($section['entryTypes'], 'handle');
+            $sections[] = "S:{$section['handle']}>" . implode(",", $entryTypes);
         }
 
-        return implode("\n", $lines);
+        return implode(" | ", $sections);
+    }
+
+    /**
+     * Format entry types context for the prompt
+     */
+    private function formatEntryTypesContext(array $entryTypesData): string
+    {
+        if (empty($entryTypesData['entryTypes'])) {
+            return "No entry types exist yet.";
+        }
+
+        $entryTypes = [];
+        foreach ($entryTypesData['entryTypes'] as $entryType) {
+            $entryTypeStr = $entryType['handle'] . '(' . $entryType['name'] . ')';
+            if (!empty($entryType['icon'])) {
+                $entryTypeStr .= ' [icon:' . $entryType['icon'] . ']';
+            }
+            if (!empty($entryType['color'])) {
+                $entryTypeStr .= ' [color:' . $entryType['color'] . ']';
+            }
+            $entryTypes[] = $entryTypeStr;
+        }
+
+        return 'ET:' . implode(',', $entryTypes);
     }
 
     /**
@@ -814,27 +302,26 @@ PROMPT;
             return "No entry type field mappings exist yet.";
         }
 
-        $lines = [];
+        $mappings = [];
         foreach ($entryTypeFieldMappings as $mapping) {
             $entryType = $mapping['entryType'];
-            $section = $mapping['section'];
             $fields = $mapping['fields'];
-            $fieldCount = $mapping['fieldCount'];
-
-            $lines[] = "Entry Type: {$entryType['name']} ({$entryType['handle']}) in Section: {$section['name']} ({$section['handle']})";
-            $lines[] = "  Fields ({$fieldCount}):";
 
             if (empty($fields)) {
-                $lines[] = "    - No fields assigned";
+                $fieldList = "none";
             } else {
+                $fieldHandles = [];
                 foreach ($fields as $field) {
-                    $required = $field['required'] ? ' [required]' : '';
-                    $lines[] = "    - {$field['handle']} ({$field['type']}) - {$field['name']}{$required}";
+                    $req = $field['required'] ? '!' : '';
+                    $fieldHandles[] = $field['handle'] . $req;
                 }
+                $fieldList = implode(",", $fieldHandles);
             }
+
+            $mappings[] = "ET:{$entryType['handle']}({$fieldList})";
         }
 
-        return implode("\n", $lines);
+        return implode(" | ", $mappings);
     }
 
     /**
@@ -842,8 +329,6 @@ PROMPT;
      */
     public function validateOperations(array $config): array
     {
-        $schemaPath = Plugin::getInstance()->getBasePath() . '/schemas/llm-operations-schema.json';
-
         // Quick validation that operations array exists
         if (!isset($config['operations']) || !is_array($config['operations'])) {
             return [
@@ -931,13 +416,10 @@ PROMPT;
                 throw new Exception("Operations schema file not found at: $schemaPath");
             }
 
-            $schema = json_decode(file_get_contents($schemaPath), true);
-            if (!$schema) {
-                throw new Exception("Invalid schema JSON in: $schemaPath");
-            }
+            $schema = $this->generateOperationsSchema();
 
             // Generate system prompt
-            $systemPrompt = $this->buildOperationsSystemPrompt($schema, $context);
+            $systemPrompt = $this->buildOperationsSystemPrompt($context);
 
             return [
                 'success' => true,
@@ -953,6 +435,29 @@ PROMPT;
                 'error' => $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Generate the operations schema dynamically with current field types
+     */
+    private function generateOperationsSchema(): array
+    {
+        // Load the base schema template
+        $schemaPath = Plugin::getInstance()->getBasePath() . '/schemas/llm-operations-schema.json';
+        if (!file_exists($schemaPath)) {
+            throw new Exception("Operations schema file not found: $schemaPath");
+        }
+
+        $schema = json_decode(file_get_contents($schemaPath), true);
+        if (!$schema) {
+            throw new Exception("Invalid JSON operations schema file");
+        }
+
+        // Inject dynamic field types from our mapping
+        $fieldTypes = \craftcms\fieldagent\services\FieldService::getAvailableFieldTypes();
+        $schema['properties']['operations']['items']['properties']['create']['properties']['field']['properties']['field_type']['enum'] = $fieldTypes;
+
+        return $schema;
     }
 
 }

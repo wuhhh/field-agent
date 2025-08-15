@@ -650,23 +650,30 @@ class OperationsExecutorService extends Component
         // Process each action
         foreach ($actions as $action) {
             if ($action['action'] === 'updateField' && isset($action['updates'])) {
-                foreach ($action['updates'] as $setting => $value) {
-                    // Handle special cases and property mapping
-                    if ($setting === 'required') {
-                        // 'required' is a property on the field object
-                        $field->required = $value;
-                        $modifications[] = "Updated required to " . ($value ? 'true' : 'false');
-                    } elseif (property_exists($field, $setting)) {
-                        $field->$setting = $value;
-                        $modifications[] = "Updated {$setting} to " . (is_bool($value) ? ($value ? 'true' : 'false') : $value);
-                    } elseif (method_exists($field, 'setSettings')) {
-                        // Try updating as a field setting
-                        $settings = $field->getSettings();
-                        $settings[$setting] = $value;
-                        $field->setSettings($settings);
-                        $modifications[] = "Updated setting {$setting} to " . (is_bool($value) ? ($value ? 'true' : 'false') : $value);
+                $updates = $action['updates'];
+                $plugin = Plugin::getInstance();
+                
+                // Use the FieldService to handle field updates with proper field-type logic
+                $fieldUpdates = [];
+                
+                // Extract settings updates
+                if (isset($updates['settings'])) {
+                    $fieldUpdates = array_merge($fieldUpdates, $updates['settings']);
+                }
+                
+                // Extract direct property updates (non-settings)
+                foreach ($updates as $key => $value) {
+                    if ($key !== 'settings') {
+                        $fieldUpdates[$key] = $value;
                     }
                 }
+                
+                // Apply updates using FieldService
+                if (!empty($fieldUpdates)) {
+                    $updateResults = $plugin->fieldService->updateFieldFromConfig($field, $fieldUpdates);
+                    $modifications = array_merge($modifications, $updateResults);
+                }
+                
             } elseif ($action['action'] === 'addMatrixEntryType' && $field instanceof \craft\fields\Matrix) {
                 $entryTypeConfig = $action['matrixEntryType'] ?? null;
                 if ($entryTypeConfig) {

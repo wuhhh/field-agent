@@ -8,6 +8,7 @@
 namespace craftcms\fieldagent\services\tools;
 
 use Craft;
+use craftcms\fieldagent\services\tools\GetEntryTypeFields;
 
 /**
  * GetSections Tool
@@ -113,42 +114,22 @@ class GetSections extends BaseTool
                 ];
                 
                 if ($includeFields) {
-                    $entryTypeData['fields'] = [];
+                    // Reuse the GetEntryTypeFields tool to get accurate field information
+                    $getEntryTypeFieldsTool = new GetEntryTypeFields();
+                    $entryTypeFieldsData = $getEntryTypeFieldsTool->execute([
+                        'handle' => $entryType->handle,
+                        'includeNative' => false
+                    ]);
                     
-                    if (Craft::$app instanceof \craft\console\Application) {
-                        // In console mode, get field layout from project config
-                        if (isset($typeData['fieldLayouts'])) {
-                            foreach ($typeData['fieldLayouts'] as $layoutData) {
-                                if (isset($layoutData['tabs'])) {
-                                    foreach ($layoutData['tabs'] as $tab) {
-                                        if (isset($tab['elements'])) {
-                                            foreach ($tab['elements'] as $element) {
-                                                if (isset($element['fieldUid']) && isset($element['type']) && $element['type'] === 'craft\\fieldlayoutelements\\CustomField') {
-                                                    // This is a simplified version - in real implementation we'd look up field by UID
-                                                    $entryTypeData['fields'][] = [
-                                                        'handle' => 'field_' . substr($element['fieldUid'], 0, 8),
-                                                        'name' => 'Unknown Field',
-                                                        'type' => 'Unknown',
-                                                        'required' => $element['required'] ?? false,
-                                                    ];
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        $fieldLayout = $entryType->getFieldLayout();
-                        if ($fieldLayout) {
-                            foreach ($fieldLayout->getCustomFields() as $field) {
-                                $entryTypeData['fields'][] = [
-                                    'handle' => $field->handle,
-                                    'name' => $field->name,
-                                    'type' => $field::displayName(),
-                                    'required' => $field->required,
-                                ];
-                            }
+                    $entryTypeData['fields'] = [];
+                    if (isset($entryTypeFieldsData['fields'])) {
+                        foreach ($entryTypeFieldsData['fields'] as $field) {
+                            $entryTypeData['fields'][] = [
+                                'handle' => $field['handle'],
+                                'name' => $field['name'] ?? $field['handle'],
+                                'type' => $field['typeDisplay'] ?? $field['type'],
+                                'required' => $field['required'] ?? false,
+                            ];
                         }
                     }
                 }

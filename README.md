@@ -5,6 +5,8 @@ This plugin uses AI to generate Craft CMS fields, entry types, and sections from
 
 **WARNING: This is an experimental plugin and you should not use it on production sites. Always backup your database before testing it.**
 
+**Note: Rollback functionality currently only supports CREATE operations - field/entry type/section modifications and deletions cannot be rolled back.**
+
 ## Alpha Installation
 
 This plugin is not yet available in the Craft Plugin Store. To install for testing:

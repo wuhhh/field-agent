@@ -24,24 +24,8 @@ class LLMOperationsService extends Component
             $plugin = Plugin::getInstance();
             $context = $plugin->discoveryService->getProjectContext();
 
-            // Load the operations schema
-            $schemaPath = Plugin::getInstance()->getBasePath() . '/schemas/llm-operations-schema.json';
-            if (!file_exists($schemaPath)) {
-                return [
-                    'success' => false,
-                    'error' => "Operations schema file not found: $schemaPath",
-                    'operations' => null
-                ];
-            }
-
-            $schema = json_decode(file_get_contents($schemaPath), true);
-            if (!$schema) {
-                return [
-                    'success' => false,
-                    'error' => "Invalid JSON operations schema file",
-                    'operations' => null
-                ];
-            }
+            // Generate the operations schema dynamically
+            $schema = $this->generateOperationsSchema();
 
             // Generate the system prompt with context
             $systemPrompt = $this->buildOperationsSystemPrompt($context);
@@ -110,6 +94,9 @@ class LLMOperationsService extends Component
         // Get reserved handles from Craft Field class
         $reservedHandles = \craft\base\Field::RESERVED_HANDLES;
         $reservedHandlesList = implode(',', $reservedHandles);
+        
+        // Get available field types from our mapping
+        $fieldTypesString = \craftcms\fieldagent\services\FieldService::getFieldTypesString();
 
         return <<<PROMPT
 You are an expert Craft CMS field configuration generator with awareness of existing project structures. Your task is to create JSON operation configurations that intelligently modify or extend the current project.
@@ -141,10 +128,28 @@ Operations MUST be ordered correctly for dependencies:
 4. Create sections last (referencing the entry types)
 Wrong order will cause failures!
 
-FIELD TYPES: plain_text,rich_text,link,image,email,date,lightswitch,dropdown,number,money,categories,tags,content_block,table,json,addresses,time,color,range,radio_buttons,checkboxes,multi_select,country,button_group,icon,asset,matrix,users,entries
+FIELD TYPES: {$fieldTypesString}
 
 FIELD SETTINGS:
 plain_text:multiline,charLimit | rich_text:none | link:types,sources | image:maxRelations | dropdown:options | number:decimals,min,max | money:currency | categories:maxRelations,sources | tags:maxRelations,sources | matrix:entryTypes | lightswitch:default | date:showDate,showTime
+
+NUMERIC FIELD SETTINGS - CRITICAL:
+For number, money, and range fields, min/max values must be provided as actual numeric values, NOT percentages or decimals of the requested value.
+Examples for NUMBER fields:
+- User says "set min to 10" → use {"min": 10} NOT {"min": 0.10}
+- User says "set max to 999" → use {"max": 999} NOT {"max": 9.99}
+- User says "set min to 0 and max to 100" → use {"min": 0, "max": 100}
+- User says "allow 2 decimal places" → use {"decimals": 2}
+
+Examples for MONEY fields:
+- User says "set minimum price to 100" → use {"min": 100} NOT {"min": 1.00}
+- User says "set maximum to 5000" → use {"max": 5000} NOT {"max": 50.00}
+
+Examples for RANGE fields:
+- User says "range from 1 to 10" → use {"min": 1, "max": 10}
+- User says "step by 5" → use {"step": 5}
+
+IMPORTANT: The min/max values are the actual minimum and maximum values allowed in the field, not percentages, fractions, or converted decimal representations.
 
 CRITICAL RULES:
 - Create categoryGroup/tagGroup BEFORE fields that use them
@@ -360,10 +365,7 @@ PROMPT;
                 throw new Exception("Operations schema file not found at: $schemaPath");
             }
 
-            $schema = json_decode(file_get_contents($schemaPath), true);
-            if (!$schema) {
-                throw new Exception("Invalid schema JSON in: $schemaPath");
-            }
+            $schema = $this->generateOperationsSchema();
 
             // Generate system prompt
             $systemPrompt = $this->buildOperationsSystemPrompt($context);
@@ -382,6 +384,29 @@ PROMPT;
                 'error' => $e->getMessage()
             ];
         }
+    }
+    
+    /**
+     * Generate the operations schema dynamically with current field types
+     */
+    private function generateOperationsSchema(): array
+    {
+        // Load the base schema template
+        $schemaPath = Plugin::getInstance()->getBasePath() . '/schemas/llm-operations-schema.json';
+        if (!file_exists($schemaPath)) {
+            throw new Exception("Operations schema file not found: $schemaPath");
+        }
+
+        $schema = json_decode(file_get_contents($schemaPath), true);
+        if (!$schema) {
+            throw new Exception("Invalid JSON operations schema file");
+        }
+        
+        // Inject dynamic field types from our mapping
+        $fieldTypes = \craftcms\fieldagent\services\FieldService::getAvailableFieldTypes();
+        $schema['properties']['operations']['items']['properties']['create']['properties']['field']['properties']['field_type']['enum'] = $fieldTypes;
+        
+        return $schema;
     }
 
 }

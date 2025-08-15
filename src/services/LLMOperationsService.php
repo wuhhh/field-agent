@@ -105,7 +105,11 @@ class LLMOperationsService extends Component
         // Format existing fields for the prompt
         $fieldsContext = $this->formatFieldsContext($context['fields']);
         $sectionsContext = $this->formatSectionsContext($context['sections']);
+        $entryTypeFieldMappings = $this->formatEntryTypeFieldMappingsContext($context['entryTypeFieldMappings']);
 
+        // Convert schema to JSON string for inclusion in prompt
+        $schemaJson = json_encode($schema, JSON_PRETTY_PRINT);
+        
         return <<<PROMPT
 You are an expert Craft CMS field configuration generator with awareness of existing project structures. Your task is to create JSON operation configurations that intelligently modify or extend the current project.
 
@@ -118,7 +122,18 @@ EXISTING FIELDS:
 EXISTING SECTIONS AND ENTRY TYPES:
 {$sectionsContext}
 
-IMPORTANT: You MUST respond with valid JSON that exactly matches the operations schema. Do not include any explanation, markdown formatting, or additional text - only the JSON response.
+ENTRY TYPE FIELD MAPPINGS:
+{$entryTypeFieldMappings}
+
+OPERATIONS SCHEMA:
+You MUST follow this exact JSON schema structure for your response:
+```json
+{$schemaJson}
+```
+
+IMPORTANT: You MUST respond with valid JSON that exactly matches the operations schema above. Do not include any explanation, markdown formatting, or additional text - only the JSON response.
+
+
 
 OPERATION TYPES:
 1. "create" - Create new fields, entry types, or sections
@@ -203,7 +218,7 @@ Settings MUST be inside "settings" object. Do NOT use settings from one field ty
 - users: ONLY maxRelations (integer), sources (array of user group handles or ["*"] for all)
 - entries: ONLY maxRelations (integer), sources (array of section handles or ["*"] for all)
 - country/icon: No settings needed
-- json: No settings needed  
+- json: No settings needed
 - addresses: No settings needed
 - matrix: ONLY minEntries (integer), maxEntries (integer), viewMode (string), entryTypes (array) - entryTypes REQUIRED
 
@@ -494,6 +509,104 @@ MODIFY OPERATIONS:
 - removeField: Remove field from an entry type
 - updateField: Update field settings
 - updateSettings: Update section or entry type settings
+- addEntryType: Add existing entry type to a section
+- removeEntryType: Remove entry type from a section
+
+ENTRY TYPE MANAGEMENT EXAMPLES:
+- Add existing entry type: "Add the existing blogPost entry type to the news section"
+- Remove entry type: "Remove the article entry type from the blog section"
+- Be explicit with handles when needed: "Add newsArticle to Journal (handle: blog) section"
+- Always reference existing entry types by their actual handle
+
+AVAILABLE SETTINGS FOR updateSettings:
+For sections:
+- name: Section display name
+- uri: URI format (e.g., "blog/{slug}")
+- template: Template path (e.g., "blog/_entry")
+- type: Section type (single, channel, structure)
+
+For entry types:
+- name: Entry type display name
+- icon: Icon identifier - common ones include:
+  * Document/Writing: newspaper, book, book-open, clipboard, note-sticky, file-lines, file-pen, pen, pen-to-square
+  * Media: image, camera, video, microphone, music, film
+  * UI Elements: folder, folder-open, box, cube, layer-group, shapes, grid
+  * Communication: envelope, comment, message, bullhorn, bell
+  * E-commerce: cart-shopping, bag-shopping, store, tag, tags, receipt
+  * User: user, users, user-group, id-card
+  * General: star, heart, flag, bookmark, circle, square, gear, info, question
+- color: Color name (red, orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, gray)
+- description: Description text
+- hasTitleField: Whether to show title field (true/false)
+
+Example for "Change the URI format of a section":
+{
+  "name": "Update Section URI",
+  "description": "Updates the URI format for the test section",
+  "operations": [
+    {
+      "type": "modify",
+      "target": "section",
+      "targetId": "testSection",
+      "modify": {
+        "actions": [
+          {
+            "action": "updateSettings",
+            "updates": {
+              "uri": "new-uri-format/{slug}"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+
+Example for "Change the name and icon of the blogPost entry type":
+{
+  "name": "Update Entry Type Settings",
+  "description": "Updates the name and icon for the blog post entry type",
+  "operations": [
+    {
+      "type": "modify",
+      "target": "entryType",
+      "targetId": "blogPost",
+      "modify": {
+        "actions": [
+          {
+            "action": "updateSettings",
+            "updates": {
+              "name": "Article",
+              "icon": "newspaper",
+              "color": "blue"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+
+Example for "Add the existing newsArticle entry type to the blog section":
+{
+  "name": "Add Entry Type to Section",
+  "description": "Adds an existing entry type to a section",
+  "operations": [
+    {
+      "type": "modify",
+      "target": "section",
+      "targetId": "blog",
+      "modify": {
+        "actions": [
+          {
+            "action": "addEntryType",
+            "entryTypeHandle": "newsArticle"
+          }
+        ]
+      }
+    }
+  ]
+}
 
 Example for "Add a featured image to the blog post entry type":
 {
@@ -693,6 +806,38 @@ PROMPT;
     }
 
     /**
+     * Format entry type field mappings context for the prompt
+     */
+    private function formatEntryTypeFieldMappingsContext(array $entryTypeFieldMappings): string
+    {
+        if (empty($entryTypeFieldMappings)) {
+            return "No entry type field mappings exist yet.";
+        }
+
+        $lines = [];
+        foreach ($entryTypeFieldMappings as $mapping) {
+            $entryType = $mapping['entryType'];
+            $section = $mapping['section'];
+            $fields = $mapping['fields'];
+            $fieldCount = $mapping['fieldCount'];
+
+            $lines[] = "Entry Type: {$entryType['name']} ({$entryType['handle']}) in Section: {$section['name']} ({$section['handle']})";
+            $lines[] = "  Fields ({$fieldCount}):";
+
+            if (empty($fields)) {
+                $lines[] = "    - No fields assigned";
+            } else {
+                foreach ($fields as $field) {
+                    $required = $field['required'] ? ' [required]' : '';
+                    $lines[] = "    - {$field['handle']} ({$field['type']}) - {$field['name']}{$required}";
+                }
+            }
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
      * Validate a configuration array against the operations schema
      */
     public function validateOperations(array $config): array
@@ -751,17 +896,17 @@ PROMPT;
                     break;
 
                 case 'modify':
-                    if (!isset($operation['handle'])) {
-                        $errors[] = "$opPath.handle: Required for modify operations";
+                    if (!isset($operation['targetId'])) {
+                        $errors[] = "$opPath.targetId: Required for modify operations";
                     }
-                    if (!isset($operation['changes'])) {
-                        $errors[] = "$opPath.changes: Required for modify operations";
+                    if (!isset($operation['modify'])) {
+                        $errors[] = "$opPath.modify: Required for modify operations";
                     }
                     break;
 
                 case 'delete':
-                    if (!isset($operation['handle'])) {
-                        $errors[] = "$opPath.handle: Required for delete operations";
+                    if (!isset($operation['targetId'])) {
+                        $errors[] = "$opPath.targetId: Required for delete operations";
                     }
                     break;
             }

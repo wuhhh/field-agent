@@ -4,6 +4,7 @@ namespace craftcms\fieldagent\services;
 
 use Craft;
 use craft\base\Component;
+use craft\helpers\StringHelper;
 use craft\models\Section;
 use craft\models\Section_SiteSettings;
 use craft\models\EntryType;
@@ -76,13 +77,20 @@ class SectionService extends Component
             $siteSetting->hasUrls = $siteConfig['hasUrls'] ?? true;
 
             if ($siteSetting->hasUrls) {
+                // Convert section name to kebab-case for URI (e.g., "Photo Gallery" -> "photo-gallery")
+                // This preserves the original intent better than using the handle
+                $kebabSlug = StringHelper::toKebabCase($section->name);
+                
                 // Provide a default URI format if none specified
                 $defaultUriFormat = $section->type === Section::TYPE_SINGLE ?
-                    $section->handle :
-                    $section->handle . '/{slug}';
+                    $kebabSlug :
+                    $kebabSlug . '/{slug}';
+
+                // Provide a default template path if none specified
+                $defaultTemplate = $section->handle . '/_entry';
 
                 $siteSetting->uriFormat = $siteConfig['uri'] ?? $siteConfig['uriFormat'] ?? $defaultUriFormat;
-                $siteSetting->template = $siteConfig['template'] ?? null;
+                $siteSetting->template = $siteConfig['template'] ?? $defaultTemplate;
             }
 
             $siteSettings[$site->id] = $siteSetting;

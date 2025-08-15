@@ -194,14 +194,34 @@ class GeneratorController extends Controller
             // Display results
             $this->displayOperationResults($executionResults);
 
+            // Check if all operations succeeded
+            $allSucceeded = true;
+            $hasFailures = false;
+            foreach ($executionResults as $result) {
+                if (!($result['success'] ?? false)) {
+                    $allSucceeded = false;
+                    $hasFailures = true;
+                    break;
+                }
+            }
+
             // Record the operation
             $operationId = $plugin->rollbackService->recordOperationFromResults('prompt', $prompt, $executionResults);
 
-            $this->stdout("\n✅ Operations completed successfully!\n", Console::FG_GREEN);
+            // Show appropriate completion message
+            if ($allSucceeded) {
+                $this->stdout("\n✅ All operations completed successfully!\n", Console::FG_GREEN);
+            } elseif ($hasFailures) {
+                $this->stdout("\n❌ Operations completed with failures!\n", Console::FG_RED);
+            } else {
+                $this->stdout("\n⚠️  Operations completed with mixed results!\n", Console::FG_YELLOW);
+            }
+            
             $this->stdout("\nOperation ID: $operationId\n", Console::FG_CYAN);
             $this->stdout("Use 'field-agent/generator/rollback $operationId' to undo this operation.\n");
 
-            return ExitCode::OK;
+            // Return appropriate exit code
+            return $allSucceeded ? ExitCode::OK : ExitCode::UNSPECIFIED_ERROR;
 
         } catch (\Exception $e) {
             $this->stderr("\n❌ Error: " . $e->getMessage() . "\n", Console::FG_RED);

@@ -162,9 +162,10 @@ Example: {"color": "emerald"} NOT {"color": "#10B981"} or {"color": "Emerald"}
 
 CRITICAL RULES:
 - Create categoryGroup/tagGroup BEFORE fields that use them
-- NEVER use reserved handles: {$reservedHandlesList}
-- If user requests a reserved handle name (like "icon", "title", "content"), automatically choose a suitable alternative (iconField, pageTitle, bodyContent, etc.)
-- Common alternatives: title→pageTitle, content→bodyContent, author→writer, icon→iconField, id→identifier
+- ABSOLUTELY FORBIDDEN: NEVER use these reserved handles: {$reservedHandlesList}
+- MANDATORY: If user requests any reserved handle name (like "icon", "title", "content"), you MUST automatically choose a suitable alternative (iconField, pageTitle, bodyContent, etc.)
+- REQUIRED alternatives: title→pageTitle, content→bodyContent, author→writer, icon→iconField, id→identifier
+- VALIDATION: Before creating any field, check if the handle is in the reserved list above and use an alternative if it is
 - categories/tags need groups, multi_select for static options only
 
 MATRIX FIELDS:

@@ -102,6 +102,9 @@ class OperationsExecutorService extends Component
 
                 $fieldData = $operation['create']['field'];
 
+                // Validate and fix reserved handles before creating field
+                $fieldData = $this->validateAndFixReservedHandle($fieldData);
+
                 // Clear any previous matrix block tracking
                 $plugin->fieldService->clearBlockTracking();
 
@@ -1393,5 +1396,46 @@ class OperationsExecutorService extends Component
             echo "❌ $errorMessage\n";  // Also output to console for debugging
             throw $e;
         }
+    }
+
+    /**
+     * Validate and fix reserved handles in field data
+     */
+    private function validateAndFixReservedHandle(array $fieldData): array
+    {
+        if (!isset($fieldData['handle'])) {
+            return $fieldData;
+        }
+
+        $handle = $fieldData['handle'];
+        $reservedHandles = \craft\base\Field::RESERVED_HANDLES;
+
+        if (in_array($handle, $reservedHandles)) {
+            // Map common reserved handles to alternatives
+            $alternatives = [
+                'title' => 'pageTitle',
+                'content' => 'bodyContent', 
+                'author' => 'writer',
+                'icon' => 'iconField',
+                'id' => 'identifier',
+                'status' => 'statusField',
+                'url' => 'urlField',
+                'link' => 'linkField',
+                'uid' => 'uniqueId'
+            ];
+
+            $newHandle = $alternatives[$handle] ?? $handle . 'Field';
+            
+            Craft::warning("Reserved handle '{$handle}' automatically changed to '{$newHandle}'", __METHOD__);
+            
+            $fieldData['handle'] = $newHandle;
+            
+            // Also update the name if it matches the handle
+            if (isset($fieldData['name']) && strtolower(str_replace(' ', '', $fieldData['name'])) === $handle) {
+                $fieldData['name'] = ucwords(str_replace(['Field', 'field'], [' Field', ' field'], $newHandle));
+            }
+        }
+
+        return $fieldData;
     }
 }

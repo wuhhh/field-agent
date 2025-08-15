@@ -23,6 +23,262 @@ class FieldService extends Component
     private array $createdBlockEntryTypes = [];
 
     /**
+     * @var array Map of our field type identifiers to Craft field classes
+     */
+    private const FIELD_TYPE_MAP = [
+        'addresses' => \craft\fields\Addresses::class,
+        'asset' => \craft\fields\Assets::class,
+        'button_group' => \craft\fields\ButtonGroup::class,
+        'categories' => \craft\fields\Categories::class,
+        'checkboxes' => \craft\fields\Checkboxes::class,
+        'color' => \craft\fields\Color::class,
+        'content_block' => \craft\fields\ContentBlock::class,
+        'country' => \craft\fields\Country::class,
+        'date' => \craft\fields\Date::class,
+        'dropdown' => \craft\fields\Dropdown::class,
+        'email' => \craft\fields\Email::class,
+        'entries' => \craft\fields\Entries::class,
+        'icon' => \craft\fields\Icon::class,
+        'image' => \craft\fields\Assets::class, // Special case - Assets field configured for images only
+        'json' => \craft\fields\Json::class,
+        'lightswitch' => \craft\fields\Lightswitch::class,
+        'link' => \craft\fields\Link::class,
+        'matrix' => \craft\fields\Matrix::class,
+        'money' => \craft\fields\Money::class,
+        'multi_select' => \craft\fields\MultiSelect::class,
+        'number' => \craft\fields\Number::class,
+        'plain_text' => \craft\fields\PlainText::class,
+        'radio_buttons' => \craft\fields\RadioButtons::class,
+        'range' => \craft\fields\Range::class,
+        'rich_text' => \craft\ckeditor\Field::class,
+        'table' => \craft\fields\Table::class,
+        'tags' => \craft\fields\Tags::class,
+        'time' => \craft\fields\Time::class,
+        'users' => \craft\fields\Users::class,
+    ];
+
+    /**
+     * Get our field type identifier from a Craft field instance
+     */
+    private function getFieldTypeFromInstance(Field $field): ?string
+    {
+        $className = get_class($field);
+
+        // Search for the class in our map
+        foreach (self::FIELD_TYPE_MAP as $type => $class) {
+            if ($className === $class) {
+                // Special case for Assets fields configured as image
+                if ($type === 'asset' && $field instanceof \craft\fields\Assets) {
+                    // Check if it's configured as an image field
+                    if ($field->restrictFiles && $field->allowedKinds === ['image']) {
+                        return 'image';
+                    }
+                }
+                return $type;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get all available field type identifiers
+     * Used to generate consistent lists for prompts and schemas
+     */
+    public static function getAvailableFieldTypes(): array
+    {
+        return array_keys(self::FIELD_TYPE_MAP);
+    }
+
+    /**
+     * Get field types as a comma-separated string for prompts
+     */
+    public static function getFieldTypesString(): string
+    {
+        return implode(',', self::getAvailableFieldTypes());
+    }
+
+    /**
+     * Update an existing field from config array
+     * This method applies settings to an existing field using the same patterns as creation
+     */
+    public function updateFieldFromConfig(Field $field, array $updates): array
+    {
+        $modifications = [];
+
+        // Get field type using our clean mapping
+        $fieldType = $this->getFieldTypeFromInstance($field);
+
+        // Apply field-type-specific updates using creation patterns
+        switch ($fieldType) {
+            case 'plain_text':
+                if (isset($updates['multiline'])) {
+                    $field->multiline = (bool)$updates['multiline'];
+                    $field->initialRows = $field->multiline ? 4 : 1;
+                    $modifications[] = "Updated multiline to " . ($updates['multiline'] ? 'true' : 'false');
+                }
+                if (isset($updates['charLimit'])) {
+                    $field->charLimit = $updates['charLimit'];
+                    $modifications[] = "Updated charLimit to {$updates['charLimit']}";
+                }
+                break;
+
+            case 'number':
+                if (isset($updates['decimals'])) {
+                    $field->decimals = $updates['decimals'];
+                    $modifications[] = "Updated decimals to {$updates['decimals']}";
+                }
+                if (isset($updates['min'])) {
+                    $field->min = $updates['min'];
+                    $modifications[] = "Updated min to {$updates['min']}";
+                }
+                if (isset($updates['max'])) {
+                    $field->max = $updates['max'];
+                    $modifications[] = "Updated max to {$updates['max']}";
+                }
+                if (isset($updates['suffix'])) {
+                    $field->suffix = $updates['suffix'];
+                    $modifications[] = "Updated suffix to '{$updates['suffix']}'";
+                }
+                break;
+
+            case 'money':
+                if (isset($updates['currency'])) {
+                    $field->currency = $updates['currency'];
+                    $modifications[] = "Updated currency to {$updates['currency']}";
+                }
+                if (isset($updates['showCurrency'])) {
+                    $field->showCurrency = (bool)$updates['showCurrency'];
+                    $modifications[] = "Updated showCurrency to " . ($updates['showCurrency'] ? 'true' : 'false');
+                }
+                if (isset($updates['min'])) {
+                    $field->min = $updates['min'];
+                    $modifications[] = "Updated min to {$updates['min']}";
+                }
+                if (isset($updates['max'])) {
+                    $field->max = $updates['max'];
+                    $modifications[] = "Updated max to {$updates['max']}";
+                }
+                break;
+
+            case 'asset':
+                if (isset($updates['maxRelations'])) {
+                    $field->maxRelations = $updates['maxRelations'];
+                    $modifications[] = "Updated maxRelations to {$updates['maxRelations']}";
+                }
+                if (isset($updates['viewMode'])) {
+                    $field->viewMode = $updates['viewMode'];
+                    $modifications[] = "Updated viewMode to {$updates['viewMode']}";
+                }
+                if (isset($updates['allowedKinds'])) {
+                    $field->allowedKinds = $updates['allowedKinds'];
+                    // When setting allowedKinds, we MUST also enable restrictFiles
+                    // Otherwise the allowedKinds setting won't take effect!
+                    $field->restrictFiles = true;
+                    $modifications[] = "Updated allowedKinds to " . implode(', ', $updates['allowedKinds']) . " (enabled file type restrictions)";
+                }
+                // Handle explicit restrictFiles setting
+                if (isset($updates['restrictFiles'])) {
+                    $field->restrictFiles = (bool)$updates['restrictFiles'];
+                    $modifications[] = "Updated restrictFiles to " . ($updates['restrictFiles'] ? 'true' : 'false');
+                }
+                // Handle restrictLocation setting
+                if (isset($updates['restrictLocation'])) {
+                    $field->restrictLocation = (bool)$updates['restrictLocation'];
+                    $modifications[] = "Updated restrictLocation to " . ($updates['restrictLocation'] ? 'true' : 'false');
+                }
+                // Handle sources setting
+                if (isset($updates['sources'])) {
+                    $field->sources = $updates['sources'];
+                    $modifications[] = "Updated sources";
+                }
+                break;
+
+            case 'dropdown':
+                if (isset($updates['options'])) {
+                    $field->options = $this->prepareOptions($updates['options']);
+                    $modifications[] = "Updated dropdown options";
+                }
+                break;
+
+            case 'date':
+                if (isset($updates['showDate'])) {
+                    $field->showDate = (bool)$updates['showDate'];
+                    $modifications[] = "Updated showDate to " . ($updates['showDate'] ? 'true' : 'false');
+                }
+                if (isset($updates['showTime'])) {
+                    $field->showTime = (bool)$updates['showTime'];
+                    $modifications[] = "Updated showTime to " . ($updates['showTime'] ? 'true' : 'false');
+                }
+                if (isset($updates['showTimeZone'])) {
+                    $field->showTimeZone = (bool)$updates['showTimeZone'];
+                    $modifications[] = "Updated showTimeZone to " . ($updates['showTimeZone'] ? 'true' : 'false');
+                }
+                break;
+
+            case 'lightswitch':
+                if (isset($updates['default'])) {
+                    $field->default = (bool)$updates['default'];
+                    $modifications[] = "Updated default to " . ($updates['default'] ? 'true' : 'false');
+                }
+                break;
+
+            case 'radio_buttons':
+            case 'checkboxes':
+            case 'multi_select':
+                if (isset($updates['options'])) {
+                    $field->options = $this->prepareOptions($updates['options']);
+                    $modifications[] = "Updated options";
+                }
+                break;
+
+            case 'range':
+                if (isset($updates['min'])) {
+                    $field->min = $updates['min'];
+                    $modifications[] = "Updated min to {$updates['min']}";
+                }
+                if (isset($updates['max'])) {
+                    $field->max = $updates['max'];
+                    $modifications[] = "Updated max to {$updates['max']}";
+                }
+                if (isset($updates['step'])) {
+                    $field->step = $updates['step'];
+                    $modifications[] = "Updated step to {$updates['step']}";
+                }
+                if (isset($updates['suffix'])) {
+                    $field->suffix = $updates['suffix'];
+                    $modifications[] = "Updated suffix to '{$updates['suffix']}'";
+                }
+                break;
+
+            case 'email':
+                if (isset($updates['placeholder'])) {
+                    $field->placeholder = $updates['placeholder'];
+                    $modifications[] = "Updated placeholder to '{$updates['placeholder']}'";
+                }
+                break;
+
+            default:
+                // For unknown field types, try generic property setting
+                foreach ($updates as $settingName => $settingValue) {
+                    if (property_exists($field, $settingName)) {
+                        $field->$settingName = $settingValue;
+                        $modifications[] = "Updated {$settingName} to " . (is_bool($settingValue) ? ($settingValue ? 'true' : 'false') : $settingValue);
+                    } elseif (method_exists($field, 'setSettings') && method_exists($field, 'getSettings')) {
+                        // Try as a setting
+                        $settings = $field->getSettings();
+                        $settings[$settingName] = $settingValue;
+                        $field->setSettings($settings);
+                        $modifications[] = "Updated setting {$settingName} to " . (is_bool($settingValue) ? ($settingValue ? 'true' : 'false') : $settingValue);
+                    }
+                }
+                break;
+        }
+
+        return $modifications;
+    }
+
+    /**
      * Create a field from config array
      * This method handles the normalized config format from LLM responses
      */
@@ -58,6 +314,7 @@ class FieldService extends Component
             case 'image':
                 $field = new \craft\fields\Assets();
                 $field->allowedKinds = ['image'];
+                $field->restrictFiles = true; // Must enable this for allowedKinds to work
                 $field->maxRelations = $normalizedConfig['maxRelations'] ?? 1;
                 $field->viewMode = 'list';
                 break;
@@ -66,6 +323,11 @@ class FieldService extends Component
                 $field = new \craft\fields\Assets();
                 $field->maxRelations = $normalizedConfig['maxRelations'] ?? 1;
                 $field->viewMode = 'list';
+                // If allowedKinds is specified, enable restrictFiles
+                if (isset($normalizedConfig['allowedKinds'])) {
+                    $field->allowedKinds = $normalizedConfig['allowedKinds'];
+                    $field->restrictFiles = true;
+                }
                 break;
 
             case 'number':

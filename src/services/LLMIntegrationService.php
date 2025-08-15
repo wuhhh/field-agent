@@ -24,6 +24,10 @@ class LLMIntegrationService extends Component
             throw new Exception("Anthropic API key not found in environment variables");
         }
 
+        // Inject minified schema for Anthropic (doesn't support response_format)
+        $minifiedSchema = json_encode($schema, JSON_UNESCAPED_SLASHES);
+        $systemPrompt .= "\n\nOPERATIONS SCHEMA:\nYou MUST follow this exact JSON schema structure:\n" . $minifiedSchema;
+
         $payload = [
             'model' => 'claude-3-5-sonnet-20241022',
             'max_tokens' => 4000,

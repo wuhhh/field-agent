@@ -139,24 +139,20 @@ case 'your_field_type':
     break;
 ```
 
-### 2. **Update JSON Schema**
-**File:** `plugins/field-agent/src/schemas/llm-operations-schema.json`
+### 2. **Field Types are Generated Dynamically**
+**No manual schema updates needed!**
 
-Add your field type to the `field_type` enum array in the schema. This ensures the LLM knows it can use this field type:
-- Find the `field_type` enum definition
-- Add your field type identifier to the array
+Field types are now automatically generated from the single source of truth in `FieldService::FIELD_TYPE_MAP`. The JSON schema and LLM prompts are updated dynamically at runtime.
 
-Current field types in schema:
-```json
-"enum": [
-    "plain_text", "rich_text", "image", "number", "link",
-    "dropdown", "lightswitch", "email", "date", "time",
-    "color", "money", "range", "radio_buttons", "checkboxes",
-    "multi_select", "country", "button_group", "icon",
-    "asset", "matrix", "users", "entries", "categories", "tags",
-    "content_block", "table"  // Add new field types here
-]
+Current field types (alphabetized):
 ```
+addresses, asset, button_group, categories, checkboxes, color, content_block, 
+country, date, dropdown, email, entries, icon, image, json, lightswitch, 
+link, matrix, money, multi_select, number, plain_text, radio_buttons, 
+range, rich_text, table, tags, time, users
+```
+
+**Important:** Do NOT manually edit the JSON schema enum - it's injected dynamically!
 
 ### 3. **Create Test Coverage**
 **File:** `plugins/field-agent/tests/basic-operations/test-all-field-types.json`

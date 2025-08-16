@@ -35,6 +35,7 @@ class MoneyField implements FieldTypeInterface
             'aliases' => ['money'], // Manual
             'llmDocumentation' => 'money: currency (string), showCurrency (boolean), min (number), max (number)', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -58,6 +59,22 @@ class MoneyField implements FieldTypeInterface
         }
 
         return $field;
+    }
+
+    /**
+     * Update a Money field with new settings
+     * Exact copy of legacy logic from FieldService::legacyUpdateField
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        if (isset($updates['currency'])) {
+            $field->currency = $updates['currency'];
+            $modifications[] = "Updated currency to {$updates['currency']}";
+        }
+        
+        return $modifications;
     }
 
     /**

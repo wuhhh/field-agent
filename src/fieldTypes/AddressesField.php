@@ -35,6 +35,7 @@ class AddressesField implements FieldTypeInterface
             'aliases' => ['addresses'], // Manual
             'llmDocumentation' => 'addresses: Field for storing addresses', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'],
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -48,6 +49,25 @@ class AddressesField implements FieldTypeInterface
         $field = new \craft\fields\Addresses();
         // No additional settings required for addresses field
         return $field;
+    }
+
+    /**
+     * Update an Addresses field with new settings
+     * Generic property updating (no specific Addresses field logic in legacy system)
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        // For Addresses field types, try generic property setting
+        foreach ($updates as $settingName => $settingValue) {
+            if (property_exists($field, $settingName)) {
+                $field->$settingName = $settingValue;
+                $modifications[] = "Updated {$settingName} to " . (is_bool($settingValue) ? ($settingValue ? 'true' : 'false') : $settingValue);
+            }
+        }
+        
+        return $modifications;
     }
 
     /**

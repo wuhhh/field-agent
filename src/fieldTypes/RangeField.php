@@ -35,6 +35,7 @@ class RangeField implements FieldTypeInterface
             'aliases' => ['range', 'slider'], // Manual
             'llmDocumentation' => 'range: min (number), max (number), step (number), suffix (string)', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -53,6 +54,34 @@ class RangeField implements FieldTypeInterface
             $field->suffix = $config['suffix'];
         }
         return $field;
+    }
+
+    /**
+     * Update a Range field with new settings
+     * Exact copy of legacy logic from FieldService::legacyUpdateField
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        if (isset($updates['min'])) {
+            $field->min = $updates['min'];
+            $modifications[] = "Updated min to {$updates['min']}";
+        }
+        if (isset($updates['max'])) {
+            $field->max = $updates['max'];
+            $modifications[] = "Updated max to {$updates['max']}";
+        }
+        if (isset($updates['step'])) {
+            $field->step = $updates['step'];
+            $modifications[] = "Updated step to {$updates['step']}";
+        }
+        if (isset($updates['suffix'])) {
+            $field->suffix = $updates['suffix'];
+            $modifications[] = "Updated suffix to '{$updates['suffix']}'";
+        }
+        
+        return $modifications;
     }
 
     /**

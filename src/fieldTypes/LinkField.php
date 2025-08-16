@@ -102,6 +102,16 @@ class LinkField implements FieldTypeInterface
     }
 
     /**
+     * Update field with new settings
+     * TODO: Implement update logic in Phase 4
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        // Placeholder implementation - will be implemented in Phase 4
+        return [];
+    }
+
+    /**
      * Get test cases for Link field
      * Enhanced from auto-generated base with Link-specific scenarios
      */

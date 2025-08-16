@@ -35,6 +35,7 @@ class CheckboxesField implements FieldTypeInterface
             'aliases' => ['checkboxes'], // Manual
             'llmDocumentation' => 'checkboxes: options (array of strings or {label, value, default} objects)', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Manual update method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -48,6 +49,22 @@ class CheckboxesField implements FieldTypeInterface
         $field = new \craft\fields\Checkboxes();
         $field->options = $this->prepareOptions($config['options'] ?? []);
         return $field;
+    }
+
+    /**
+     * Update a Checkboxes field with new settings
+     * Exact copy of legacy logic from FieldService::legacyUpdateField
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        if (isset($updates['options'])) {
+            $field->options = $this->prepareOptions($updates['options']);
+            $modifications[] = "Updated checkbox options";
+        }
+        
+        return $modifications;
     }
 
     /**

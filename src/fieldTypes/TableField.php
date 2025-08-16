@@ -62,6 +62,16 @@ class TableField implements FieldTypeInterface
     }
 
     /**
+     * Update a Table field with new settings
+     * TODO: Implement table field update logic in Phase 4
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        // Placeholder implementation - will be implemented in Phase 4
+        return [];
+    }
+
+    /**
      * Get test cases for Table field
      * Enhanced from auto-generated base with Table-specific scenarios
      */

@@ -35,6 +35,7 @@ class ButtonGroupField implements FieldTypeInterface
             'aliases' => ['button_group', 'buttongroup'], // Manual
             'llmDocumentation' => 'button_group: options (array of strings or {label, value, icon, default} objects)', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Manual update method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -48,6 +49,22 @@ class ButtonGroupField implements FieldTypeInterface
         $field = new \craft\fields\ButtonGroup();
         $field->options = $this->prepareButtonGroupOptions($config['options'] ?? []);
         return $field;
+    }
+
+    /**
+     * Update a ButtonGroup field with new settings
+     * Exact copy of legacy logic from FieldService::legacyUpdateField
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        if (isset($updates['options'])) {
+            $field->options = $this->prepareButtonGroupOptions($updates['options']);
+            $modifications[] = "Updated button group options";
+        }
+        
+        return $modifications;
     }
 
     /**

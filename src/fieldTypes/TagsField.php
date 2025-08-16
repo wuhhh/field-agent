@@ -35,6 +35,7 @@ class TagsField implements FieldTypeInterface
             'aliases' => ['tags'], // Manual
             'llmDocumentation' => 'tags: sources (array of tag group handles or "*" for all)', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -70,6 +71,26 @@ class TagsField implements FieldTypeInterface
         }
         
         return $field;
+    }
+
+    /**
+     * Update a Tags field with new settings
+     * Based on Tags field properties: source (singular), selectionLabel (NO maxRelations for tags)
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        if (isset($updates['source'])) {
+            $field->source = $updates['source'];
+            $modifications[] = "Updated source";
+        }
+        if (isset($updates['selectionLabel'])) {
+            $field->selectionLabel = $updates['selectionLabel'];
+            $modifications[] = "Updated selectionLabel to '{$updates['selectionLabel']}'";
+        }
+        
+        return $modifications;
     }
 
     /**

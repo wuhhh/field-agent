@@ -35,6 +35,7 @@ class IconField implements FieldTypeInterface
             'aliases' => ['icon'], // Manual
             'llmDocumentation' => 'icon: Field for selecting icons', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -48,6 +49,25 @@ class IconField implements FieldTypeInterface
         $field = new \craft\fields\Icon();
         // No additional settings required for icon field
         return $field;
+    }
+
+    /**
+     * Update an Icon field with new settings
+     * Generic property updating (no specific Icon field logic in legacy system)
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        // For Icon field types, try generic property setting
+        foreach ($updates as $settingName => $settingValue) {
+            if (property_exists($field, $settingName)) {
+                $field->$settingName = $settingValue;
+                $modifications[] = "Updated {$settingName} to " . (is_bool($settingValue) ? ($settingValue ? 'true' : 'false') : $settingValue);
+            }
+        }
+        
+        return $modifications;
     }
 
     /**

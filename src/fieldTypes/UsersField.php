@@ -35,6 +35,7 @@ class UsersField implements FieldTypeInterface
             'aliases' => ['users'], // Manual
             'llmDocumentation' => 'users: maxRelations (number), sources (array of user group handles or "*" for all)', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -71,6 +72,38 @@ class UsersField implements FieldTypeInterface
         }
         
         return $field;
+    }
+
+    /**
+     * Update a Users field with new settings
+     * Based on Users field properties: maxRelations, minRelations, sources, viewMode, selectionLabel
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        if (isset($updates['maxRelations'])) {
+            $field->maxRelations = $updates['maxRelations'];
+            $modifications[] = "Updated maxRelations to {$updates['maxRelations']}";
+        }
+        if (isset($updates['minRelations'])) {
+            $field->minRelations = $updates['minRelations'];
+            $modifications[] = "Updated minRelations to {$updates['minRelations']}";
+        }
+        if (isset($updates['sources'])) {
+            $field->sources = $updates['sources'];
+            $modifications[] = "Updated sources";
+        }
+        if (isset($updates['viewMode'])) {
+            $field->viewMode = $updates['viewMode'];
+            $modifications[] = "Updated viewMode to {$updates['viewMode']}";
+        }
+        if (isset($updates['selectionLabel'])) {
+            $field->selectionLabel = $updates['selectionLabel'];
+            $modifications[] = "Updated selectionLabel to '{$updates['selectionLabel']}'";
+        }
+        
+        return $modifications;
     }
 
     /**

@@ -59,6 +59,16 @@ class RichTextField implements FieldTypeInterface
     }
 
     /**
+     * Update field with new settings
+     * TODO: Implement update logic in Phase 4
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        // Placeholder implementation - will be implemented in Phase 4
+        return [];
+    }
+
+    /**
      * Get test cases for Rich Text field
      * Enhanced from auto-generated base with Rich Text-specific scenarios
      */

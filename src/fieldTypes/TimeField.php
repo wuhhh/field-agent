@@ -35,6 +35,7 @@ class TimeField implements FieldTypeInterface
             'aliases' => ['time'], // Manual
             'llmDocumentation' => 'time: Field for storing time values', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -48,6 +49,25 @@ class TimeField implements FieldTypeInterface
         $field = new \craft\fields\Time();
         // No additional settings required for time field
         return $field;
+    }
+
+    /**
+     * Update a Time field with new settings
+     * Generic property updating (no specific Time field logic in legacy system)
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        // For Time field types, try generic property setting
+        foreach ($updates as $settingName => $settingValue) {
+            if (property_exists($field, $settingName)) {
+                $field->$settingName = $settingValue;
+                $modifications[] = "Updated {$settingName} to " . (is_bool($settingValue) ? ($settingValue ? 'true' : 'false') : $settingValue);
+            }
+        }
+        
+        return $modifications;
     }
 
     /**

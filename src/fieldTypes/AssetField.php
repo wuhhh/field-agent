@@ -35,6 +35,7 @@ class AssetField implements FieldTypeInterface
             'aliases' => ['asset'], // Manual - single asset with maxRelations=1
             'llmDocumentation' => 'assets: maxRelations (integer), minRelations (integer), viewMode (string), allowedKinds (array)', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -70,6 +71,22 @@ class AssetField implements FieldTypeInterface
         }
 
         return $field;
+    }
+
+    /**
+     * Update an Asset field with new settings
+     * Exact copy of legacy logic from FieldService::legacyUpdateField
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        if (isset($updates['maxRelations'])) {
+            $field->maxRelations = $updates['maxRelations'];
+            $modifications[] = "Updated maxRelations to {$updates['maxRelations']}";
+        }
+        
+        return $modifications;
     }
 
     /**

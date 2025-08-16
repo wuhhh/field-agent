@@ -36,6 +36,7 @@ class ImageField implements FieldTypeInterface
             'aliases' => ['image'], // Manual
             'llmDocumentation' => 'image: ONLY maxRelations (integer), minRelations (integer), viewMode (string) - automatically restricted to image files', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -58,6 +59,34 @@ class ImageField implements FieldTypeInterface
         $field->viewMode = 'list';
 
         return $field;
+    }
+
+    /**
+     * Update an Image field with new settings
+     * Same as Asset field logic (maxRelations, minRelations, etc.) since Image extends Assets
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        if (isset($updates['maxRelations'])) {
+            $field->maxRelations = $updates['maxRelations'];
+            $modifications[] = "Updated maxRelations to {$updates['maxRelations']}";
+        }
+        if (isset($updates['minRelations'])) {
+            $field->minRelations = $updates['minRelations'];
+            $modifications[] = "Updated minRelations to {$updates['minRelations']}";
+        }
+        if (isset($updates['viewMode'])) {
+            $field->viewMode = $updates['viewMode'];
+            $modifications[] = "Updated viewMode to {$updates['viewMode']}";
+        }
+        if (isset($updates['sources'])) {
+            $field->sources = $updates['sources'];
+            $modifications[] = "Updated sources";
+        }
+        
+        return $modifications;
     }
 
     /**

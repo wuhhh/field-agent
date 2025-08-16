@@ -35,6 +35,7 @@ class DateField implements FieldTypeInterface
             'aliases' => ['date', 'datetime'], // Manual
             'llmDocumentation' => 'date: showDate (boolean), showTime (boolean), showTimeZone (boolean)', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -50,6 +51,30 @@ class DateField implements FieldTypeInterface
         $field->showDate = $config['showDate'] ?? true;
         $field->showTime = $config['showTime'] ?? false;
         return $field;
+    }
+
+    /**
+     * Update a Date field with new settings
+     * Exact copy of legacy logic from FieldService::legacyUpdateField
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        if (isset($updates['showDate'])) {
+            $field->showDate = (bool)$updates['showDate'];
+            $modifications[] = "Updated showDate to " . ($updates['showDate'] ? 'true' : 'false');
+        }
+        if (isset($updates['showTime'])) {
+            $field->showTime = (bool)$updates['showTime'];
+            $modifications[] = "Updated showTime to " . ($updates['showTime'] ? 'true' : 'false');
+        }
+        if (isset($updates['showTimeZone'])) {
+            $field->showTimeZone = (bool)$updates['showTimeZone'];
+            $modifications[] = "Updated showTimeZone to " . ($updates['showTimeZone'] ? 'true' : 'false');
+        }
+        
+        return $modifications;
     }
 
     /**

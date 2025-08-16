@@ -35,6 +35,7 @@ class CategoriesField implements FieldTypeInterface
             'aliases' => ['categories'], // Manual
             'llmDocumentation' => 'categories: maxRelations (number), sources (array of category group handles or "*" for all)', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -71,6 +72,38 @@ class CategoriesField implements FieldTypeInterface
         }
         
         return $field;
+    }
+
+    /**
+     * Update a Categories field with new settings
+     * Based on Categories field properties: maxRelations, minRelations, source (singular), viewMode, selectionLabel
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        if (isset($updates['maxRelations'])) {
+            $field->maxRelations = $updates['maxRelations'];
+            $modifications[] = "Updated maxRelations to {$updates['maxRelations']}";
+        }
+        if (isset($updates['minRelations'])) {
+            $field->minRelations = $updates['minRelations'];
+            $modifications[] = "Updated minRelations to {$updates['minRelations']}";
+        }
+        if (isset($updates['source'])) {
+            $field->source = $updates['source'];
+            $modifications[] = "Updated source";
+        }
+        if (isset($updates['viewMode'])) {
+            $field->viewMode = $updates['viewMode'];
+            $modifications[] = "Updated viewMode to {$updates['viewMode']}";
+        }
+        if (isset($updates['selectionLabel'])) {
+            $field->selectionLabel = $updates['selectionLabel'];
+            $modifications[] = "Updated selectionLabel to '{$updates['selectionLabel']}'";
+        }
+        
+        return $modifications;
     }
 
     /**

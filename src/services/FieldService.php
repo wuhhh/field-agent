@@ -466,6 +466,20 @@ class FieldService extends Component
                 // Configure display options
                 $field->showLabelField = $normalizedConfig['showLabelField'] ?? true;
                 $field->maxLength = 255;
+                
+                // Configure advanced fields if specified
+                if (isset($normalizedConfig['advancedFields']) && is_array($normalizedConfig['advancedFields'])) {
+                    $field->advancedFields = $normalizedConfig['advancedFields'];
+                }
+                
+                // If target is specified, ensure it's included in advanced fields
+                if (isset($normalizedConfig['target'])) {
+                    $advancedFields = $field->advancedFields ?? [];
+                    if (!in_array('target', $advancedFields)) {
+                        $advancedFields[] = 'target';
+                        $field->advancedFields = $advancedFields;
+                    }
+                }
 
                 // Configure sources for entry links
                 $entrySources = '*'; // Default to all sources
@@ -500,6 +514,48 @@ class FieldService extends Component
                 if (in_array('entry', $field->types)) {
                     $typeSettings['entry'] = [
                         'sources' => $entrySources,
+                    ];
+                }
+                
+                // Category type settings
+                if (in_array('category', $field->types)) {
+                    $categorySources = '*'; // Default to all categories
+                    if (isset($normalizedConfig['categorySources']) && is_array($normalizedConfig['categorySources'])) {
+                        $categoriesService = \Craft::$app->getCategories();
+                        $sources = [];
+                        foreach ($normalizedConfig['categorySources'] as $groupHandle) {
+                            $group = $categoriesService->getGroupByHandle($groupHandle);
+                            if ($group) {
+                                $sources[] = 'group:' . $group->uid;
+                            }
+                        }
+                        if (!empty($sources)) {
+                            $categorySources = $sources;
+                        }
+                    }
+                    $typeSettings['category'] = [
+                        'sources' => $categorySources,
+                    ];
+                }
+                
+                // Asset type settings
+                if (in_array('asset', $field->types)) {
+                    $assetSources = '*'; // Default to all assets
+                    if (isset($normalizedConfig['assetSources']) && is_array($normalizedConfig['assetSources'])) {
+                        $volumesService = \Craft::$app->getVolumes();
+                        $sources = [];
+                        foreach ($normalizedConfig['assetSources'] as $volumeHandle) {
+                            $volume = $volumesService->getVolumeByHandle($volumeHandle);
+                            if ($volume) {
+                                $sources[] = 'volume:' . $volume->uid;
+                            }
+                        }
+                        if (!empty($sources)) {
+                            $assetSources = $sources;
+                        }
+                    }
+                    $typeSettings['asset'] = [
+                        'sources' => $assetSources,
                     ];
                 }
 

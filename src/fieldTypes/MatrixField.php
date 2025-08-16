@@ -39,6 +39,7 @@ class MatrixField implements FieldTypeInterface
                 'viewModes' => ['cards', 'blocks', 'index'], // Manual
             ],
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -72,12 +73,59 @@ class MatrixField implements FieldTypeInterface
 
     /**
      * Update field with new settings
-     * TODO: Implement update logic in Phase 4
+     * MatrixField supports basic property updates but entry type modifications are complex
      */
     public function updateField(FieldInterface $field, array $updates): array
     {
-        // Placeholder implementation - will be implemented in Phase 4
-        return [];
+        $modifications = [];
+        
+        // Handle simple Matrix field properties
+        if (isset($updates['minEntries'])) {
+            $field->minEntries = $updates['minEntries'];
+            $modifications[] = "Updated minEntries to {$updates['minEntries']}";
+        }
+        
+        if (isset($updates['maxEntries'])) {
+            $field->maxEntries = $updates['maxEntries'];
+            $modifications[] = "Updated maxEntries to {$updates['maxEntries']}";
+        }
+        
+        if (isset($updates['viewMode'])) {
+            $field->viewMode = match($updates['viewMode']) {
+                'blocks' => \craft\fields\Matrix::VIEW_MODE_BLOCKS,
+                'index' => \craft\fields\Matrix::VIEW_MODE_INDEX,
+                default => \craft\fields\Matrix::VIEW_MODE_CARDS,
+            };
+            $modifications[] = "Updated viewMode to {$updates['viewMode']}";
+        }
+        
+        // Entry type modifications are extremely complex and risky
+        if (isset($updates['entryTypes'])) {
+            $modifications[] = "WARNING: Entry type modifications for Matrix fields are not supported via updates - please recreate the field";
+        }
+        
+        if (isset($updates['addEntryTypes'])) {
+            $modifications[] = "WARNING: Adding entry types to existing Matrix fields is not supported via updates - please recreate the field";
+        }
+        
+        if (isset($updates['removeEntryTypes'])) {
+            $modifications[] = "WARNING: Removing entry types from Matrix fields is not supported via updates - please recreate the field";
+        }
+        
+        if (isset($updates['modifyEntryTypes'])) {
+            $modifications[] = "WARNING: Modifying entry types in Matrix fields is not supported via updates - please recreate the field";
+        }
+        
+        // Handle any other generic properties
+        $handledProperties = ['minEntries', 'maxEntries', 'viewMode', 'entryTypes', 'addEntryTypes', 'removeEntryTypes', 'modifyEntryTypes'];
+        foreach ($updates as $settingName => $settingValue) {
+            if (!in_array($settingName, $handledProperties) && property_exists($field, $settingName)) {
+                $field->$settingName = $settingValue;
+                $modifications[] = "Updated {$settingName} to " . (is_bool($settingValue) ? ($settingValue ? 'true' : 'false') : $settingValue);
+            }
+        }
+        
+        return $modifications;
     }
 
     /**

@@ -39,6 +39,7 @@ class TableField implements FieldTypeInterface
                 'columnTypes' => ['singleline', 'multiline', 'number', 'checkbox', 'color', 'url', 'email', 'date', 'time'], // Manual
             ],
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -63,12 +64,94 @@ class TableField implements FieldTypeInterface
 
     /**
      * Update a Table field with new settings
-     * TODO: Implement table field update logic in Phase 4
+     * Supports complex column operations and basic property updates
      */
     public function updateField(FieldInterface $field, array $updates): array
     {
-        // Placeholder implementation - will be implemented in Phase 4
-        return [];
+        $modifications = [];
+        
+        // Handle column updates (most complex part)
+        if (isset($updates['columns'])) {
+            $newColumns = $this->prepareTableColumns($updates['columns']);
+            $field->columns = $newColumns;
+            $modifications[] = "Updated table columns (" . count($newColumns) . " columns)";
+        }
+        
+        // Handle adding columns to existing ones
+        if (isset($updates['addColumns'])) {
+            $existingColumns = $field->columns ?? [];
+            $newColumns = $this->prepareTableColumns($updates['addColumns']);
+            $field->columns = array_merge($existingColumns, $newColumns);
+            $modifications[] = "Added " . count($newColumns) . " new columns to table";
+        }
+        
+        // Handle removing columns by handle
+        if (isset($updates['removeColumns']) && is_array($updates['removeColumns'])) {
+            $existingColumns = $field->columns ?? [];
+            $remainingColumns = array_filter($existingColumns, function($column) use ($updates) {
+                return !in_array($column['handle'] ?? '', $updates['removeColumns']);
+            });
+            $field->columns = array_values($remainingColumns); // Re-index array
+            $removedCount = count($existingColumns) - count($remainingColumns);
+            $modifications[] = "Removed {$removedCount} columns from table";
+        }
+        
+        // Handle modifying existing columns
+        if (isset($updates['modifyColumns']) && is_array($updates['modifyColumns'])) {
+            $existingColumns = $field->columns ?? [];
+            foreach ($updates['modifyColumns'] as $columnUpdate) {
+                $handle = $columnUpdate['handle'] ?? '';
+                for ($i = 0; $i < count($existingColumns); $i++) {
+                    if (($existingColumns[$i]['handle'] ?? '') === $handle) {
+                        // Update specific properties of this column
+                        if (isset($columnUpdate['heading'])) {
+                            $existingColumns[$i]['heading'] = $columnUpdate['heading'];
+                        }
+                        if (isset($columnUpdate['type'])) {
+                            $existingColumns[$i]['type'] = $columnUpdate['type'];
+                        }
+                        if (isset($columnUpdate['width'])) {
+                            $existingColumns[$i]['width'] = $columnUpdate['width'];
+                        }
+                        $modifications[] = "Modified column '{$handle}'";
+                        break;
+                    }
+                }
+            }
+            $field->columns = $existingColumns;
+        }
+        
+        // Handle simple property updates
+        if (isset($updates['minRows'])) {
+            $field->minRows = $updates['minRows'];
+            $modifications[] = "Updated minRows to {$updates['minRows']}";
+        }
+        
+        if (isset($updates['maxRows'])) {
+            $field->maxRows = $updates['maxRows'];
+            $modifications[] = "Updated maxRows to {$updates['maxRows']}";
+        }
+        
+        if (isset($updates['addRowLabel'])) {
+            $field->addRowLabel = $updates['addRowLabel'];
+            $modifications[] = "Updated addRowLabel to '{$updates['addRowLabel']}'";
+        }
+        
+        if (isset($updates['defaults'])) {
+            $field->defaults = (array)$updates['defaults'];
+            $modifications[] = "Updated default values";
+        }
+        
+        // Handle any other generic properties
+        $handledProperties = ['columns', 'addColumns', 'removeColumns', 'modifyColumns', 'minRows', 'maxRows', 'addRowLabel', 'defaults'];
+        foreach ($updates as $settingName => $settingValue) {
+            if (!in_array($settingName, $handledProperties) && property_exists($field, $settingName)) {
+                $field->$settingName = $settingValue;
+                $modifications[] = "Updated {$settingName} to " . (is_bool($settingValue) ? ($settingValue ? 'true' : 'false') : $settingValue);
+            }
+        }
+        
+        return $modifications;
     }
 
     /**

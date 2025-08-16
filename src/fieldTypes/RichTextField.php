@@ -60,12 +60,21 @@ class RichTextField implements FieldTypeInterface
 
     /**
      * Update field with new settings
-     * TODO: Implement update logic in Phase 4
+     * RichTextField supports generic property updates
      */
     public function updateField(FieldInterface $field, array $updates): array
     {
-        // Placeholder implementation - will be implemented in Phase 4
-        return [];
+        $modifications = [];
+        
+        // For Rich Text field types, try generic property setting
+        foreach ($updates as $settingName => $settingValue) {
+            if (property_exists($field, $settingName)) {
+                $field->$settingName = $settingValue;
+                $modifications[] = "Updated {$settingName} to " . (is_bool($settingValue) ? ($settingValue ? 'true' : 'false') : $settingValue);
+            }
+        }
+        
+        return $modifications;
     }
 
     /**

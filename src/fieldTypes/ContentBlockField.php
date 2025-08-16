@@ -34,7 +34,7 @@ class ContentBlockField implements FieldTypeInterface
             'craftClass' => \craft\fields\ContentBlock::class,
             'autoDiscoveredData' => $autoData,  // 80% automated
             'aliases' => ['content_block', 'contentblock'], // Manual
-            'llmDocumentation' => 'content_block: ONLY fields (array), viewMode (string)', // Manual
+            'llmDocumentation' => 'content_block: ONLY fields (array of existing field references by handle), viewMode (string). Fields must be created separately first.', // Manual
             'manualSettings' => [
                 'viewModes' => ['grouped', 'pane', 'inline'], // Manual
             ],
@@ -46,18 +46,18 @@ class ContentBlockField implements FieldTypeInterface
 
     /**
      * Create a Content Block field instance from configuration
-     * Preserves exact logic from original FieldService implementation
+     * ARCHITECTURAL FIX: ContentBlock should only reference existing fields, not create them
      */
     public function createField(array $config): FieldInterface
     {
         $field = new \craft\fields\ContentBlock();
         
-        // Apply Content Block-specific settings exactly as in original implementation
+        // Apply Content Block-specific settings
         $field->viewMode = $config['viewMode'] ?? 'grouped'; // grouped, pane, or inline
 
-        // Create field layout with nested fields (similar to entry types)
+        // Create field layout with ONLY existing field references
         if (isset($config['fields']) && is_array($config['fields'])) {
-            $fieldLayout = $this->createContentBlockFieldLayout($config['fields']);
+            $fieldLayout = $this->createContentBlockFieldLayoutReferencesOnly($config['fields']);
             $field->setFieldLayout($fieldLayout);
         }
 
@@ -66,15 +66,74 @@ class ContentBlockField implements FieldTypeInterface
 
     /**
      * Update a ContentBlock field with new settings
-     * Generic property updating (no specific ContentBlock field logic in legacy system)
+     * ContentBlock updates should only modify viewMode and field layout references
      */
     public function updateField(FieldInterface $field, array $updates): array
     {
         $modifications = [];
         
-        // For ContentBlock field types, try generic property setting
+        // Handle viewMode updates
+        if (isset($updates['viewMode'])) {
+            $validModes = ['grouped', 'pane', 'inline'];
+            if (in_array($updates['viewMode'], $validModes)) {
+                $field->viewMode = $updates['viewMode'];
+                $modifications[] = "Updated viewMode to {$updates['viewMode']}";
+            } else {
+                $modifications[] = "WARNING: Invalid viewMode '{$updates['viewMode']}'. Valid modes: " . implode(', ', $validModes);
+            }
+        }
+        
+        // Handle field layout updates (adding/removing existing field references)
+        if (isset($updates['addFields']) && is_array($updates['addFields'])) {
+            // Add references to existing fields
+            $fieldLayout = $field->getFieldLayout();
+            $existingElements = $fieldLayout ? $fieldLayout->getTabs()[0]->getElements() : [];
+            $newElements = $this->createFieldLayoutElementsFromReferences($updates['addFields']);
+            
+            if (!empty($newElements)) {
+                $allElements = array_merge($existingElements, $newElements);
+                $fieldLayout = $this->createFieldLayoutFromElements($allElements);
+                $field->setFieldLayout($fieldLayout);
+                $modifications[] = "Added " . count($newElements) . " field references to ContentBlock";
+            }
+        }
+        
+        if (isset($updates['removeFields']) && is_array($updates['removeFields'])) {
+            // Remove field references by handle
+            $fieldLayout = $field->getFieldLayout();
+            if ($fieldLayout) {
+                $existingElements = $fieldLayout->getTabs()[0]->getElements();
+                $filteredElements = [];
+                $removedCount = 0;
+                
+                foreach ($existingElements as $element) {
+                    if ($element instanceof \craft\fieldlayoutelements\CustomField) {
+                        $fieldHandle = \Craft::$app->getFields()->getFieldByUid($element->fieldUid)?->handle;
+                        if (!in_array($fieldHandle, $updates['removeFields'])) {
+                            $filteredElements[] = $element;
+                        } else {
+                            $removedCount++;
+                        }
+                    } else {
+                        $filteredElements[] = $element;
+                    }
+                }
+                
+                $fieldLayout = $this->createFieldLayoutFromElements($filteredElements);
+                $field->setFieldLayout($fieldLayout);
+                $modifications[] = "Removed {$removedCount} field references from ContentBlock";
+            }
+        }
+        
+        // Warn about field creation attempts
+        if (isset($updates['fields'])) {
+            $modifications[] = "WARNING: ContentBlock field creation via updates is not supported. Create fields separately first, then reference them.";
+        }
+        
+        // Handle any other generic properties (but most shouldn't be updated)
+        $handledProperties = ['viewMode', 'addFields', 'removeFields', 'fields'];
         foreach ($updates as $settingName => $settingValue) {
-            if (property_exists($field, $settingName)) {
+            if (!in_array($settingName, $handledProperties) && property_exists($field, $settingName)) {
                 $field->$settingName = $settingValue;
                 $modifications[] = "Updated {$settingName} to " . (is_bool($settingValue) ? ($settingValue ? 'true' : 'false') : $settingValue);
             }
@@ -85,42 +144,13 @@ class ContentBlockField implements FieldTypeInterface
 
     /**
      * Get test cases for Content Block field
-     * Enhanced from auto-generated base with Content Block-specific scenarios
+     * CORRECTED: Shows proper architecture with existing field references only
      */
     public function getTestCases(): array
     {
         return [
             [
-                'name' => 'Basic Content Block field creation',
-                'operation' => [
-                    'type' => 'create',
-                    'target' => 'field',
-                    'create' => [
-                        'field' => [
-                            'name' => 'Test Content Block',
-                            'handle' => 'testContentBlock',
-                            'field_type' => 'content_block',
-                            'settings' => [
-                                'fields' => [
-                                    [
-                                        'name' => 'Title',
-                                        'handle' => 'title',
-                                        'field_type' => 'plain_text'
-                                    ],
-                                    [
-                                        'name' => 'Content',
-                                        'handle' => 'content',
-                                        'field_type' => 'rich_text'
-                                    ]
-                                ],
-                                'viewMode' => 'grouped'
-                            ]
-                        ]
-                    ]
-                ]
-            ],
-            [
-                'name' => 'Content Block field with existing field references',
+                'name' => 'Content Block field with existing field references (CORRECT ARCHITECTURE)',
                 'operation' => [
                     'type' => 'create',
                     'target' => 'field',
@@ -132,22 +162,26 @@ class ContentBlockField implements FieldTypeInterface
                             'settings' => [
                                 'fields' => [
                                     [
-                                        'handle' => 'existingTextField',
+                                        'handle' => 'fieldTestSingleLine',  // References existing field
                                         'required' => true
                                     ],
                                     [
-                                        'handle' => 'existingImageField',
+                                        'handle' => 'fieldTestRichText',    // References existing field
+                                        'required' => false
+                                    ],
+                                    [
+                                        'handle' => 'fieldTestImage',       // References existing field
                                         'required' => false
                                     ]
                                 ],
-                                'viewMode' => 'pane'
+                                'viewMode' => 'grouped'
                             ]
                         ]
                     ]
                 ]
             ],
             [
-                'name' => 'Content Block field with mixed field types',
+                'name' => 'Content Block field in pane view mode',
                 'operation' => [
                     'type' => 'create',
                     'target' => 'field',
@@ -159,28 +193,43 @@ class ContentBlockField implements FieldTypeInterface
                             'settings' => [
                                 'fields' => [
                                     [
-                                        'name' => 'Headline',
-                                        'handle' => 'headline',
-                                        'field_type' => 'plain_text',
+                                        'handle' => 'fieldTestSingleLine',  // References existing field
                                         'required' => true
                                     ],
                                     [
-                                        'name' => 'Subheading',
-                                        'handle' => 'subheading',
-                                        'field_type' => 'plain_text',
-                                        'multiline' => true
+                                        'handle' => 'fieldTestMultiLine',   // References existing field
+                                        'required' => false
                                     ],
                                     [
-                                        'name' => 'Background Image',
-                                        'handle' => 'backgroundImage',
-                                        'field_type' => 'image',
-                                        'maxRelations' => 1
+                                        'handle' => 'fieldTestLink',        // References existing field
+                                        'required' => false
+                                    ]
+                                ],
+                                'viewMode' => 'pane'
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            [
+                'name' => 'Content Block field with inline view mode',
+                'operation' => [
+                    'type' => 'create',
+                    'target' => 'field',
+                    'create' => [
+                        'field' => [
+                            'name' => 'Simple Card',
+                            'handle' => 'simpleCard',
+                            'field_type' => 'content_block',
+                            'settings' => [
+                                'fields' => [
+                                    [
+                                        'handle' => 'fieldTestSingleLine',  // References existing field
+                                        'required' => true
                                     ],
                                     [
-                                        'name' => 'Call to Action',
-                                        'handle' => 'cta',
-                                        'field_type' => 'link',
-                                        'types' => ['url', 'entry']
+                                        'handle' => 'fieldTestImage',       // References existing field
+                                        'required' => true
                                     ]
                                 ],
                                 'viewMode' => 'inline'
@@ -194,6 +243,7 @@ class ContentBlockField implements FieldTypeInterface
 
     /**
      * Validate Content Block field configuration
+     * CORRECTED: Enforces proper architecture with existing field references only
      */
     public function validate(array $config): array
     {
@@ -211,20 +261,25 @@ class ContentBlockField implements FieldTypeInterface
                     }
 
                     if (empty($field['handle'])) {
-                        $errors[] = "Field at index {$index} must have a 'handle'";
+                        $errors[] = "Field at index {$index} must have a 'handle' to reference an existing field";
                     }
 
-                    // Check for either existing field reference or new field definition
-                    if (!isset($field['field_type']) && !isset($field['name'])) {
-                        // This might be a field reference, which is valid if it has just a handle
-                        if (empty($field['handle'])) {
-                            $errors[] = "Field at index {$index} must have either 'field_type' (for new) or just 'handle' (for existing)";
+                    // Warn about architectural violations (field creation within ContentBlock)
+                    if (isset($field['field_type'])) {
+                        $errors[] = "ARCHITECTURAL WARNING: Field at index {$index} has 'field_type' indicating inline field creation. ContentBlock should only reference existing fields. Create fields separately first.";
+                    }
+                    
+                    if (isset($field['name']) && !isset($field['field_type'])) {
+                        $errors[] = "Field at index {$index} has 'name' but no 'field_type'. ContentBlock should only reference existing fields by 'handle'.";
+                    }
+
+                    // Validate field reference exists
+                    if (isset($field['handle']) && !isset($field['field_type'])) {
+                        $fieldsService = \Craft::$app->getFields();
+                        $existingField = $fieldsService->getFieldByHandle($field['handle']);
+                        if (!$existingField) {
+                            $errors[] = "Field at index {$index} references handle '{$field['handle']}' which does not exist. Create the field first.";
                         }
-                    }
-
-                    // If creating new field, validate required properties
-                    if (isset($field['field_type']) && empty($field['name'])) {
-                        $errors[] = "Field at index {$index} with field_type must have a 'name'";
                     }
                 }
             }
@@ -242,188 +297,74 @@ class ContentBlockField implements FieldTypeInterface
     }
 
     /**
-     * Create field layout for ContentBlock fields
-     * EXACT copy from original FieldService implementation - no modifications
+     * Create field layout for ContentBlock fields - REFERENCES ONLY
+     * ARCHITECTURAL FIX: Only reference existing fields, do not create new ones
      */
-    private function createContentBlockFieldLayout(array $fieldsConfig): \craft\models\FieldLayout
+    private function createContentBlockFieldLayoutReferencesOnly(array $fieldsConfig): \craft\models\FieldLayout
     {
-        $fieldLayout = new \craft\models\FieldLayout();
-        $fieldLayout->type = \craft\fields\ContentBlock::class;
-
+        $fieldLayoutElements = $this->createFieldLayoutElementsFromReferences($fieldsConfig);
+        return $this->createFieldLayoutFromElements($fieldLayoutElements);
+    }
+    
+    /**
+     * Create field layout elements from field references
+     */
+    private function createFieldLayoutElementsFromReferences(array $fieldsConfig): array
+    {
         $fieldLayoutElements = [];
         $fieldsService = \Craft::$app->getFields();
 
         foreach ($fieldsConfig as $fieldConfig) {
-            // Check if this is a field reference (existing field)
-            if (!isset($fieldConfig['field_type']) && isset($fieldConfig['handle'])) {
-                // Look up existing field
+            // Only handle existing field references
+            if (isset($fieldConfig['handle'])) {
                 $existingField = $fieldsService->getFieldByHandle($fieldConfig['handle']);
                 if ($existingField) {
-                    // Use existing field
                     $fieldLayoutElement = new \craft\fieldlayoutelements\CustomField();
                     $fieldLayoutElement->fieldUid = $existingField->uid;
                     $fieldLayoutElement->required = $fieldConfig['required'] ?? false;
                     $fieldLayoutElements[] = $fieldLayoutElement;
-                    continue;
                 } else {
-                    // If field doesn't exist and no field_type provided, skip
-                    Craft::warning("Field '{$fieldConfig['handle']}' not found for ContentBlock field layout", __METHOD__);
-                    continue;
+                    \Craft::warning("Field '{$fieldConfig['handle']}' not found for ContentBlock field layout", __METHOD__);
                 }
-            }
-
-            // This is a full field definition for inline creation
-            if (isset($fieldConfig['field_type'])) {
-                // Create the field
-                $blockField = $this->createFieldFromConfig($fieldConfig);
-
-                if ($blockField) {
-                    // Save the field
-                    if (!$fieldsService->saveField($blockField)) {
-                        $errors = $blockField->getErrors();
-                        $errorMessage = "Failed to save field '{$blockField->name}' for ContentBlock";
-                        if (!empty($errors)) {
-                            $errorMessage .= ": " . implode(', ', array_map(function($err) {
-                                return is_array($err) ? implode(', ', $err) : $err;
-                            }, $errors));
-                        }
-                        throw new Exception($errorMessage);
+            } elseif (isset($fieldConfig['field_type'])) {
+                // Log warning about architectural issue but still support legacy behavior
+                \Craft::warning("ContentBlock field creation detected - this should be done separately. Field type: {$fieldConfig['field_type']}", __METHOD__);
+                
+                // Delegate to main FieldService for backward compatibility
+                $fieldService = \Craft::$app->plugins->getPlugin('field-agent')->fieldService;
+                try {
+                    $blockField = $fieldService->createFieldFromConfig($fieldConfig);
+                    if ($blockField && $fieldsService->saveField($blockField)) {
+                        $fieldLayoutElement = new \craft\fieldlayoutelements\CustomField();
+                        $fieldLayoutElement->fieldUid = $blockField->uid;
+                        $fieldLayoutElement->required = $fieldConfig['required'] ?? false;
+                        $fieldLayoutElements[] = $fieldLayoutElement;
                     }
-
-                    // Create field layout element
-                    $fieldLayoutElement = new \craft\fieldlayoutelements\CustomField();
-                    $fieldLayoutElement->fieldUid = $blockField->uid;
-                    $fieldLayoutElement->required = $fieldConfig['required'] ?? false;
-                    $fieldLayoutElements[] = $fieldLayoutElement;
+                } catch (\Exception $e) {
+                    \Craft::error("Failed to create field for ContentBlock: {$e->getMessage()}", __METHOD__);
                 }
             }
         }
 
-        // Set up the field layout tabs
+        return $fieldLayoutElements;
+    }
+    
+    /**
+     * Create field layout from elements array
+     */
+    private function createFieldLayoutFromElements(array $elements): \craft\models\FieldLayout
+    {
+        $fieldLayout = new \craft\models\FieldLayout();
+        $fieldLayout->type = \craft\fields\ContentBlock::class;
+        
         $fieldLayout->setTabs([
             [
                 'name' => 'Content',
-                'elements' => $fieldLayoutElements,
+                'elements' => $elements,
             ]
         ]);
 
         return $fieldLayout;
     }
 
-    /**
-     * Create a field from config array
-     * EXACT copy from original FieldService implementation - no modifications
-     */
-    private function createFieldFromConfig(array $config)
-    {
-        // This is a simplified version - in practice would call the full FieldService method
-        // For this implementation, we'll use the field type classes
-        $fieldType = $config['field_type'] ?? '';
-        
-        switch ($fieldType) {
-            case 'plain_text':
-            case 'text':
-                $field = new \craft\fields\PlainText();
-                $field->multiline = $config['multiline'] ?? false;
-                $field->initialRows = $field->multiline ? 4 : 1;
-                if (isset($config['charLimit'])) {
-                    $field->charLimit = $config['charLimit'];
-                }
-                break;
-
-            case 'rich_text':
-            case 'richtext':
-                if (class_exists(\craft\ckeditor\Field::class)) {
-                    $field = new \craft\ckeditor\Field();
-                    $field->purifyHtml = true;
-                } else {
-                    throw new Exception("CKEditor plugin not installed, cannot create rich text field");
-                }
-                break;
-
-            case 'image':
-                $field = new \craft\fields\Assets();
-                $field->allowedKinds = ['image'];
-                $field->restrictFiles = true;
-                $field->maxRelations = $config['maxRelations'] ?? 1;
-                if (isset($config['minRelations'])) {
-                    $field->minRelations = $config['minRelations'];
-                }
-                $field->viewMode = 'list';
-                break;
-
-            case 'asset':
-                $field = new \craft\fields\Assets();
-                $field->maxRelations = $config['maxRelations'] ?? 1;
-                if (isset($config['minRelations'])) {
-                    $field->minRelations = $config['minRelations'];
-                }
-                $field->viewMode = 'list';
-                if (isset($config['allowedKinds'])) {
-                    $field->allowedKinds = $config['allowedKinds'];
-                    $field->restrictFiles = true;
-                }
-                break;
-
-            case 'link':
-                $field = new \craft\fields\Link();
-                $field->types = $config['types'] ?? ['url'];
-                $field->showLabelField = $config['showLabelField'] ?? true;
-                $field->maxLength = 255;
-
-                // Configure sources for entry links
-                $entrySources = '*';
-                if (isset($config['sources']) && is_array($config['sources'])) {
-                    $entriesService = \Craft::$app->getEntries();
-                    $sources = [];
-                    foreach ($config['sources'] as $sectionHandle) {
-                        $section = $entriesService->getSectionByHandle($sectionHandle);
-                        if ($section) {
-                            $sources[] = 'section:' . $section->uid;
-                        }
-                    }
-                    if (!empty($sources)) {
-                        $entrySources = $sources;
-                    }
-                }
-
-                // Configure type-specific settings
-                $typeSettings = [];
-                if (in_array('url', $field->types)) {
-                    $typeSettings['url'] = [
-                        'allowRootRelativeUrls' => $config['allowRootRelativeUrls'] ?? true,
-                        'allowAnchors' => $config['allowAnchors'] ?? true,
-                        'allowCustomSchemes' => $config['allowCustomSchemes'] ?? false,
-                    ];
-                }
-                if (in_array('entry', $field->types)) {
-                    $typeSettings['entry'] = [
-                        'sources' => $entrySources,
-                    ];
-                }
-                if (!empty($typeSettings)) {
-                    $field->typeSettings = $typeSettings;
-                }
-                break;
-
-            default:
-                throw new Exception("Unsupported field type: $fieldType");
-        }
-
-        if ($field) {
-            $field->name = $config['name'];
-            $field->handle = $config['handle'];
-            $field->instructions = $config['instructions'] ?? '';
-            $field->searchable = $config['searchable'] ?? false;
-            $field->translationMethod = 'none';
-
-            try {
-                $field->groupId = 1; // Default field group
-            } catch (\Exception $e) {
-                // Some field types may not support groupId directly
-            }
-        }
-
-        return $field;
-    }
 }

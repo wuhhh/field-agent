@@ -130,10 +130,42 @@ class FieldService extends Component
      */
     public function updateFieldFromConfig(Field $field, array $updates): array
     {
-        $modifications = [];
-
         // Get field type using our clean mapping
         $fieldType = $this->getFieldTypeFromInstance($field);
+        
+        // Try registry system first if enabled
+        if ($this->useRegistry && $fieldType) {
+            try {
+                $registry = Plugin::getInstance()->fieldRegistryService;
+                $fieldDefinition = $registry->getField($fieldType);
+                
+                if ($fieldDefinition && $fieldDefinition->hasUpdateMethod()) {
+                    // Update field using registry
+                    $modifications = $fieldDefinition->updateField($field, $updates);
+                    
+                    if (!empty($modifications)) {
+                        Craft::info("Updated field '{$fieldType}' using registry system", __METHOD__);
+                    }
+                    
+                    return $modifications;
+                }
+            } catch (\Exception $e) {
+                Craft::warning("Registry field update failed for '{$fieldType}': {$e->getMessage()}", __METHOD__);
+                // Fall through to legacy system
+            }
+        }
+        
+        // Fall back to legacy update method
+        return $this->legacyUpdateField($field, $updates, $fieldType);
+    }
+
+    /**
+     * Legacy field update method - contains original switch statement logic
+     * This will be removed once all field types are migrated to registry
+     */
+    private function legacyUpdateField(Field $field, array $updates, ?string $fieldType): array
+    {
+        $modifications = [];
 
         // Apply field-type-specific updates using creation patterns
         switch ($fieldType) {
@@ -263,6 +295,13 @@ class FieldService extends Component
                 if (isset($updates['options'])) {
                     $field->options = $this->prepareOptions($updates['options']);
                     $modifications[] = "Updated options";
+                }
+                break;
+
+            case 'button_group':
+                if (isset($updates['options'])) {
+                    $field->options = $this->prepareButtonGroupOptions($updates['options']);
+                    $modifications[] = "Updated button group options";
                 }
                 break;
 

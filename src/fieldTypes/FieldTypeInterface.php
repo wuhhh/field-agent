@@ -39,4 +39,13 @@ interface FieldTypeInterface
      * @return array Array of validation errors (empty if valid)
      */
     public function validate(array $config): array;
+
+    /**
+     * Update field instance with new configuration
+     *
+     * @param FieldInterface $field The field to update
+     * @param array $updates Configuration updates to apply
+     * @return array Array of modifications made to the field
+     */
+    public function updateField(FieldInterface $field, array $updates): array;
 }

@@ -35,6 +35,7 @@ class CountryField implements FieldTypeInterface
             'aliases' => ['country'], // Manual
             'llmDocumentation' => 'country: No specific settings - provides country selection dropdown', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -49,6 +50,20 @@ class CountryField implements FieldTypeInterface
         $field = new \craft\fields\Country();
 
         return $field;
+    }
+
+    /**
+     * Update field instance with new configuration
+     * Country field has no special settings to update
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        // Country field has no field-specific settings to update
+        // All updates would be handled by generic property setting in legacy fallback
+        
+        return $modifications;
     }
 
     /**

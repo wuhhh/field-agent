@@ -35,6 +35,7 @@ class EmailField implements FieldTypeInterface
             'aliases' => ['email'], // Manual
             'llmDocumentation' => 'email: placeholder (string)', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -53,6 +54,22 @@ class EmailField implements FieldTypeInterface
         }
 
         return $field;
+    }
+
+    /**
+     * Update field instance with new configuration
+     * EXACT COPY from FieldService::legacyUpdateField switch case
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        if (isset($updates['placeholder'])) {
+            $field->placeholder = $updates['placeholder'];
+            $modifications[] = "Updated placeholder to '{$updates['placeholder']}'";
+        }
+        
+        return $modifications;
     }
 
     /**

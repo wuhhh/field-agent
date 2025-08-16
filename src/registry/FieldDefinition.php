@@ -57,6 +57,13 @@ class FieldDefinition
     public $factory = null;
 
     /**
+     * Optional factory callable for updating field instances
+     *
+     * @var callable|null
+     */
+    public $updateFactory = null;
+
+    /**
      * Test cases for this field type
      *
      * @var array
@@ -157,5 +164,31 @@ class FieldDefinition
         }
         
         return null;
+    }
+
+    /**
+     * Update a field instance using the update factory if available
+     *
+     * @param \craft\base\FieldInterface $field The field to update
+     * @param array $updates Updates to apply
+     * @return array Array of modifications made
+     */
+    public function updateField(\craft\base\FieldInterface $field, array $updates): array
+    {
+        if ($this->updateFactory && is_callable($this->updateFactory)) {
+            return call_user_func($this->updateFactory, $field, $updates);
+        }
+        
+        return [];
+    }
+
+    /**
+     * Check if this field type has an update method registered
+     *
+     * @return bool
+     */
+    public function hasUpdateMethod(): bool
+    {
+        return $this->updateFactory !== null && is_callable($this->updateFactory);
     }
 }

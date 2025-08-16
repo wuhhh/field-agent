@@ -35,6 +35,7 @@ class DropdownField implements FieldTypeInterface
             'aliases' => ['dropdown'], // Manual
             'llmDocumentation' => 'dropdown: options (array) - Use format: ["value1","value2"] NOT objects', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -51,6 +52,22 @@ class DropdownField implements FieldTypeInterface
         $field->options = $this->prepareOptions($config['options'] ?? []);
 
         return $field;
+    }
+
+    /**
+     * Update field instance with new configuration
+     * EXACT COPY from FieldService::legacyUpdateField switch case
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        if (isset($updates['options'])) {
+            $field->options = $this->prepareOptions($updates['options']);
+            $modifications[] = "Updated dropdown options";
+        }
+        
+        return $modifications;
     }
 
     /**

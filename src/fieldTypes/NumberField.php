@@ -35,6 +35,7 @@ class NumberField implements FieldTypeInterface
             'aliases' => ['number'], // Manual
             'llmDocumentation' => 'number: decimals (integer), min (number), max (number), prefix (string), suffix (string)', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -65,6 +66,38 @@ class NumberField implements FieldTypeInterface
         }
 
         return $field;
+    }
+
+    /**
+     * Update field instance with new configuration
+     * EXACT COPY from FieldService::legacyUpdateField switch case
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        if (isset($updates['decimals'])) {
+            $field->decimals = $updates['decimals'];
+            $modifications[] = "Updated decimals to {$updates['decimals']}";
+        }
+        if (isset($updates['min'])) {
+            $field->min = $updates['min'];
+            $modifications[] = "Updated min to {$updates['min']}";
+        }
+        if (isset($updates['max'])) {
+            $field->max = $updates['max'];
+            $modifications[] = "Updated max to {$updates['max']}";
+        }
+        if (isset($updates['prefix'])) {
+            $field->prefix = $updates['prefix'];
+            $modifications[] = "Updated prefix to '{$updates['prefix']}'";
+        }
+        if (isset($updates['suffix'])) {
+            $field->suffix = $updates['suffix'];
+            $modifications[] = "Updated suffix to '{$updates['suffix']}'";
+        }
+        
+        return $modifications;
     }
 
     /**

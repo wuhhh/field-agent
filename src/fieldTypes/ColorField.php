@@ -35,6 +35,7 @@ class ColorField implements FieldTypeInterface
             'aliases' => ['color'], // Manual
             'llmDocumentation' => 'color: allowCustomColors (boolean), palette (array of {color, label} objects)', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -58,6 +59,29 @@ class ColorField implements FieldTypeInterface
             ];
         }
         return $field;
+    }
+
+    /**
+     * Update field instance with new configuration
+     * FEATURE PARITY: Legacy update method had no color-specific logic
+     * Adding all settings from createField to maintain feature parity
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        // FEATURE PARITY: Add all settings from createField
+        if (isset($updates['allowCustomColors'])) {
+            $field->allowCustomColors = (bool)$updates['allowCustomColors'];
+            $modifications[] = "Updated allowCustomColors to " . ($updates['allowCustomColors'] ? 'true' : 'false');
+        }
+        
+        if (isset($updates['palette'])) {
+            $field->palette = $updates['palette'];
+            $modifications[] = "Updated color palette";
+        }
+        
+        return $modifications;
     }
 
     /**

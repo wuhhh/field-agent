@@ -35,6 +35,7 @@ class LightswitchField implements FieldTypeInterface
             'aliases' => ['lightswitch', 'toggle'], // Manual
             'llmDocumentation' => 'lightswitch: default (boolean), onLabel (string), offLabel (string)', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -59,6 +60,34 @@ class LightswitchField implements FieldTypeInterface
         }
 
         return $field;
+    }
+
+    /**
+     * Update field instance with new configuration
+     * EXACT COPY from FieldService::legacyUpdateField switch case
+     * PLUS missing settings from createField for feature parity
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        // From legacy update method
+        if (isset($updates['default'])) {
+            $field->default = (bool)$updates['default'];
+            $modifications[] = "Updated default to " . ($updates['default'] ? 'true' : 'false');
+        }
+        
+        // FEATURE PARITY: Add missing settings from createField
+        if (isset($updates['onLabel'])) {
+            $field->onLabel = $updates['onLabel'];
+            $modifications[] = "Updated onLabel to '{$updates['onLabel']}'";
+        }
+        if (isset($updates['offLabel'])) {
+            $field->offLabel = $updates['offLabel'];
+            $modifications[] = "Updated offLabel to '{$updates['offLabel']}'";
+        }
+        
+        return $modifications;
     }
 
     /**

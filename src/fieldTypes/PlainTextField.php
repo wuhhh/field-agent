@@ -35,6 +35,7 @@ class PlainTextField implements FieldTypeInterface
             'aliases' => ['plain_text', 'text'], // Manual
             'llmDocumentation' => 'plain_text: multiline (boolean), charLimit (integer)', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
+            'updateFactory' => [$this, 'updateField'], // Update factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
     }
@@ -55,6 +56,27 @@ class PlainTextField implements FieldTypeInterface
         }
 
         return $field;
+    }
+
+    /**
+     * Update field instance with new configuration
+     * EXACT COPY from FieldService::legacyUpdateField switch case
+     */
+    public function updateField(FieldInterface $field, array $updates): array
+    {
+        $modifications = [];
+        
+        if (isset($updates['multiline'])) {
+            $field->multiline = (bool)$updates['multiline'];
+            $field->initialRows = $field->multiline ? 4 : 1;
+            $modifications[] = "Updated multiline to " . ($updates['multiline'] ? 'true' : 'false');
+        }
+        if (isset($updates['charLimit'])) {
+            $field->charLimit = $updates['charLimit'];
+            $modifications[] = "Updated charLimit to {$updates['charLimit']}";
+        }
+        
+        return $modifications;
     }
 
     /**

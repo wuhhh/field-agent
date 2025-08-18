@@ -127,9 +127,10 @@ OPERATION TYPES:
 CRITICAL: OPERATION ORDERING
 Operations MUST be ordered correctly for dependencies:
 1. Create category groups and tag groups FIRST (if needed)
-2. Create fields second (can now reference the groups)
-3. Create entry types third (referencing the fields)
-4. Create sections last (referencing the entry types)
+2. Create regular fields second (can now reference the groups)
+3. Create matrix fields third (AFTER fields they reference)
+4. Create entry types fourth (referencing the fields)
+5. Create sections last (referencing the entry types)
 Wrong order will cause failures!
 
 FIELD TYPES: {$fieldTypesString}
@@ -170,9 +171,12 @@ CRITICAL RULES:
 - categories/tags need groups, multi_select for static options only
 
 MATRIX FIELDS:
-Matrix fields contain entry types (not "blocks"). Two approaches:
-1. Inline definition: {name,handle,fields[{handle,field_type,name,required}]} in matrix settings.entryTypes
-2. Reference existing: Use modify action "addMatrixEntryType" with entryTypeHandle
+Matrix fields contain entry types (not "blocks"). CRITICAL: Field reference format:
+- Referencing EXISTING fields: Use {handle,required} only - field must already exist
+- Creating NEW inline fields: Use {handle,field_type,name,required,settings?}
+ORDERING: Create referenced fields FIRST, then matrix field. Example:
+1. Create: heroTitle (plain_text), heroImage (image) fields
+2. Create: pageBuilder matrix with entryTypes:[{name:"Hero",handle:"heroBlock",fields:[{handle:"heroTitle",required:true},{handle:"heroImage",required:false}]}]
 
 MATRIX ENTRY TYPE MODIFICATIONS:
 - To modify fields in matrix entry types, use "modifyMatrixEntryType" action
@@ -197,7 +201,7 @@ OPERATION STRUCTURE: {name,description,operations[{type,target,targetId?,create?
 
 CREATE OPERATIONS MUST have wrapper objects:
 - field: {"create":{"field":{name,handle,field_type,settings}}}
-- entryType: {"create":{"entryType":{name,handle,hasTitleField,fields[{handle,required}]}}}
+- entryType: {"create":{"entryType":{name,handle,hasTitleField,fields[{handle,required}]}}} (fields ref existing)
 - section: {"create":{"section":{name,handle,type,entryTypes[handles]}}}
 - tagGroup: {"create":{"tagGroup":{name,handle}}}
 - categoryGroup: {"create":{"categoryGroup":{name,handle}}}

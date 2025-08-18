@@ -46,6 +46,7 @@ class FieldService extends Component
 		'table' => \craft\fields\Table::class,
 		'tags' => \craft\fields\Tags::class,
 		'time' => \craft\fields\Time::class,
+		'url' => \craft\fields\Link::class, // Alias for link - common in natural language
 		'users' => \craft\fields\Users::class,
 	];
 

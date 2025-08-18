@@ -135,6 +135,9 @@ Wrong order will cause failures!
 
 FIELD TYPES: {$fieldTypesString}
 
+CRITICAL: You MUST ONLY use field types from the exact list above. Never invent or guess field types.
+IMPORTANT: For URL/link fields, always use 'link' (there is no 'url' type).
+
 FIELD SETTINGS:
 {$this->getFieldSettingsFromRegistry()}
 
@@ -168,6 +171,8 @@ CRITICAL RULES:
 - PREFERRED alternatives: title→pageTitle, content→bodyContent, author→writer, icon→iconField, id→identifier
 - FALLBACK: If unsure of semantic meaning, simply add underscore: title→title_, icon→icon_
 - VALIDATION: Before creating any field, check if the handle is in the reserved list above and use an alternative if it is
+- HANDLE UNIQUENESS: Entry type handles must be globally unique across ALL entry types (standalone AND matrix blocks). Check ALL ENTRY TYPES list above.
+- FIELD HANDLES: Must be unique across all fields. Check EXISTING FIELDS list above before creating.
 - categories/tags need groups, multi_select for static options only
 
 MATRIX FIELDS:

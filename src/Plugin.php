@@ -92,16 +92,16 @@ class Plugin extends BasePlugin
     {
         try {
             $registry = $this->fieldRegistryService;
-            
+
             // Auto-register native Craft field types
             $autoCount = $registry->autoRegisterNativeFields();
-            
+
             // Register manually enhanced field types
             $this->registerEnhancedFieldTypes($registry);
-            
+
             $totalFields = count($registry->getAllFields());
             Craft::info("Field registry initialized with {$totalFields} field types ({$autoCount} auto-discovered)", __METHOD__);
-            
+
         } catch (\Exception $e) {
             Craft::error("Failed to initialize field registry: {$e->getMessage()}", __METHOD__);
         }
@@ -142,7 +142,8 @@ class Plugin extends BasePlugin
             \craftcms\fieldagent\fieldTypes\MatrixField::class,
             \craftcms\fieldagent\fieldTypes\ContentBlockField::class,
             \craftcms\fieldagent\fieldTypes\LinkField::class,
-            \craftcms\fieldagent\fieldTypes\ImageField::class,
+            \craftcms\fieldagent\fieldTypes\UrlField::class, // Alias for Link field
+            \craftcms\fieldagent\fieldTypes\ImageField::class, // Alias for Assets
         ];
 
         foreach ($fieldTypeClasses as $className) {

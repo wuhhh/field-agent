@@ -26,6 +26,12 @@
     "require": {
         "craftcms/cms": "^5.0.0"
     },
+    "require-dev": {
+        "craftcms/ckeditor": "^4.0"
+    },
+    "suggest": {
+        "craftcms/ckeditor": "Required for rich text field support (CKEditor fields)"
+    },
     "autoload": {
         "psr-4": {
             "craftcms\\fieldagent\\": "src/"
@@ -42,5 +48,11 @@
             "fieldService": "craftcms\\fieldagent\\services\\FieldService"
         },
         "class": "craftcms\\fieldagent\\Plugin"
+    },
+    "config": {
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true,
+            "craftcms/plugin-installer": true
+        }
     }
 }

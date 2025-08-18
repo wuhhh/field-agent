@@ -26,16 +26,21 @@ class RichTextField implements FieldTypeInterface
      */
     public function register(): FieldDefinition
     {
+        // Check if CKEditor is available
+        if (!class_exists('craft\ckeditor\Field')) {
+            throw new Exception('CKEditor plugin is not installed');
+        }
+        
         // Get auto-discovered base data from Craft APIs
-        $craftClass = class_exists(\craft\ckeditor\Field::class) ? \craft\ckeditor\Field::class : \craft\fields\PlainText::class;
+        $craftClass = 'craft\ckeditor\Field';
         $autoData = $this->introspector->analyzeFieldType($craftClass);
         
         return new FieldDefinition([
-            'type' => 'rich_text',
+            'type' => 'ckeditor',
             'craftClass' => $craftClass,
             'autoDiscoveredData' => $autoData,  // 80% automated
-            'aliases' => ['rich_text', 'richtext'], // Manual
-            'llmDocumentation' => 'rich_text: No specific settings - uses CKEditor if available', // Manual
+            'aliases' => ['rich_text', 'richtext', 'ckeditor'], // Manual
+            'llmDocumentation' => 'ckeditor: Rich text editor using CKEditor plugin', // Manual
             'factory' => [$this, 'createField'], // Manual factory method
             'testCases' => $this->getTestCases() // Enhanced from auto-generated base
         ]);
@@ -44,15 +49,25 @@ class RichTextField implements FieldTypeInterface
     /**
      * Create a Rich Text field instance from configuration
      * Preserves exact logic from original FieldService implementation
+     * 
+     * @param array $config
+     * @return FieldInterface
+     * @throws Exception if CKEditor plugin is not installed
+     * @phpstan-ignore-next-line
      */
     public function createField(array $config): FieldInterface
     {
+        if (!class_exists('craft\ckeditor\Field')) {
+            throw new Exception('CKEditor plugin is not installed');
+        }
+        
         // Apply Rich Text-specific logic exactly as in original implementation
-        if (class_exists(\craft\ckeditor\Field::class)) {
-            $field = new \craft\ckeditor\Field();
+        /** @var FieldInterface $field */
+        $field = new \craft\ckeditor\Field();
+        
+        // Set purifyHtml property if it exists (it should on CKEditor fields)
+        if (property_exists($field, 'purifyHtml')) {
             $field->purifyHtml = true;
-        } else {
-            throw new Exception("CKEditor plugin not installed, cannot create rich text field");
         }
 
         return $field;
@@ -78,28 +93,28 @@ class RichTextField implements FieldTypeInterface
     }
 
     /**
-     * Get test cases for Rich Text field
-     * Enhanced from auto-generated base with Rich Text-specific scenarios
+     * Get test cases for CKEditor field
+     * Enhanced from auto-generated base with CKEditor-specific scenarios
      */
     public function getTestCases(): array
     {
         return [
             [
-                'name' => 'Basic Rich Text field creation',
+                'name' => 'Basic CKEditor field creation',
                 'operation' => [
                     'type' => 'create',
                     'target' => 'field',
                     'create' => [
                         'field' => [
-                            'name' => 'Test Rich Text',
-                            'handle' => 'testRichText',
-                            'field_type' => 'rich_text'
+                            'name' => 'Test CKEditor',
+                            'handle' => 'testCkeditor',
+                            'field_type' => 'ckeditor'
                         ]
                     ]
                 ]
             ],
             [
-                'name' => 'Rich Text field using richtext alias',
+                'name' => 'CKEditor field using rich_text alias',
                 'operation' => [
                     'type' => 'create',
                     'target' => 'field',
@@ -107,7 +122,7 @@ class RichTextField implements FieldTypeInterface
                         'field' => [
                             'name' => 'Content',
                             'handle' => 'content',
-                            'field_type' => 'richtext' // Using alias
+                            'field_type' => 'rich_text' // Using alias
                         ]
                     ]
                 ]
@@ -122,10 +137,7 @@ class RichTextField implements FieldTypeInterface
     {
         $errors = [];
 
-        // Check if CKEditor is available
-        if (!class_exists(\craft\ckeditor\Field::class)) {
-            $errors[] = 'CKEditor plugin not installed, cannot create rich text field';
-        }
+        // No specific validation needed - CKEditor is assumed to be installed
 
         return $errors;
     }

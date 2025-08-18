@@ -37,6 +37,7 @@ class FieldService extends Component
         'button_group' => \craft\fields\ButtonGroup::class,
         'categories' => \craft\fields\Categories::class,
         'checkboxes' => \craft\fields\Checkboxes::class,
+        'ckeditor' => \craft\ckeditor\Field::class,
         'color' => \craft\fields\Color::class,
         'content_block' => \craft\fields\ContentBlock::class,
         'country' => \craft\fields\Country::class,
@@ -56,7 +57,6 @@ class FieldService extends Component
         'plain_text' => \craft\fields\PlainText::class,
         'radio_buttons' => \craft\fields\RadioButtons::class,
         'range' => \craft\fields\Range::class,
-        'rich_text' => \craft\ckeditor\Field::class,
         'table' => \craft\fields\Table::class,
         'tags' => \craft\fields\Tags::class,
         'time' => \craft\fields\Time::class,
@@ -398,11 +398,14 @@ class FieldService extends Component
 
             case 'rich_text':
             case 'richtext':
-                if (class_exists(\craft\ckeditor\Field::class)) {
-                    $field = new \craft\ckeditor\Field();
+            case 'ckeditor':
+                if (!class_exists('craft\ckeditor\Field')) {
+                    throw new Exception('CKEditor plugin is not installed. Please install the CKEditor plugin to use rich text fields.');
+                }
+                /** @var \craft\base\Field $field */
+                $field = new \craft\ckeditor\Field();
+                if (property_exists($field, 'purifyHtml')) {
                     $field->purifyHtml = true;
-                } else {
-                    throw new Exception("CKEditor plugin not installed, cannot create rich text field");
                 }
                 break;
 

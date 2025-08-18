@@ -290,12 +290,7 @@ class FieldService extends Component
 						if ($blockField) {
 							// Save the field
 							if (!$fieldsService->saveField($blockField)) {
-								$errors = $blockField->getFirstErrors();
-								$errorMessage = "Failed to save field '{$blockField->name}' for block type '{$entryType->name}'";
-								if (!empty($errors)) {
-									$errorMessage .= ": " . implode(', ', $errors);
-								}
-								throw new Exception($errorMessage);
+								throw new Exception("Failed to save field '{$blockField->name}' for block type '{$entryType->name}'");
 							}
 
 							$blockFields[] = $blockField;

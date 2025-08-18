@@ -15,6 +15,16 @@ use yii\base\Exception;
 class MatrixField implements FieldTypeInterface
 {
     private FieldIntrospector $introspector;
+    
+    /**
+     * @var array Tracks block fields created during matrix field creation
+     */
+    private array $createdBlockFields = [];
+
+    /**
+     * @var array Tracks block entry types created during matrix field creation
+     */
+    private array $createdBlockEntryTypes = [];
 
     public function __construct()
     {
@@ -378,8 +388,9 @@ class MatrixField implements FieldTypeInterface
                         $fieldConfig['handle'] = $blockTypeConfig['handle'] . ucfirst($fieldConfig['handle']);
                         $fieldConfig['name'] = $blockTypeConfig['name'] . ' ' . $fieldConfig['name'];
 
-                        // Create the field for this block type
-                        $blockField = $this->createFieldFromConfig($fieldConfig);
+                        // Create the field for this block type using FieldService
+                        $fieldService = \Craft::$app->plugins->getPlugin('field-agent')->fieldService;
+                        $blockField = $fieldService->createFieldFromConfig($fieldConfig);
 
                         if ($blockField) {
                             // Save the field
@@ -395,6 +406,15 @@ class MatrixField implements FieldTypeInterface
                             }
 
                             $blockFields[] = $blockField;
+
+                            // Track created block field
+                            $this->createdBlockFields[] = [
+                                'type' => 'block-field',
+                                'handle' => $blockField->handle,
+                                'name' => $blockField->name,
+                                'id' => $blockField->id,
+                                'blockType' => $blockTypeConfig['handle']
+                            ];
 
                             // Create field layout element
                             $fieldLayoutElement = new \craft\fieldlayoutelements\CustomField();
@@ -435,6 +455,14 @@ class MatrixField implements FieldTypeInterface
                 throw new Exception($errorMessage);
             }
 
+            // Track created block entry type
+            $this->createdBlockEntryTypes[] = [
+                'type' => 'block-entry-type',
+                'handle' => $entryType->handle,
+                'name' => $entryType->name,
+                'id' => $entryType->id
+            ];
+
             $entryTypes[] = $entryType;
         }
 
@@ -442,78 +470,219 @@ class MatrixField implements FieldTypeInterface
     }
 
     /**
-     * Create a field from config array
-     * EXACT copy from original FieldService implementation - no modifications
+     * Get created block fields from last matrix field creation
      */
-    private function createFieldFromConfig(array $config)
+    public function getCreatedBlockFields(): array
     {
-        // This is a simplified version - in practice would call the full FieldService method
-        // For this implementation, we'll use the field type classes
-        $fieldType = $config['field_type'] ?? '';
-        
-        switch ($fieldType) {
-            case 'plain_text':
-            case 'text':
-                $field = new \craft\fields\PlainText();
-                $field->multiline = $config['multiline'] ?? false;
-                $field->initialRows = $field->multiline ? 4 : 1;
-                if (isset($config['charLimit'])) {
-                    $field->charLimit = $config['charLimit'];
+        return $this->createdBlockFields;
+    }
+
+    /**
+     * Get created block entry types from last matrix field creation
+     */
+    public function getCreatedBlockEntryTypes(): array
+    {
+        return $this->createdBlockEntryTypes;
+    }
+
+    /**
+     * Clear tracked matrix block items
+     */
+    public function clearBlockTracking(): void
+    {
+        $this->createdBlockFields = [];
+        $this->createdBlockEntryTypes = [];
+    }
+
+    /**
+     * Add a new entry type to an existing matrix field
+     */
+    public function addMatrixEntryType(\craft\fields\Matrix $matrixField, array $entryTypeConfig): bool
+    {
+        $fieldsService = \Craft::$app->getFields();
+        $entriesService = \Craft::$app->getEntries();
+
+        // Get existing entry types
+        $existingEntryTypes = $matrixField->getEntryTypes();
+
+        // Check if we should reference an existing entry type or create a new one
+        if (isset($entryTypeConfig['entryTypeHandle'])) {
+            // Reference existing entry type
+            $entryType = $entriesService->getEntryTypeByHandle($entryTypeConfig['entryTypeHandle']);
+            if (!$entryType) {
+                throw new \Exception("Entry type '{$entryTypeConfig['entryTypeHandle']}' not found");
+            }
+
+            // Check if this entry type is already associated with the matrix field
+            foreach ($existingEntryTypes as $existingType) {
+                if ($existingType->handle === $entryType->handle) {
+                    throw new \Exception("Entry type '{$entryType->handle}' is already associated with matrix field '{$matrixField->handle}'");
                 }
-                break;
+            }
 
-            case 'rich_text':
-            case 'richtext':
-                if (class_exists(\craft\ckeditor\Field::class)) {
-                    $field = new \craft\ckeditor\Field();
-                    $field->purifyHtml = true;
-                } else {
-                    throw new Exception("CKEditor plugin not installed, cannot create rich text field");
-                }
-                break;
-
-            case 'image':
-                $field = new \craft\fields\Assets();
-                $field->allowedKinds = ['image'];
-                $field->restrictFiles = true;
-                $field->maxRelations = $config['maxRelations'] ?? 1;
-                if (isset($config['minRelations'])) {
-                    $field->minRelations = $config['minRelations'];
-                }
-                $field->viewMode = 'list';
-                break;
-
-            case 'asset':
-                $field = new \craft\fields\Assets();
-                $field->maxRelations = $config['maxRelations'] ?? 1;
-                if (isset($config['minRelations'])) {
-                    $field->minRelations = $config['minRelations'];
-                }
-                $field->viewMode = 'list';
-                if (isset($config['allowedKinds'])) {
-                    $field->allowedKinds = $config['allowedKinds'];
-                    $field->restrictFiles = true;
-                }
-                break;
-
-            default:
-                throw new Exception("Unsupported field type: $fieldType");
-        }
-
-        if ($field) {
-            $field->name = $config['name'];
-            $field->handle = $config['handle'];
-            $field->instructions = $config['instructions'] ?? '';
-            $field->searchable = $config['searchable'] ?? false;
-            $field->translationMethod = 'none';
-
-            try {
-                $field->groupId = 1; // Default field group
-            } catch (\Exception $e) {
-                // Some field types may not support groupId directly
+            $newEntryTypes = [$entryType];
+        } else {
+            // Create new entry type using our createMatrixBlockTypes method
+            $newEntryTypes = $this->createMatrixBlockTypes([$entryTypeConfig]);
+            if (empty($newEntryTypes)) {
+                throw new \Exception("Failed to create entry type '{$entryTypeConfig['name']}'");
             }
         }
 
-        return $field;
+        // Combine existing and new entry types
+        $allEntryTypes = array_merge($existingEntryTypes, $newEntryTypes);
+        $matrixField->setEntryTypes($allEntryTypes);
+
+        // Save the matrix field with updated block types
+        return $fieldsService->saveField($matrixField);
+    }
+
+    /**
+     * Remove an entry type from an existing matrix field
+     */
+    public function removeMatrixEntryType(\craft\fields\Matrix $matrixField, string $entryTypeHandle): bool
+    {
+        $fieldsService = \Craft::$app->getFields();
+        $entriesService = \Craft::$app->getEntries();
+
+        // Get existing entry types
+        $existingEntryTypes = $matrixField->getEntryTypes();
+
+        // Filter out the entry type to remove
+        $remainingEntryTypes = array_filter($existingEntryTypes, function ($entryType) use ($entryTypeHandle) {
+            return $entryType->handle !== $entryTypeHandle;
+        });
+
+        if (count($remainingEntryTypes) === count($existingEntryTypes)) {
+            throw new \Exception("Entry type '{$entryTypeHandle}' not found in matrix field");
+        }
+
+        // Update matrix field with remaining entry types
+        $matrixField->setEntryTypes(array_values($remainingEntryTypes));
+
+        // Save the matrix field
+        if (!$fieldsService->saveField($matrixField)) {
+            return false;
+        }
+
+        // Find and delete the entry type that was removed
+        $removedEntryType = null;
+        foreach ($existingEntryTypes as $entryType) {
+            if ($entryType->handle === $entryTypeHandle) {
+                $removedEntryType = $entryType;
+                break;
+            }
+        }
+
+        if ($removedEntryType) {
+            // Delete the entry type (this will also clean up its fields)
+            $entriesService->deleteEntryType($removedEntryType);
+        }
+
+        return true;
+    }
+
+    /**
+     * Modify an existing matrix entry type (add/remove fields)
+     */
+    public function modifyMatrixEntryType(\craft\fields\Matrix $matrixField, string $entryTypeHandle, array $modifications): bool
+    {
+        $fieldsService = \Craft::$app->getFields();
+        $entriesService = \Craft::$app->getEntries();
+
+        // Find the entry type for this entry type handle
+        $targetEntryType = null;
+        foreach ($matrixField->getEntryTypes() as $entryType) {
+            if ($entryType->handle === $entryTypeHandle) {
+                $targetEntryType = $entryType;
+                break;
+            }
+        }
+
+        if (!$targetEntryType) {
+            throw new \Exception("Entry type '{$entryTypeHandle}' not found in matrix field");
+        }
+
+        $fieldLayout = $targetEntryType->getFieldLayout();
+        $currentFields = $fieldLayout->getCustomFields();
+        $layoutElements = [];
+
+        // Add existing fields to layout
+        foreach ($currentFields as $field) {
+            $element = new \craft\fieldlayoutelements\CustomField();
+            $element->fieldUid = $field->uid;
+            $layoutElements[] = $element;
+        }
+
+        // Add new fields if specified
+        if (isset($modifications['addFields'])) {
+            foreach ($modifications['addFields'] as $fieldConfig) {
+                // Ensure required field properties exist
+                if (!isset($fieldConfig['handle'])) {
+                    throw new \Exception("Field handle is required for addFields in modifyMatrixEntryType");
+                }
+                if (!isset($fieldConfig['name'])) {
+                    throw new \Exception("Field name is required for addFields in modifyMatrixEntryType");
+                }
+                
+                // Prefix field handle with entry type handle to ensure uniqueness
+                $fieldConfig['handle'] = $entryTypeHandle . ucfirst($fieldConfig['handle']);
+                $fieldConfig['name'] = $targetEntryType->name . ' ' . $fieldConfig['name'];
+
+                // Create the field using FieldService
+                $fieldService = \Craft::$app->plugins->getPlugin('field-agent')->fieldService;
+                $newField = $fieldService->createFieldFromConfig($fieldConfig);
+                if ($newField && $fieldsService->saveField($newField)) {
+                    // Add to layout
+                    $element = new \craft\fieldlayoutelements\CustomField();
+                    $element->fieldUid = $newField->uid;
+                    $element->required = $fieldConfig['required'] ?? false;
+                    $layoutElements[] = $element;
+
+                    // Track created field
+                    $this->createdBlockFields[] = [
+                        'type' => 'block-field',
+                        'handle' => $newField->handle,
+                        'name' => $newField->name,
+                        'id' => $newField->id,
+                        'blockType' => $entryTypeHandle
+                    ];
+                }
+            }
+        }
+
+        // Remove fields if specified
+        if (isset($modifications['removeFields'])) {
+            foreach ($modifications['removeFields'] as $fieldHandle) {
+                // Remove from layout elements
+                $layoutElements = array_filter($layoutElements, function ($element) use ($fieldHandle) {
+                    if ($element instanceof \craft\fieldlayoutelements\CustomField) {
+                        $field = \Craft::$app->getFields()->getFieldByUid($element->fieldUid);
+                        return $field ? $field->handle !== $fieldHandle : true;
+                    }
+                    return true;
+                });
+            }
+        }
+
+        // Update the field layout
+        $newFieldLayout = new \craft\models\FieldLayout();
+        $newFieldLayout->type = \craft\models\EntryType::class;
+        $newFieldLayout->setTabs([
+            [
+                'name' => 'Content',
+                'elements' => array_values($layoutElements),
+            ]
+        ]);
+
+        $targetEntryType->setFieldLayout($newFieldLayout);
+
+        // Update name if specified
+        if (isset($modifications['name'])) {
+            $targetEntryType->name = $modifications['name'];
+        }
+
+        // Save the entry type
+        return $entriesService->saveEntryType($targetEntryType);
     }
 }

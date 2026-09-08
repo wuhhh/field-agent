@@ -1,5 +1,8 @@
 # Field Agent Plugin for Craft CMS
-⚠️ **ALPHA SOFTWARE - USE WITH CAUTION** ⚠️
+
+**Plugin archived and replaced with [MCP Field Agent](https://github.com/wuhhh/craft-mcp-field-agent)**
+
+---
 
 This plugin uses AI to generate Craft CMS fields, entry types, and sections from natural language prompts. The plugin supports all native Craft CMS field types (as of Craft 5.8 and including the new Content Block) as well as CKEditor fields.
 
